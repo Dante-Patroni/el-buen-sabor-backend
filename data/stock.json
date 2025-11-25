@@ -1,0 +1,14 @@
+[
+  {
+    "ingrediente": "Carne_Res",
+    "cantidadDisponible": 50
+  },
+  {
+    "ingrediente": "Queso_Cheddar",
+    "cantidadDisponible": 0
+  },
+  {
+    "ingrediente": "Pan_Artesanal",
+    "cantidadDisponible": 100
+  }
+]
