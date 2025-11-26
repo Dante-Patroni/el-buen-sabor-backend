@@ -1,37 +1,50 @@
-const { Pedido, Plato } = require('../../models'); // Tus modelos Sequelize
-const StockAdapter = require('./stockAdapter');    // Tu Adapter recién creado
+const { Pedido } = require('../models'); 
+// 1. IMPORTAMOS EL EMISOR 📢
+const pedidoEmitter = require('../events/pedidoEvents');
 
 class PedidoService {
 
+    // 1. Recibimos el adaptador en el constructor (Inyección de Dependencias)
+    constructor(stockAdapter) {
+        this.stockAdapter = stockAdapter;
+    }
+
     async crearYValidarPedido(cliente, platoId) {
-        // 1. Buscar el Plato para saber su ingrediente principal
-        const plato = await Plato.findByPk(platoId);
+        // ---------------------------------------------------------
+        // PASO 1: Verificar Stock (Usando el Adaptador Inyectado)
+        // ---------------------------------------------------------
+        // Nota: Usamos "this.stockAdapter" en lugar de la clase estática.
+        // Además, usamos "obtenerStock(platoId)" que es el método de nuestro MongoAdapter.
         
-        if (!plato) {
-            throw new Error('PLATO_NO_ENCONTRADO'); // Sale automáticamente y Manejaremos esto en el Controller
+        const stockActual = await this.stockAdapter.obtenerStock(platoId);
+        console.log(`Debug: Stock actual para plato ${platoId} en Mongo: ${stockActual}`);
+
+        // Validación de Negocio
+        if (stockActual <= 0) {
+            throw new Error('STOCK_INSUFICIENTE');
         }
 
-        // 2. Consultar Stock vía Adapter (Patrón Adapter en acción)
-        const stockDisponible = await StockAdapter.consultarStock(plato.ingredientePrincipal);
+        // ---------------------------------------------------------
+        // PASO 2: Descontar Stock (Actualizar Mongo)
+        // ---------------------------------------------------------
+        await this.stockAdapter.descontarStock(platoId, 1);
 
-        console.log(`Debug: Plato ${plato.nombre} requiere ${plato.ingredientePrincipal}. Stock: ${stockDisponible}`);
-
-        // 3. Regla de Negocio: Validar disponibilidad
-        // (Asumimos que cada plato consume 1 unidad de ingrediente para simplificar)
-        if (stockDisponible < 1) {
-            throw new Error('STOCK_INSUFICIENTE');// Sale automáticamente y Manejaremos esto en el Controller
-        }
-
-        // 4. Si todo está OK, persistir en MySQL
-        const nuevoPedido = await Pedido.create({//Acá se crea el pedido en la base de datos con Sequelize
-            cliente,
-            PlatoId: platoId,
+        // ---------------------------------------------------------
+        // PASO 3: Crear el Pedido (Persistir en MySQL)
+        // ---------------------------------------------------------
+       // 3. Crear Pedido en MySQL
+        const nuevoPedido = await Pedido.create({
+            cliente: cliente,     // Clave: Valor
+            PlatoId: platoId,     // 👈 OJO AQUÍ: "PlatoId" (BD) : "platoId" (Variable que recibes)
             fecha: new Date(),
-            estado: 'en_preparacion' // Estado inicial feliz
+            estado: 'en_preparacion'
         });
+        // 2. DISPARAMOS EL EVENTO 📢⚡
+        // "Fire and Forget": Avisamos y no esperamos a que terminen los listeners.
+        pedidoEmitter.emit('pedido-creado', { pedido: nuevoPedido });
 
-        return nuevoPedido; // Retornamos el pedido creado
+        return nuevoPedido;
     }
 }
 
-module.exports = new PedidoService();
+module.exports = PedidoService;

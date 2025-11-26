@@ -1,23 +1,34 @@
 const PedidoService = require('../services/pedidoService');
+const StockAdapter = require('../adapters/MongoStockAdapter'); 
 
 class PedidoController {
+
+    constructor() {
+        // Inyección de dependencias
+        this.stockAdapter = new StockAdapter();
+        this.pedidoService = new PedidoService(this.stockAdapter);
+    }
 
     async crear(req, res) {
         try {
             // 1. Extraer datos del Body
-            const { cliente, platoId } = req.body;
+            // El JSON que envías desde Swagger tiene "platoId" (minúscula)
+            const { cliente, platoId } = req.body; 
 
-            // Validación básica de entrada (Sanity Check)
+            // Validación básica
+            // 🔴 CORREGIDO: Usamos "platoId" (la variable que acabamos de crear arriba)
             if (!cliente || !platoId) {
                 return res.status(400).json({ 
                     error: "Faltan datos obligatorios: se requiere 'cliente' y 'platoId'." 
                 });
             }
 
-            // 2. Invocar al Servicio (Aquí ocurre la magia de validación de Stock)
-            const pedidoCreado = await PedidoService.crearYValidarPedido(cliente, platoId);
+            // 2. Invocar al Servicio 
+            // 🔴 CORREGIDO: Pasamos "platoId" (minúscula). 
+            // El Servicio se encargará de guardarlo como "PlatoId" en la BD.
+            const pedidoCreado = await this.pedidoService.crearYValidarPedido(cliente, platoId);
 
-            // 3. Responder Éxito (201 Created)
+            // 3. Responder Éxito
             res.status(201).json({
                 mensaje: "Pedido creado exitosamente",
                 data: pedidoCreado
@@ -26,20 +37,18 @@ class PedidoController {
         } catch (error) {
             console.error("Error en PedidoController:", error.message);
 
-            // Manejo de errores específicos del negocio
             if (error.message === 'STOCK_INSUFICIENTE') {
-                return res.status(409).json({ // 409 Conflict
-                    error: "No se puede procesar el pedido: Stock insuficiente del ingrediente principal."
+                return res.status(409).json({
+                    error: "No se puede procesar el pedido: Stock insuficiente (Verificado en Mongo Atlas)."
                 });
             }
             
             if (error.message === 'PLATO_NO_ENCONTRADO') {
-                return res.status(404).json({ // 404 Not Found
+                return res.status(404).json({
                     error: "El plato solicitado no existe en el menú."
                 });
             }
 
-            // Error genérico
             return res.status(500).json({ error: "Error interno del servidor" });
         }
     }
