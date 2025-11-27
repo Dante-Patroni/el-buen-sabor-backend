@@ -1,30 +1,44 @@
 const express = require('express');
 const cors = require('cors');
-const { dbConnection } = require('./src/config/mongo');
-const setupListeners = require('./src/listeners/setupListeners'); // 🆕 1. Importar
-const pedidoRoutes = require('./src/routes/pedidoRoutes'); // Importar rutas
-
-// 🆕 Importamos Swagger UI y nuestra configuración
-const swaggerUi = require('swagger-ui-express');
-const swaggerSpecs = require('./src/docs/swagger');
+const { dbConnection } = require('./src/config/mongo'); 
+const { sequelize } = require('./src/models'); // 🆕 1. Importamos la conexión SQL
+const setupListeners = require('./src/listeners/setupListeners');
 
 const app = express();
-const PORT = process.env.PORT || 3000; // 🆕 Usamos la variable de entorno o 3000 por defecto
+const PORT = process.env.PORT || 3000;
+
 app.use(cors());
-app.use(express.json()); // ¡Vital para recibir JSON!
+app.use(express.json());
 
-// 🆕 Conectamos a Base de Datos
-dbConnection();
-setupListeners(); // 🆕 2. Activar los oídos
-
-// 🆕 RUTA DE DOCUMENTACIÓN (Accesible en /api-docs)
+// Documentación Swagger
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpecs = require('./src/docs/swagger');
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
 
-// Rutas de la API
-app.use('/api/pedidos', pedidoRoutes);
+// Inicializaciones
+const startServer = async () => {
+    try {
+        // 1. Conectar Mongo
+        await dbConnection();
+        
+        // 2. Sincronizar MySQL (🆕 La Magia: Crea tablas si no existen)
+        await sequelize.sync({ force: false }); 
+        console.log('📦 Tablas MySQL sincronizadas');
 
-app.listen(PORT, () => {
-    console.log(`🚀 Servidor 'El Buen Sabor' corriendo en http://localhost:${PORT}`);
-    // 🆕 Aviso extra en consola
-    console.log(`📄 Documentación disponible en http://localhost:${PORT}/api-docs`);
-});
+        // 3. Activar Listeners
+        setupListeners();
+
+        // 4. Arrancar Servidor
+        app.listen(PORT, () => {
+            console.log(`🚀 Servidor 'El Buen Sabor' corriendo en http://localhost:${PORT}`);
+            console.log(`📄 Documentación disponible en http://localhost:${PORT}/api-docs`);
+        });
+    } catch (error) {
+        console.error('❌ Error al iniciar el servidor:', error);
+    }
+};
+
+startServer(); // Ejecutamos la función de inicio
+
+// Rutas
+app.use('/api/pedidos', require('./src/routes/pedidoRoutes'));
