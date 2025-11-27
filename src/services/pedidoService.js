@@ -34,8 +34,8 @@ class PedidoService {
         // ---------------------------------------------------------
        // 3. Crear Pedido en MySQL
         const nuevoPedido = await Pedido.create({
-            cliente: cliente,     // Clave: Valor
-            PlatoId: platoId,     // 👈 OJO AQUÍ: "PlatoId" (BD) : "platoId" (Variable que recibes)
+            cliente: cliente,     
+            PlatoId: platoId,     
             fecha: new Date(),
             estado: 'en_preparacion'
         });

@@ -1,0 +1,49 @@
+name: CI - El Buen Sabor Backend
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    # 🐳 1. SERVICIOS: Aquí levantamos MySQL temporalmente
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: el_buen_sabor_test # Creamos una BD para test
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    steps:
+    - name: Checkout del código
+      uses: actions/checkout@v3
+
+    - name: Instalar Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Instalar dependencias
+      run: npm ci
+
+    # 🚀 2. CONFIGURACIÓN: Le pasamos las credenciales de ese MySQL temporal
+    - name: Ejecutar Tests
+      env:
+        PORT: 3000
+        # Variables para MongoDB (Secreto de GitHub)
+        MONGO_URI: ${{ secrets.MONGO_URI }}
+        # Variables para MySQL (Las que definimos arriba en 'services')
+        DB_USERNAME: root
+        DB_PASSWORD: root
+        DB_DATABASE: el_buen_sabor_test
+        DB_HOST: 127.0.0.1
+        NODE_ENV: test
+      run: npm test
