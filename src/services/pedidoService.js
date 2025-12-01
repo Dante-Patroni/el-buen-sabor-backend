@@ -1,6 +1,4 @@
 const { Pedido } = require('../models'); 
-// 1. IMPORTAMOS EL EMISOR 📢
-const pedidoEmitter = require('../events/pedidoEvents');
 
 class PedidoService {
 
@@ -9,41 +7,57 @@ class PedidoService {
         this.stockAdapter = stockAdapter;
     }
 
+    // LÓGICA: CREAR PEDIDO
     async crearYValidarPedido(cliente, platoId) {
-        // ---------------------------------------------------------
-        // PASO 1: Verificar Stock (Usando el Adaptador Inyectado)
-        // ---------------------------------------------------------
-        // Nota: Usamos "this.stockAdapter" en lugar de la clase estática.
-        // Además, usamos "obtenerStock(platoId)" que es el método de nuestro MongoAdapter.
-        
+        // 1. Verificar Stock
         const stockActual = await this.stockAdapter.obtenerStock(platoId);
-        console.log(`Debug: Stock actual para plato ${platoId} en Mongo: ${stockActual}`);
-
-        // Validación de Negocio
+        
         if (stockActual <= 0) {
             throw new Error('STOCK_INSUFICIENTE');
         }
 
-        // ---------------------------------------------------------
-        // PASO 2: Descontar Stock (Actualizar Mongo)
-        // ---------------------------------------------------------
+        // 2. Descontar Stock
         await this.stockAdapter.descontarStock(platoId, 1);
 
-        // ---------------------------------------------------------
-        // PASO 3: Crear el Pedido (Persistir en MySQL)
-        // ---------------------------------------------------------
-       // 3. Crear Pedido en MySQL
+        // 3. Crear Pedido
         const nuevoPedido = await Pedido.create({
-            cliente: cliente,     
-            PlatoId: platoId,     
+            cliente,
+            PlatoId: platoId, 
             fecha: new Date(),
             estado: 'en_preparacion'
         });
-        // 2. DISPARAMOS EL EVENTO 📢⚡
-        // "Fire and Forget": Avisamos y no esperamos a que terminen los listeners.
-        pedidoEmitter.emit('pedido-creado', { pedido: nuevoPedido });
 
         return nuevoPedido;
+    }
+
+    // LÓGICA: LISTAR PEDIDOS
+    async listarPedidos() {
+        const pedidos = await Pedido.findAll({
+            order: [['createdAt', 'DESC']] 
+        });
+        return pedidos;
+    }
+
+    // 🆕 LÓGICA: ELIMINAR PEDIDO (Con reposición de stock)
+    async eliminarPedido(id) {
+        // 1. Buscar el pedido en MySQL para saber qué plato tenía
+        const pedido = await Pedido.findByPk(id);
+
+        if (!pedido) {
+            throw new Error('PEDIDO_NO_ENCONTRADO');
+        }
+
+        // 2. Devolver el Stock a Mongo (Rollback)
+        // Usamos el PlatoId que estaba guardado en el pedido para saber qué reponer
+        // Solo reponemos si el pedido no estaba ya rechazado (opcional, pero buena práctica)
+        if (pedido.estado !== 'rechazado') {
+            await this.stockAdapter.reponerStock(pedido.PlatoId, 1);
+        }
+
+        // 3. Borrar físicamente de MySQL
+        await pedido.destroy();
+
+        return true; 
     }
 }
 

@@ -1,0 +1,15 @@
+const path = require('path');
+
+module.exports = {
+  // 1. Dónde está la configuración (Ahora es JS y está en src)
+  'config': path.resolve('src', 'config', 'config.js'),
+
+  // 2. Dónde están los modelos (Los movimos a src)
+  'models-path': path.resolve('src', 'models'),
+
+  // 3. Dónde están las migraciones (Suelen estar en la raíz)
+  'migrations-path': path.resolve('migrations'),
+
+  // 4. Dónde están los seeders (Suelen estar en la raíz)
+  'seeders-path': path.resolve('seeders')
+};

@@ -35,6 +35,26 @@ class MongoStockAdapter {
             throw new Error('Error al actualizar stock en Mongo');
         }
     }
+
+    // ... (métodos anteriores)
+
+    // 🆕 Método 3: Reponer Stock (Para cancelaciones)
+    async reponerStock(platoId, cantidad) {
+        try {
+            const stockActual = await this.obtenerStock(platoId);
+            const nuevoStock = stockActual + cantidad;
+
+            await StockModel.updateOne(
+                { platoId: platoId },
+                { cantidad: nuevoStock }
+            );
+            console.log(`📈 Stock REPUESTO en Mongo Atlas. Nuevo saldo: ${nuevoStock}`);
+        } catch (error) {
+            throw new Error('Error al reponer stock en Mongo');
+        }
+    }
 }
+ 
+
 
 module.exports = MongoStockAdapter;
