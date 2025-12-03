@@ -17,38 +17,26 @@ const PedidoController = require('../controllers/pedidoController');
  *           schema:
  *             type: object
  *             required:
- *               - cliente
+ *               - mesa
  *               - platoId
  *             properties:
- *               cliente:
+ *               mesa:
  *                 type: string
- *                 description: Nombre del cliente
- *                 example: "Dante Patroni"
+ *                 description: Número de mesa (OBLIGATORIO)
+ *                 example: "5"
  *               platoId:
  *                 type: integer
- *                 description: ID del plato a pedir
+ *                 description: ID del plato a pedir (OBLIGATORIO)
  *                 example: 1
+ *               cliente:
+ *                 type: string
+ *                 description: Nombre del cliente (OPCIONAL)
+ *                 example: "Dante Patroni"
  *     responses:
  *       201:
  *         description: Pedido creado exitosamente
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 mensaje:
- *                   type: string
- *                 data:
- *                   type: object
- *       400:
- *         description: Faltan datos obligatorios
- *       404:
- *         description: Plato no encontrado
- *       409:
- *         description: Stock insuficiente (Conflicto)
- *       500:
- *         description: Error del servidor
  */
+// 1. CREAR (POST) -> Llama a PedidoController.crear
 router.post('/', (req, res) => PedidoController.crear(req, res));
 
 /**
@@ -81,6 +69,7 @@ router.post('/', (req, res) => PedidoController.crear(req, res));
  *       500:
  *         description: Error interno del servidor
  */
+// 2. LISTAR (GET) -> Llama a PedidoController.listar
 router.get('/', (req, res) => PedidoController.listar(req, res));
 
 // ---------------------------------------------------------
@@ -108,6 +97,8 @@ router.get('/', (req, res) => PedidoController.listar(req, res));
  *       500:
  *         description: Error interno del servidor
  */
+// 3. ELIMINAR (DELETE) -> Llama a PedidoController.eliminar
+// Fíjate en el ':id'. Eso es un Parámetro de Ruta.
 router.delete('/:id', (req, res) => PedidoController.eliminar(req, res));
 
 module.exports = router;

@@ -1,10 +1,11 @@
 const PedidoService = require('../services/pedidoService');
-const StockAdapter = require('../adapters/MongoStockAdapter'); 
-const { Pedido, Plato } = require('../models'); 
+const StockAdapter = require('../adapters/MongoStockAdapter');
+const { Pedido, Plato } = require('../models');
 
 class PedidoController {
 
     constructor() {
+        // [A] INYECCIÓN DE DEPENDENCIAS (Wiring)
         this.stockAdapter = new StockAdapter();
         this.pedidoService = new PedidoService(this.stockAdapter);
     }
@@ -14,17 +15,22 @@ class PedidoController {
     // ---------------------------------------------------------
     async crear(req, res) {
         try {
-            const { cliente, platoId } = req.body; 
+            const { cliente, platoId, mesa } = req.body;
 
-            if (!cliente || !platoId) {
+            if (!platoId || !mesa) {
                 return res.status(400).json({ error: "Faltan datos obligatorios." });
             }
 
-            const pedidoCreado = await this.pedidoService.crearYValidarPedido(cliente, platoId);
+            // Asegurar que mesa sea string (incluso si envías número desde Flutter)
+            const mesaString = String(mesa);
+
+            // Cliente puede ser undefined/string vacío
+            const clienteFinal = cliente || "";
+
+            const pedidoCreado = await this.pedidoService.crearYValidarPedido(cliente, platoId, mesa);
 
             res.status(201).json({
-                mensaje: "Pedido creado exitosamente",
-                data: pedidoCreado
+               id: pedidoCreado.id
             });
 
         } catch (error) {

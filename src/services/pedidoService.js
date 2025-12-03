@@ -1,3 +1,7 @@
+/* Este es el Corazón de la Lógica de Negocio (Business Logic Layer). 
+A diferencia de los Controladores (que solo reciben y responden) o los
+ Modelos (que solo guardan datos), el Servicio es el que Piensa y 
+ Toma Decisiones.*/ 
 const { Pedido } = require('../models'); 
 
 class PedidoService {
@@ -8,19 +12,26 @@ class PedidoService {
     }
 
     // LÓGICA: CREAR PEDIDO
-    async crearYValidarPedido(cliente, platoId) {
-        // 1. Verificar Stock
+    async crearYValidarPedido(cliente, platoId, mesa ) {
+        // Validación adicional en el servicio
+    if (!mesa || mesa.toString().trim() === "") {
+        throw new Error('MESA_REQUERIDA');
+    }
+        // PASO A: Verificar Stock (Consulta externa)
         const stockActual = await this.stockAdapter.obtenerStock(platoId);
         
+        // REGLA DE NEGOCIO 1: No vender lo que no hay
         if (stockActual <= 0) {
+            // Lanzamos una Excepción de Negocio (No un error HTTP)
             throw new Error('STOCK_INSUFICIENTE');
         }
 
-        // 2. Descontar Stock
+        // PASO B: Descontar Stock (Modificación externa)
         await this.stockAdapter.descontarStock(platoId, 1);
 
-        // 3. Crear Pedido
+        // PASO C: Crear el Pedido (Persistencia Local)
         const nuevoPedido = await Pedido.create({
+            mesa,
             cliente,
             PlatoId: platoId, 
             fecha: new Date(),
