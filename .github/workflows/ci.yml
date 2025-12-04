@@ -68,7 +68,7 @@ jobs:
         npm start &
         
         # 4. Esperar a que el puerto 3000 responda
-        npx wait-on tcp:3000
+        npx wait-on http://127.0.0.1:3000/api-docs
         
         # 5. Correr Newman
         npm test
