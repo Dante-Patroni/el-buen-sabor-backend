@@ -30,8 +30,17 @@ class PedidoController {
             const pedidoCreado = await this.pedidoService.crearYValidarPedido(cliente, platoId, mesa);
 
             res.status(201).json({
-               id: pedidoCreado.id
+                mensaje: "Pedido creado exitosamente",
+                data: {
+                    id: pedidoCreado.id,
+                    mesa: pedidoCreado.mesa,
+                    cliente: pedidoCreado.cliente,
+                    platoId: pedidoCreado.platoId,
+                    fecha: pedidoCreado.fecha,
+                    estado: pedidoCreado.estado
+                }
             });
+
 
         } catch (error) {
             console.error("Error Crear:", error.message);

@@ -2,59 +2,98 @@ const StockModel = require('../models/mongo/Stock');
 
 class MongoStockAdapter {
     
-    // Método 1: Obtener Stock (Interfaz idéntica al JsonAdapter)
+    // -------------------------------------------------------------------------
+    // 1. CARGA MASIVA (Para el Menú - Optimizado ayer)
+    // -------------------------------------------------------------------------
+    async obtenerStockCompleto() {
+        try {
+            const stocks = await StockModel.find({}).lean();
+            // console.log("🔍 Datos crudos (Lean):", JSON.stringify(stocks, null, 2)); 
+
+            const stockMap = {};
+            stocks.forEach(doc => {
+                stockMap[doc.platoId] = {
+                    cantidad: doc.cantidad,
+                    esIlimitado: doc.esIlimitado
+                };
+            });
+            return stockMap;
+        } catch (error) {
+            console.error("⚠️ Error leyendo stock masivo:", error.message);
+            return {}; 
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // 2. CONSULTA INDIVIDUAL (Para validar antes de crear pedido)
+    // -------------------------------------------------------------------------
     async obtenerStock(platoId) {
         try {
-            // "findOne" es el comando de Mongoose para buscar
             const stock = await StockModel.findOne({ platoId: platoId });
             
-            // Si no existe el registro en la nube, devolvemos 0
+            // Si no existe, asumimos 0
             if (!stock) return 0;
-            
+
+            // Si es ilimitado, devolvemos un número alto o una bandera
+            // Para tu lógica de "stockActual <= 0", si es ilimitado devolvemos 999
+            if (stock.esIlimitado) return 999; 
+
             return stock.cantidad;
         } catch (error) {
-            console.error('Error MongoAdapter:', error);
-            throw new Error('Error al consultar stock en Base de Datos NoSQL');
+            console.error('Error MongoAdapter obtenerStock:', error);
+            throw new Error('Error al consultar stock individual');
         }
     }
 
-    // Método 2: Descontar Stock
+    // -------------------------------------------------------------------------
+    // 3. DESCONTAR STOCK (El momento de la venta)
+    // -------------------------------------------------------------------------
     async descontarStock(platoId, cantidadRequerida) {
         try {
-            const stockActual = await this.obtenerStock(platoId);
-            const nuevoStock = stockActual - cantidadRequerida;
-
-            // "updateOne" busca y actualiza
-            await StockModel.updateOne(
-                { platoId: platoId }, 
-                { cantidad: nuevoStock }
-            );
+            const stockDoc = await StockModel.findOne({ platoId });
             
-            console.log(`📉 Stock descontado en Mongo Atlas. Nuevo saldo: ${nuevoStock}`);
+            if (!stockDoc) throw new Error('PLATO_NO_ENCONTRADO_EN_STOCK');
+
+            // Si es ilimitado, NO tocamos la cantidad. Solo retornamos éxito.
+            if (stockDoc.esIlimitado) {
+                console.log(`♾️ Plato ${platoId} es ilimitado. No se descuenta.`);
+                return; 
+            }
+
+            // Validación de seguridad (Doble chequeo)
+            if (stockDoc.cantidad < cantidadRequerida) {
+                throw new Error('STOCK_INSUFICIENTE');
+            }
+
+            // Restamos y guardamos
+            stockDoc.cantidad -= cantidadRequerida;
+            await stockDoc.save();
+            
+            console.log(`📉 Stock descontado ID ${platoId}. Nuevo saldo: ${stockDoc.cantidad}`);
         } catch (error) {
-            throw new Error('Error al actualizar stock en Mongo');
+            throw error; // Re-lanzamos para que el Service cancele todo
         }
     }
 
-    // ... (métodos anteriores)
-
-    // 🆕 Método 3: Reponer Stock (Para cancelaciones)
+    // -------------------------------------------------------------------------
+    // 4. REPONER STOCK (Para eliminar/cancelar pedidos)
+    // -------------------------------------------------------------------------
     async reponerStock(platoId, cantidad) {
         try {
-            const stockActual = await this.obtenerStock(platoId);
-            const nuevoStock = stockActual + cantidad;
+            const stockDoc = await StockModel.findOne({ platoId });
+            
+            if (!stockDoc) return; // Si no existe, no hacemos nada
+            if (stockDoc.esIlimitado) return; // Si es ilimitado, no sumamos nada
 
-            await StockModel.updateOne(
-                { platoId: platoId },
-                { cantidad: nuevoStock }
-            );
-            console.log(`📈 Stock REPUESTO en Mongo Atlas. Nuevo saldo: ${nuevoStock}`);
+            stockDoc.cantidad += cantidad;
+            await stockDoc.save();
+            
+            console.log(`📈 Stock repuesto ID ${platoId}. Nuevo saldo: ${stockDoc.cantidad}`);
         } catch (error) {
-            throw new Error('Error al reponer stock en Mongo');
+            console.error("Error reponiendo stock:", error);
+            // No lanzamos error aquí para permitir que se borre el pedido SQL aunque falle Mongo
         }
     }
 }
- 
-
 
 module.exports = MongoStockAdapter;

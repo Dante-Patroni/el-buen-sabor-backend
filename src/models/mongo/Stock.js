@@ -1,21 +1,16 @@
 const mongoose = require('mongoose');
 
-// Definimos cómo se ve un documento de Stock en Mongo
-const StockSchema = new mongoose.Schema({
-    platoId: {
-        type: Number,
-        required: true,
-        unique: true // No puede haber dos stocks para el mismo plato
+const StockSchema = new mongoose.Schema(
+    {
+        platoId: { type: Number, required: true, unique: true },
+        cantidad: { type: Number, default: 0 },
+        esIlimitado: { type: Boolean, default: false }
     },
-    ingrediente: {
-        type: String,
-        required: true
-    },
-    cantidad: {
-        type: Number,
-        default: 0
+    { 
+        timestamps: true,
+        versionKey: false,
+        strict: false // 💡 Truco de Profe: Esto permite leer campos aunque no estén perfectos en el esquema
     }
-});
+);
 
-// Exportamos el modelo "Stock" (Mongoose creará la colección 'stocks' automáticamente)
 module.exports = mongoose.model('Stock', StockSchema);
