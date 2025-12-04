@@ -1,19 +1,24 @@
+'use strict';
+
 module.exports = {
-  up: async (queryInterface, Sequelize) => {
-    // 1. Insertar un plato de prueba
+  async up (queryInterface, Sequelize) {
+    // Borramos datos previos para evitar duplicados si corre dos veces
+    await queryInterface.bulkDelete('Platos', null, {});
+
     await queryInterface.bulkInsert('Platos', [{
-      id: 2, // Forzamos el ID 2 para que coincida con tu test
-      nombre: 'Hamburguesa Doble',
+      id: 2, // Forzamos el ID para el Test
+      nombre: 'Milanesa a la Napolitana',
       precio: 1500.00,
-      rubro: 'Comida',
-      imagenUrl: 'http://url-falsa.com/hamburguesa.jpg', // Ajusta según tu modelo
+      // ⚠️ CORRECCIÓN 1: Usamos 'ingredientePrincipal' en vez de 'rubro'
+      ingredientePrincipal: 'Carne', 
+      // ⚠️ CORRECCIÓN 2: Tu columna se llama 'imagenPath', no 'imagenUrl'
+      imagenPath: 'http://url-falsa.com/milanesa.jpg',
       createdAt: new Date(),
       updatedAt: new Date()
     }]);
   },
 
-  down: async (queryInterface, Sequelize) => {
-    // Si deshacemos el seed, borramos todo
+  async down (queryInterface, Sequelize) {
     await queryInterface.bulkDelete('Platos', null, {});
   }
 };
