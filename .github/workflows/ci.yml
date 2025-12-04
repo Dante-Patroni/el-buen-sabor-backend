@@ -63,6 +63,7 @@ jobs:
         # 2. Cargar datos de prueba (El Plato ID 2)
         # ⚠️ Si no tienes seeds, comenta la siguiente línea, pero el test podría fallar (404)
         npx sequelize-cli db:seed:all 
+        node scripts/seed-mongo.js
         
         # 3. Arrancar servidor en background (&)
         npm start &
