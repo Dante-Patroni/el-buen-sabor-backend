@@ -1,16 +1,24 @@
 const mongoose = require('mongoose');
 
-const StockSchema = new mongoose.Schema(
-    {
-        platoId: { type: Number, required: true, unique: true },
-        cantidad: { type: Number, default: 0 },
+const StockSchema = new mongoose.Schema({
+    platoId: {
+        type: Number,
+        required: true,
+        unique: true
+    },
+    nombrePlato: { 
+        type: String, 
+        required: true 
+    },
+    stockDiario: {
+        cantidadInicial: { type: Number, default: 0 },
+        cantidadActual: { type: Number, required: true, default: 0 }, // Aquí mira la App
         esIlimitado: { type: Boolean, default: false }
     },
-    { 
-        timestamps: true,
-        versionKey: false,
-        strict: false // 💡 Truco de Profe: Esto permite leer campos aunque no estén perfectos en el esquema
+    ultimaActualizacion: {
+        type: Date,
+        default: Date.now
     }
-);
+});
 
 module.exports = mongoose.model('Stock', StockSchema);

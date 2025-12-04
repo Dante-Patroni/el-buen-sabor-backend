@@ -3,19 +3,22 @@ const StockModel = require('../models/mongo/Stock');
 class MongoStockAdapter {
     
     // -------------------------------------------------------------------------
-    // 1. CARGA MASIVA (Para el Menú - Optimizado ayer)
+    // 1. CARGA MASIVA (Para el Menú - Optimizado)
     // -------------------------------------------------------------------------
     async obtenerStockCompleto() {
         try {
             const stocks = await StockModel.find({}).lean();
-            // console.log("🔍 Datos crudos (Lean):", JSON.stringify(stocks, null, 2)); 
-
+            
             const stockMap = {};
             stocks.forEach(doc => {
-                stockMap[doc.platoId] = {
-                    cantidad: doc.cantidad,
-                    esIlimitado: doc.esIlimitado
-                };
+                // ⚠️ CORRECCIÓN: Accedemos a stockDiario
+                // Validamos que exista para evitar crash si hay datos viejos sucios
+                if (doc.stockDiario) {
+                    stockMap[doc.platoId] = {
+                        cantidad: doc.stockDiario.cantidadActual,
+                        esIlimitado: doc.stockDiario.esIlimitado
+                    };
+                }
             });
             return stockMap;
         } catch (error) {
@@ -31,14 +34,13 @@ class MongoStockAdapter {
         try {
             const stock = await StockModel.findOne({ platoId: platoId });
             
-            // Si no existe, asumimos 0
+            // Si no existe el documento, asumimos stock 0
             if (!stock) return 0;
 
-            // Si es ilimitado, devolvemos un número alto o una bandera
-            // Para tu lógica de "stockActual <= 0", si es ilimitado devolvemos 999
-            if (stock.esIlimitado) return 999; 
+            // ⚠️ CORRECCIÓN: Usamos la nueva estructura anidada
+            if (stock.stockDiario.esIlimitado) return 999; 
 
-            return stock.cantidad;
+            return stock.stockDiario.cantidadActual;
         } catch (error) {
             console.error('Error MongoAdapter obtenerStock:', error);
             throw new Error('Error al consultar stock individual');
@@ -54,22 +56,22 @@ class MongoStockAdapter {
             
             if (!stockDoc) throw new Error('PLATO_NO_ENCONTRADO_EN_STOCK');
 
-            // Si es ilimitado, NO tocamos la cantidad. Solo retornamos éxito.
-            if (stockDoc.esIlimitado) {
+            // ⚠️ CORRECCIÓN: Acceso a stockDiario
+            if (stockDoc.stockDiario.esIlimitado) {
                 console.log(`♾️ Plato ${platoId} es ilimitado. No se descuenta.`);
                 return; 
             }
 
             // Validación de seguridad (Doble chequeo)
-            if (stockDoc.cantidad < cantidadRequerida) {
+            if (stockDoc.stockDiario.cantidadActual < cantidadRequerida) {
                 throw new Error('STOCK_INSUFICIENTE');
             }
 
             // Restamos y guardamos
-            stockDoc.cantidad -= cantidadRequerida;
+            stockDoc.stockDiario.cantidadActual -= cantidadRequerida;
             await stockDoc.save();
             
-            console.log(`📉 Stock descontado ID ${platoId}. Nuevo saldo: ${stockDoc.cantidad}`);
+            console.log(`📉 Stock descontado ID ${platoId}. Nuevo saldo: ${stockDoc.stockDiario.cantidadActual}`);
         } catch (error) {
             throw error; // Re-lanzamos para que el Service cancele todo
         }
@@ -82,16 +84,17 @@ class MongoStockAdapter {
         try {
             const stockDoc = await StockModel.findOne({ platoId });
             
-            if (!stockDoc) return; // Si no existe, no hacemos nada
-            if (stockDoc.esIlimitado) return; // Si es ilimitado, no sumamos nada
+            if (!stockDoc) return; 
+            
+            // ⚠️ CORRECCIÓN: Acceso a stockDiario
+            if (stockDoc.stockDiario.esIlimitado) return;
 
-            stockDoc.cantidad += cantidad;
+            stockDoc.stockDiario.cantidadActual += cantidad;
             await stockDoc.save();
             
-            console.log(`📈 Stock repuesto ID ${platoId}. Nuevo saldo: ${stockDoc.cantidad}`);
+            console.log(`📈 Stock repuesto ID ${platoId}. Nuevo saldo: ${stockDoc.stockDiario.cantidadActual}`);
         } catch (error) {
             console.error("Error reponiendo stock:", error);
-            // No lanzamos error aquí para permitir que se borre el pedido SQL aunque falle Mongo
         }
     }
 }
