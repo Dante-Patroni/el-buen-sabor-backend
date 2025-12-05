@@ -20,18 +20,25 @@
 							"    pm.response.to.have.status(201);",
 							"});",
 							"",
-							"// 2. Validar que la respuesta sea rápida (menos de 500ms)",
-							"pm.test(\"Response time is less than 500ms\", function () {",
-							"    pm.expect(pm.response.responseTime).to.be.below(500);",
+							"// 2. Validar tiempo de respuesta (Performance)",
+							"pm.test(\"Response time is less than 1000ms\", function () {",
+							"    // Subí un poco el tiempo porque ahora consultamos a Mongo y SQL",
+							"    pm.expect(pm.response.responseTime).to.be.below(1000);",
 							"});",
 							"",
-							"// 3. Validar que nos devuelva el objeto 'data' con el pedido",
-							"pm.test(\"Response has pedido data\", function () {",
+							"// 3. Validar Datos y Lógica de Negocio",
+							"pm.test(\"El pedido nace en estado PENDIENTE\", function () {",
 							"    var jsonData = pm.response.json();",
+							"    ",
+							"    // Verificamos que traiga ID",
 							"    pm.expect(jsonData.data).to.have.property(\"id\");",
-							"    pm.expect(jsonData.data.estado).to.eql(\"en_preparacion\");",
-							"});",
-							""
+							"    ",
+							"    // Ahora debe ser \"pendiente\", no \"en_preparacion\"",
+							"    pm.expect(jsonData.data.estado).to.eql(\"pendiente\"); ",
+							"    ",
+							"    // Guardamos la Mesa en una variable global para usarla en el siguiente test",
+							"    pm.collectionVariables.set(\"mesa_test\", jsonData.data.mesa);",
+							"});"
 						],
 						"type": "text/javascript",
 						"packages": {},
@@ -44,7 +51,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"cliente\": \"Dante\",\n    \"platoId\": 2,\n    \"mesa\": \"4\"\n}",
+					"raw": "{\n    \"mesa\": \"8\",\n    \"cliente\": \"Dante\",\n    \"platoId\": 3\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -64,6 +71,64 @@
 					]
 				},
 				"description": "This is a POST request, submitting data to an API via the request body. This request submits JSON data, and the data is reflected in the response.\n\nA successful POST request typically returns a `200 OK` or `201 Created` response code."
+			},
+			"response": []
+		},
+		{
+			"name": "Mesas",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// 1. Validar que el código sea 200 (OK)\r",
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"\r",
+							"// 2. Validar lógica de Mesa Ocupada\r",
+							"pm.test(\"La Mesa 4 debe estar OCUPADA y tener PRECIO\", function () {\r",
+							"    var jsonData = pm.response.json();\r",
+							"    \r",
+							"    // Buscamos la Mesa 4 dentro del array de mesas\r",
+							"    // (O la mesa que hayas guardado en la variable mesa_test)\r",
+							"    var mesaTarget = jsonData.find(m => m.nombre === \"Mesa 4\" || m.id == 4);\r",
+							"\r",
+							"    // A. Validar que la mesa existe en la respuesta\r",
+							"    pm.expect(mesaTarget).to.not.be.undefined;\r",
+							"\r",
+							"    // B. Validar el semáforo (Debe ser ocupada porque acabamos de crear un pedido)\r",
+							"    pm.expect(mesaTarget.estado).to.eql(\"ocupada\");\r",
+							"\r",
+							"    // C. Validar items pendientes\r",
+							"    pm.expect(mesaTarget.itemsPendientes).to.be.above(0);\r",
+							"\r",
+							"    // D. Validar el dinero (Lo que arreglamos al final)\r",
+							"    // El total debe ser mayor a 0 (significa que sumó el precio del plato)\r",
+							"    pm.expect(mesaTarget.totalActual).to.be.above(0);\r",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/api/mesas",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"api",
+						"mesas"
+					]
+				}
 			},
 			"response": []
 		}
