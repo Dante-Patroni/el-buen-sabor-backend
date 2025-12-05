@@ -51,7 +51,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"mesa\": \"8\",\n    \"cliente\": \"Dante\",\n    \"platoId\": 2\n}",
+					"raw": "{\n    \"mesa\": \"4\",\n    \"cliente\": \"Dante\",\n    \"platoId\": 2\n}",
 					"options": {
 						"raw": {
 							"language": "json"
