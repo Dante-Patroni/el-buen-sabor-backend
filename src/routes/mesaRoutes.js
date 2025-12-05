@@ -1,9 +1,9 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
 
 // Importamos el controlador (que crearemos en el paso 2)
 // Nota: Aún no existe el archivo, pero ya lo dejamos listo.
-const MesaController = require('../controllers/mesaController');
+const MesaController = require("../controllers/mesaController");
 const mesaController = new MesaController();
 /**
  * @swagger
@@ -57,9 +57,8 @@ const mesaController = new MesaController();
  *         description: Error al calcular el estado de las mesas
  */
 
-
 // Definimos la ruta GET raíz (/)
 // Esto responderá cuando alguien llame a: http://localhost:3000/api/mesas
-router.get('/', (req, res) => mesaController.obtenerEstadoMesas(req, res));
+router.get("/", (req, res) => mesaController.obtenerEstadoMesas(req, res));
 
 module.exports = router;

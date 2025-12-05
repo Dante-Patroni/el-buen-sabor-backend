@@ -1,4 +1,4 @@
-const EventEmitter = require('events');
+const EventEmitter = require("events");
 
 // Creamos nuestra propia clase de eventos heredando de Node.js
 class PedidoEmitter extends EventEmitter {}

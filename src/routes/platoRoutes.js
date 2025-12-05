@@ -1,7 +1,7 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const PlatoController = require('../controllers/platoController');
-const upload = require('../middlewares/upload');// [B] Importamos el middleware
+const PlatoController = require("../controllers/platoController");
+const upload = require("../middlewares/upload"); // [B] Importamos el middleware
 
 /**
  * @swagger
@@ -33,7 +33,7 @@ const upload = require('../middlewares/upload');// [B] Importamos el middleware
  *                   imagenUrl:
  *                     type: string
  */
-router.get('/', (req, res) => PlatoController.listar(req, res));
+router.get("/", (req, res) => PlatoController.listar(req, res));
 
 /**
  * @swagger
@@ -65,6 +65,8 @@ router.get('/', (req, res) => PlatoController.listar(req, res));
  *       404:
  *         description: Plato no encontrado
  */
-router.post('/:id/imagen', upload.single('imagen'), (req, res) => PlatoController.subirImagen(req, res));
+router.post("/:id/imagen", upload.single("imagen"), (req, res) =>
+  PlatoController.subirImagen(req, res),
+);
 
 module.exports = router;

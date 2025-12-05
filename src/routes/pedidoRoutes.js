@@ -1,6 +1,6 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const PedidoController = require('../controllers/pedidoController');
+const PedidoController = require("../controllers/pedidoController");
 
 /**
  * @swagger
@@ -37,7 +37,7 @@ const PedidoController = require('../controllers/pedidoController');
  *         description: Pedido creado exitosamente
  */
 // 1. CREAR (POST) -> Llama a PedidoController.crear
-router.post('/', (req, res) => PedidoController.crear(req, res));
+router.post("/", (req, res) => PedidoController.crear(req, res));
 
 /**
  * @swagger
@@ -70,7 +70,7 @@ router.post('/', (req, res) => PedidoController.crear(req, res));
  *         description: Error interno del servidor
  */
 // 2. LISTAR (GET) -> Llama a PedidoController.listar
-router.get('/', (req, res) => PedidoController.listar(req, res));
+router.get("/", (req, res) => PedidoController.listar(req, res));
 
 // ---------------------------------------------------------
 // DELETE /api/pedidos/{id} (Eliminar) - ¡NUEVO! 🆕
@@ -99,6 +99,6 @@ router.get('/', (req, res) => PedidoController.listar(req, res));
  */
 // 3. ELIMINAR (DELETE) -> Llama a PedidoController.eliminar
 // Fíjate en el ':id'. Eso es un Parámetro de Ruta.
-router.delete('/:id', (req, res) => PedidoController.eliminar(req, res));
+router.delete("/:id", (req, res) => PedidoController.eliminar(req, res));
 
 module.exports = router;

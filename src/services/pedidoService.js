@@ -1,99 +1,97 @@
 /* Este es el Corazón de la Lógica de Negocio (Business Logic Layer). 
 A diferencia de los Controladores (que solo reciben y responden) o los
  Modelos (que solo guardan datos), el Servicio es el que Piensa y 
- Toma Decisiones.*/ 
-const { Pedido, Plato } = require('../models');
+ Toma Decisiones.*/
+const { Pedido, Plato } = require("../models");
 
 class PedidoService {
+  // 1. Recibimos el adaptador en el constructor (Inyección de Dependencias)
+  constructor(stockAdapter) {
+    this.stockAdapter = stockAdapter;
+  }
 
-    // 1. Recibimos el adaptador en el constructor (Inyección de Dependencias)
-    constructor(stockAdapter) {
-        this.stockAdapter = stockAdapter;
+  // LÓGICA: CREAR PEDIDO
+  async crearYValidarPedido(cliente, platoId, mesa) {
+    // 🛡️ BLINDAJE: Aseguramos que sea número (Parses "1" a 1)
+    const idProducto = parseInt(platoId);
+
+    // 1. Validación de entrada
+    if (!mesa || mesa.toString().trim() === "") {
+      throw new Error("MESA_REQUERIDA");
     }
 
-// LÓGICA: CREAR PEDIDO
-    async crearYValidarPedido(cliente, platoId, mesa) {
-        
-        // 🛡️ BLINDAJE: Aseguramos que sea número (Parses "1" a 1)
-        const idProducto = parseInt(platoId); 
+    // 2. PASO A: Verificar Stock (Usamos la variable blindada idProducto)
+    // ⚠️ CAMBIO AQUÍ: Pasamos idProducto, no platoId
+    const stockActual = await this.stockAdapter.obtenerStock(idProducto);
 
-        // 1. Validación de entrada
-        if (!mesa || mesa.toString().trim() === "") {
-            throw new Error('MESA_REQUERIDA');
-        }
-
-        // 2. PASO A: Verificar Stock (Usamos la variable blindada idProducto)
-        // ⚠️ CAMBIO AQUÍ: Pasamos idProducto, no platoId
-        const stockActual = await this.stockAdapter.obtenerStock(idProducto);
-        
-        // REGLA DE NEGOCIO 1
-        if (stockActual <= 0) {
-             // Agregamos el ID al error para saber cuál falló en el log
-            console.error(`Error Stock: ID ${idProducto} tiene stock ${stockActual}`);
-            throw new Error('STOCK_INSUFICIENTE');
-        }
-
-        // 3. Obtener el precio (SQL también prefiere números limpios)
-        const platoInfo = await Plato.findByPk(idProducto);
-
-        if (!platoInfo) {
-            throw new Error('PLATO_NO_ENCONTRADO');
-        }
-
-        // 4. PASO B: Descontar Stock
-        await this.stockAdapter.descontarStock(idProducto, 1);
-
-        // 5. PASO C: Crear el Pedido
-        const nuevoPedido = await Pedido.create({
-            mesa,
-            cliente,
-            PlatoId: idProducto, // Usamos el blindado
-            fecha: new Date(),
-            estado: 'pendiente',
-            total: platoInfo.precio
-        });
-
-        return nuevoPedido;
+    // REGLA DE NEGOCIO 1
+    if (stockActual <= 0) {
+      // Agregamos el ID al error para saber cuál falló en el log
+      console.error(`Error Stock: ID ${idProducto} tiene stock ${stockActual}`);
+      throw new Error("STOCK_INSUFICIENTE");
     }
 
-    // LÓGICA: LISTAR PEDIDOS (Con filtro opcional por estadoFilter)
-    async listarPedidos(estadoFilter) {
-        // 1. Preparamos la clausula WHERE si hay filtro
-        const whereClause = {};
+    // 3. Obtener el precio (SQL también prefiere números limpios)
+    const platoInfo = await Plato.findByPk(idProducto);
 
-        // Si se proporciona un estadoFilter, lo añadimos a la cláusula WHERE
-        if (estadoFilter) {
-            whereClause.estado = estadoFilter;
-        }
-        //2. Ejecutamos la consulta con el filtro y ordenación
-        const pedidos = await Pedido.findAll({
-            where: whereClause,// Filtro dinámico
-            order: [['createdAt', 'DESC']] 
-        });
-        return pedidos;
+    if (!platoInfo) {
+      throw new Error("PLATO_NO_ENCONTRADO");
     }
 
-    // 🆕 LÓGICA: ELIMINAR PEDIDO (Con reposición de stock)
-    async eliminarPedido(id) {
-        // 1. Buscar el pedido en MySQL para saber qué plato tenía
-        const pedido = await Pedido.findByPk(id);
+    // 4. PASO B: Descontar Stock
+    await this.stockAdapter.descontarStock(idProducto, 1);
 
-        if (!pedido) {
-            throw new Error('PEDIDO_NO_ENCONTRADO');
-        }
+    // 5. PASO C: Crear el Pedido
+    const nuevoPedido = await Pedido.create({
+      mesa,
+      cliente,
+      PlatoId: idProducto, // Usamos el blindado
+      fecha: new Date(),
+      estado: "pendiente",
+      total: platoInfo.precio,
+    });
 
-        // 2. Devolver el Stock a Mongo (Rollback)
-        // Usamos el PlatoId que estaba guardado en el pedido para saber qué reponer
-        // Solo reponemos si el pedido no estaba ya rechazado (opcional, pero buena práctica)
-        if (pedido.estado !== 'rechazado') {
-            await this.stockAdapter.reponerStock(pedido.PlatoId, 1);
-        }
+    return nuevoPedido;
+  }
 
-        // 3. Borrar físicamente de MySQL
-        await pedido.destroy();
+  // LÓGICA: LISTAR PEDIDOS (Con filtro opcional por estadoFilter)
+  async listarPedidos(estadoFilter) {
+    // 1. Preparamos la clausula WHERE si hay filtro
+    const whereClause = {};
 
-        return true; 
+    // Si se proporciona un estadoFilter, lo añadimos a la cláusula WHERE
+    if (estadoFilter) {
+      whereClause.estado = estadoFilter;
     }
+    //2. Ejecutamos la consulta con el filtro y ordenación
+    const pedidos = await Pedido.findAll({
+      where: whereClause, // Filtro dinámico
+      order: [["createdAt", "DESC"]],
+    });
+    return pedidos;
+  }
+
+  // 🆕 LÓGICA: ELIMINAR PEDIDO (Con reposición de stock)
+  async eliminarPedido(id) {
+    // 1. Buscar el pedido en MySQL para saber qué plato tenía
+    const pedido = await Pedido.findByPk(id);
+
+    if (!pedido) {
+      throw new Error("PEDIDO_NO_ENCONTRADO");
+    }
+
+    // 2. Devolver el Stock a Mongo (Rollback)
+    // Usamos el PlatoId que estaba guardado en el pedido para saber qué reponer
+    // Solo reponemos si el pedido no estaba ya rechazado (opcional, pero buena práctica)
+    if (pedido.estado !== "rechazado") {
+      await this.stockAdapter.reponerStock(pedido.PlatoId, 1);
+    }
+
+    // 3. Borrar físicamente de MySQL
+    await pedido.destroy();
+
+    return true;
+  }
 }
 
 module.exports = PedidoService;

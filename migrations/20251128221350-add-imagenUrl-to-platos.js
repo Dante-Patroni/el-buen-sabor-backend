@@ -1,17 +1,17 @@
-'use strict';
+"use strict";
 
 module.exports = {
-  async up (queryInterface, Sequelize) {
+  async up(queryInterface, Sequelize) {
     // Agregamos la columna 'imagenPath' a la tabla 'Platos'
-    await queryInterface.addColumn('Platos', 'imagenPath', {
+    await queryInterface.addColumn("Platos", "imagenPath", {
       type: Sequelize.STRING,
       allowNull: true, // Puede ser nulo al principio
-      defaultValue: null
+      defaultValue: null,
     });
   },
 
-  async down (queryInterface, Sequelize) {
+  async down(queryInterface, Sequelize) {
     // Si deshacemos, borramos la columna
-    await queryInterface.removeColumn('Platos', 'imagenPath');
-  }
+    await queryInterface.removeColumn("Platos", "imagenPath");
+  },
 };

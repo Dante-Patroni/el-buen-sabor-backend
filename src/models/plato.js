@@ -1,7 +1,5 @@
-'use strict';
-const {
-  Model
-} = require('sequelize');
+"use strict";
+const { Model } = require("sequelize");
 module.exports = (sequelize, DataTypes) => {
   class Plato extends Model {
     /**
@@ -13,13 +11,16 @@ module.exports = (sequelize, DataTypes) => {
       // define association here
     }
   }
-  Plato.init({
-    nombre: DataTypes.STRING,
-    precio: DataTypes.FLOAT,
-    ingredientePrincipal: DataTypes.STRING
-  }, {
-    sequelize,
-    modelName: 'Plato',
-  });
+  Plato.init(
+    {
+      nombre: DataTypes.STRING,
+      precio: DataTypes.FLOAT,
+      ingredientePrincipal: DataTypes.STRING,
+    },
+    {
+      sequelize,
+      modelName: "Plato",
+    },
+  );
   return Plato;
 };

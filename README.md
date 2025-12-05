@@ -4,21 +4,21 @@ API RESTful desarrollada con **Node.js, Express y MySQL** para la gestión de pe
 
 ## 🚀 Tecnologías
 
-* **Runtime:** Node.js
-* **Framework:** Express.js
-* **Base de Datos:** MySQL (con Sequelize ORM)
-* **Documentación:** Swagger UI (OpenAPI)
-* **Testing:** Postman + Newman (E2E Testing)
+- **Runtime:** Node.js
+- **Framework:** Express.js
+- **Base de Datos:** MySQL (con Sequelize ORM)
+- **Documentación:** Swagger UI (OpenAPI)
+- **Testing:** Postman + Newman (E2E Testing)
 
 ## 🏛️ Arquitectura
 
 El proyecto sigue una **Arquitectura en Capas (Layered Architecture)** para asegurar la escalabilidad y mantenibilidad:
 
-* `src/routes`: Definición de endpoints.
-* `src/controllers`: Manejo de peticiones HTTP.
-* `src/services`: Lógica de negocio y Validaciones.
-* `src/models`: Definición de tablas y relaciones de BD.
-* `src/data`: Simulador de sistema Legacy (Patrón Adapter).
+- `src/routes`: Definición de endpoints.
+- `src/controllers`: Manejo de peticiones HTTP.
+- `src/services`: Lógica de negocio y Validaciones.
+- `src/models`: Definición de tablas y relaciones de BD.
+- `src/data`: Simulador de sistema Legacy (Patrón Adapter).
 
 ## ⚙️ Instalación
 
@@ -38,11 +38,12 @@ El proyecto sigue una **Arquitectura en Capas (Layered Architecture)** para aseg
 
 ## 🧪 Testing y Documentación
 
-* **Swagger UI:** Accede a `http://localhost:3000/api-docs` para probar los endpoints visualmente.
-* **Tests Automáticos:** Ejecuta el siguiente comando para correr las pruebas de integración:
-    ```bash
-    npx newman run tests/el-buen-sabor.postman_collection.json
-    ```
+- **Swagger UI:** Accede a `http://localhost:3000/api-docs` para probar los endpoints visualmente.
+- **Tests Automáticos:** Ejecuta el siguiente comando para correr las pruebas de integración:
+  ```bash
+  npx newman run tests/el-buen-sabor.postman_collection.json
+  ```
 
 ---
+
 Desarrollado por **Dante Patroni** - 2025

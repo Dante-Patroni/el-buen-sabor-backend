@@ -1,5 +1,5 @@
-'use strict';
-const { Model } = require('sequelize');
+"use strict";
+const { Model } = require("sequelize");
 
 module.exports = (sequelize, DataTypes) => {
   class Pedido extends Model {
@@ -9,25 +9,33 @@ module.exports = (sequelize, DataTypes) => {
       // Mantén las asociaciones que ya tenías.
     }
   }
-  Pedido.init({
-    cliente: DataTypes.STRING,
-    mesa: DataTypes.STRING, 
-    fecha: DataTypes.DATE,
+  Pedido.init(
+    {
+      cliente: DataTypes.STRING,
+      mesa: DataTypes.STRING,
+      fecha: DataTypes.DATE,
 
-    total: {
+      total: {
         type: DataTypes.FLOAT, // O DECIMAL(10,2) para más precisión
-        defaultValue: 0
+        defaultValue: 0,
+      },
+      estado: {
+        type: DataTypes.ENUM(
+          "pendiente",
+          "en_preparacion",
+          "rechazado",
+          "entregado",
+        ),
+        defaultValue: "pendiente",
+      },
+      // Asegúrate de que PlatoId esté definido si lo usas explícitamente,
+      // aunque Sequelize suele manejar las FK automáticamente.
+      PlatoId: DataTypes.INTEGER,
     },
-    estado: {
-      type: DataTypes.ENUM('pendiente', 'en_preparacion', 'rechazado', 'entregado'),
-      defaultValue: 'pendiente'
+    {
+      sequelize,
+      modelName: "Pedido",
     },
-    // Asegúrate de que PlatoId esté definido si lo usas explícitamente, 
-    // aunque Sequelize suele manejar las FK automáticamente.
-    PlatoId: DataTypes.INTEGER 
-  }, {
-    sequelize,
-    modelName: 'Pedido',
-  });
+  );
   return Pedido;
 };

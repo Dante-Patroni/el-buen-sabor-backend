@@ -2,9 +2,9 @@ name: CI - El Buen Sabor Backend
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
   build-and-test:
@@ -20,7 +20,7 @@ jobs:
         ports:
           - 3306:3306
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
-      
+
       # 🆕 AGREGADO: MongoDB para el Stock (Sin esto, falla la conexión)
       mongo:
         image: mongo:5.0
@@ -33,43 +33,43 @@ jobs:
           --health-retries 5
 
     steps:
-    - name: Checkout del código
-      uses: actions/checkout@v3
+      - name: Checkout del código
+        uses: actions/checkout@v3
 
-    - name: Instalar Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '18'
-        cache: 'npm'
+      - name: Instalar Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+          cache: "npm"
 
-    - name: Instalar dependencias
-      run: npm ci
+      - name: Instalar dependencias
+        run: npm ci
 
-    # 🚀 EJECUCIÓN: Preparamos el terreno y corremos los tests
-    - name: Ejecutar Tests E2E
-      env:
-        PORT: 3000
-        # 👇 Usamos localhost porque el servicio 'mongo' expone el puerto al runner
-        MONGO_URI: mongodb://localhost:27017/el_buen_sabor_test 
-        DB_USERNAME: root
-        DB_PASSWORD: root
-        DB_DATABASE: el_buen_sabor_test
-        DB_HOST: 127.0.0.1
-        NODE_ENV: test
-      run: |
-        # 1. Crear tablas en MySQL
-        npx sequelize-cli db:migrate 
-        
-        # 2. Cargar datos de prueba (El Plato ID 2)
-        # ⚠️ Si no tienes seeds, comenta la siguiente línea, pero el test podría fallar (404)
-        npx sequelize-cli db:seed:all 
-    
-        
-        # 3. Arrancar servidor en background (&)
-        npm start &
-        
-        # 4. Esperar a que el puerto 3000 responda
-        npx wait-on http://127.0.0.1:3000/api-docs
-        
-        # 5. Correr Newman
-        npm test
+      # 🚀 EJECUCIÓN: Preparamos el terreno y corremos los tests
+      - name: Ejecutar Tests E2E
+        env:
+          PORT: 3000
+          # 👇 Usamos localhost porque el servicio 'mongo' expone el puerto al runner
+          MONGO_URI: mongodb://localhost:27017/el_buen_sabor_test
+          DB_USERNAME: root
+          DB_PASSWORD: root
+          DB_DATABASE: el_buen_sabor_test
+          DB_HOST: 127.0.0.1
+          NODE_ENV: test
+        run: |
+          # 1. Crear tablas en MySQL
+          npx sequelize-cli db:migrate 
+
+          # 2. Cargar datos de prueba (El Plato ID 2)
+          # ⚠️ Si no tienes seeds, comenta la siguiente línea, pero el test podría fallar (404)
+          npx sequelize-cli db:seed:all 
+
+
+          # 3. Arrancar servidor en background (&)
+          npm start &
+
+          # 4. Esperar a que el puerto 3000 responda
+          npx wait-on http://127.0.0.1:3000/api-docs
+
+          # 5. Correr Newman
+          npm test
