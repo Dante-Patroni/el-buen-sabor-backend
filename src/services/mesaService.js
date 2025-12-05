@@ -33,6 +33,15 @@ class MesaService {
             }
         });
 
+        // 🕵️ LOG DE DEPURACIÓN PARA CI/CD
+        console.log("--- DEBUG MESAS ---");
+        console.log(`Pedidos Activos encontrados: ${pedidosActivos.length}`);
+        if (pedidosActivos.length > 0) {
+            console.log("Ejemplo de pedido:", JSON.stringify(pedidosActivos[0], null, 2));
+            console.log("Mesa del pedido (Tipo):", typeof pedidosActivos[0].mesa, pedidosActivos[0].mesa);
+        }
+        // -------------------------
+
         //// 3. PROCESAMIENTO: DETERMINAR EL ESTADO DE CADA MESA
 
         // Filtramos los pedidos que pertenecen a ESTA mesa actual (ej: Mesa 4)
