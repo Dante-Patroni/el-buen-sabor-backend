@@ -2,7 +2,7 @@
 A diferencia de los Controladores (que solo reciben y responden) o los
  Modelos (que solo guardan datos), el Servicio es el que Piensa y 
  Toma Decisiones.*/ 
-const { Pedido } = require('../models'); 
+const { Pedido, Plato } = require('../models');
 
 class PedidoService {
 
@@ -11,39 +11,63 @@ class PedidoService {
         this.stockAdapter = stockAdapter;
     }
 
-    // LÓGICA: CREAR PEDIDO
-    async crearYValidarPedido(cliente, platoId, mesa ) {
-        // Validación adicional en el servicio
-    if (!mesa || mesa.toString().trim() === "") {
-        throw new Error('MESA_REQUERIDA');
-    }
-        // PASO A: Verificar Stock (Consulta externa)
-        const stockActual = await this.stockAdapter.obtenerStock(platoId);
+// LÓGICA: CREAR PEDIDO
+    async crearYValidarPedido(cliente, platoId, mesa) {
         
-        // REGLA DE NEGOCIO 1: No vender lo que no hay
+        // 🛡️ BLINDAJE: Aseguramos que sea número (Parses "1" a 1)
+        const idProducto = parseInt(platoId); 
+
+        // 1. Validación de entrada
+        if (!mesa || mesa.toString().trim() === "") {
+            throw new Error('MESA_REQUERIDA');
+        }
+
+        // 2. PASO A: Verificar Stock (Usamos la variable blindada idProducto)
+        // ⚠️ CAMBIO AQUÍ: Pasamos idProducto, no platoId
+        const stockActual = await this.stockAdapter.obtenerStock(idProducto);
+        
+        // REGLA DE NEGOCIO 1
         if (stockActual <= 0) {
-            // Lanzamos una Excepción de Negocio (No un error HTTP)
+             // Agregamos el ID al error para saber cuál falló en el log
+            console.error(`Error Stock: ID ${idProducto} tiene stock ${stockActual}`);
             throw new Error('STOCK_INSUFICIENTE');
         }
 
-        // PASO B: Descontar Stock (Modificación externa)
-        await this.stockAdapter.descontarStock(platoId, 1);
+        // 3. Obtener el precio (SQL también prefiere números limpios)
+        const platoInfo = await Plato.findByPk(idProducto);
 
-        // PASO C: Crear el Pedido (Persistencia Local)
+        if (!platoInfo) {
+            throw new Error('PLATO_NO_ENCONTRADO');
+        }
+
+        // 4. PASO B: Descontar Stock
+        await this.stockAdapter.descontarStock(idProducto, 1);
+
+        // 5. PASO C: Crear el Pedido
         const nuevoPedido = await Pedido.create({
             mesa,
             cliente,
-            PlatoId: platoId, 
+            PlatoId: idProducto, // Usamos el blindado
             fecha: new Date(),
-            estado: 'en_preparacion'
+            estado: 'pendiente',
+            total: platoInfo.precio
         });
 
         return nuevoPedido;
     }
 
-    // LÓGICA: LISTAR PEDIDOS
-    async listarPedidos() {
+    // LÓGICA: LISTAR PEDIDOS (Con filtro opcional por estadoFilter)
+    async listarPedidos(estadoFilter) {
+        // 1. Preparamos la clausula WHERE si hay filtro
+        const whereClause = {};
+
+        // Si se proporciona un estadoFilter, lo añadimos a la cláusula WHERE
+        if (estadoFilter) {
+            whereClause.estado = estadoFilter;
+        }
+        //2. Ejecutamos la consulta con el filtro y ordenación
         const pedidos = await Pedido.findAll({
+            where: whereClause,// Filtro dinámico
             order: [['createdAt', 'DESC']] 
         });
         return pedidos;

@@ -1,37 +1,58 @@
-const fs = require('fs');// [A] File System (Nativo de Node)
-const path = require('path');
+// Importamos el Modelo 'Stock' (Asegúrate que venga de tu index de modelos)
+const { Stock } = require('../models'); 
 
 class StockAdapter {
-    constructor() {
-        // Definimos la ruta al archivo "Base de Datos de Juguete"
-        this.stockFilePath = path.join(__dirname, '../../data/stock.json');
-    }
 
-    // [B] La Interfaz (El Contrato)
-    // El servicio espera que exista un método con este nombre exacto.
-    async consultarStock(nombreIngrediente) {
+    // 1. OBTENER STOCK (Lectura)
+    async obtenerStock(platoId) {
         try {
-            // [C] I/O Asíncrono (Input/Output)
-            // Leemos el disco duro. Esto es lento, por eso usamos 'await'.
-            const data = await fs.promises.readFile(this.stockFilePath, 'utf-8');
-           
-            // [D] Parsing (Texto -> Objeto)
-            const stockList = JSON.parse(data);
+            // Buscamos el documento por tu ID personalizado
+            const stockItem = await Stock.findOne({ platoId: platoId });
 
-            // [E] Lógica de Búsqueda
-            const item = stockList.find(i => i.ingrediente === nombreIngrediente);
+            // Si no existe el registro, devolvemos 0
+            if (!stockItem) {
+                console.warn(`[StockAdapter] No existe stock registrado para platoId: ${platoId}`);
+                return 0; 
+            }
 
-            // [F] Normalización
-            // Devolvemos un número simple. Al servicio no le importa si vino de un JSON o de la NASA.
-            return item ? item.cantidadDisponible : 0;
+            // ⚠️ CORRECCIÓN CLAVE AQUÍ:
+            // Accedemos a las propiedades dentro del objeto 'stockDiario'
+            
+            // 1. Chequeamos si es ilimitado
+            if (stockItem.stockDiario.esIlimitado) {
+                return 9999; // Stock virtual infinito
+            }
+
+            // 2. Devolvemos la cantidad actual (Esta es la que mira la App)
+            return stockItem.stockDiario.cantidadActual;
 
         } catch (error) {
-            // [G] Manejo de Errores (Fail Safe)
-            // Si el archivo no existe o se corrompe, no explotamos.
-            // Devolvemos 0 para proteger el negocio (mejor no vender a vender sin stock).
-            console.error("Error crítico en StockAdapter:", error.message);
-            // Si el sistema Legacy falla, por seguridad decimos que NO hay stock
-            return 0; 
+            console.error("[StockAdapter] Error crítico leyendo Mongo:", error);
+            return 0; // Ante error, protegemos el negocio negando la venta
+        }
+    }
+
+    // 2. DESCONTAR STOCK (Escritura)
+    async descontarStock(platoId, cantidadADescontar) {
+        try {
+            const stockItem = await Stock.findOne({ platoId: platoId });
+
+            // Solo descontamos si existe y NO es ilimitado
+            if (stockItem && !stockItem.stockDiario.esIlimitado) {
+                
+                // Restamos del contador actual
+                stockItem.stockDiario.cantidadActual -= cantidadADescontar;
+                
+                // Actualizamos la fecha
+                stockItem.ultimaActualizacion = Date.now();
+
+                // Guardamos en Mongo
+                await stockItem.save(); 
+                
+                console.log(`[StockAdapter] Stock descontado. Quedan: ${stockItem.stockDiario.cantidadActual}`);
+            }
+        } catch (error) {
+            console.error("[StockAdapter] Error actualizando stock:", error);
         }
     }
 }

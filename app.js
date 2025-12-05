@@ -4,6 +4,7 @@ const cors = require('cors');//Seguridad
 const { dbConnection } = require('./src/config/mongo'); // 🆕 1. Importamos la conexión Mongo
 const { sequelize } = require('./src/models'); // 🆕 1. Importamos la conexión SQL
 const setupListeners = require('./src/listeners/setupListeners');
+const mesaRouter = require('./src/routes/mesaRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -11,6 +12,7 @@ const PORT = process.env.PORT || 3000;
 //Middlewares
 app.use(cors());// 1. Permite que el celular o React hablen con el servidor.
 app.use(express.json());// 2. Traduce el cuerpo del mensaje a JSON (si no, recibirías basura binaria)
+app.use('/api/mesas', mesaRouter); // Rutas de mesas
 
 // // 3. La Puerta de las Fotos
 // Esto permite acceder a http://localhost:3000/uploads/foto.jpg
@@ -29,6 +31,8 @@ const startServer = async () => {
 
         // PASO B: Conectar MySQL (Esperamos con await)
         // { force: false } significa "No borres las tablas si ya existen".
+        // Usamos 'alter: true' para que agregue la columna 'total' sin borrar los datos
+        //await sequelize.sync({ alter: true });
         await sequelize.sync({ force: false });
         console.log('📦 Tablas MySQL sincronizadas');
 

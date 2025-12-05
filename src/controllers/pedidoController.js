@@ -55,7 +55,12 @@ class PedidoController {
     // ---------------------------------------------------------
     async listar(req, res) {
         try {
-            const pedidos = await this.pedidoService.listarPedidos();
+            //1. Extraemos 'estado' de los query params
+            // Ejemplo: /api/pedidos?estado=pendiente => estadoFilter = 'pendiente'
+            const{estado} = req.query;
+            //2. Llamamos al servicio para obtener los pedidos
+            const pedidos = await this.pedidoService.listarPedidos(estado);
+            
             // Devolvemos Array puro para Flutter
             res.status(200).json(pedidos);
         } catch (error) {

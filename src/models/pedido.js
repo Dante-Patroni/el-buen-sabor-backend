@@ -11,11 +11,13 @@ module.exports = (sequelize, DataTypes) => {
   }
   Pedido.init({
     cliente: DataTypes.STRING,
-    
-    // 🆕 NUEVO CAMPO
     mesa: DataTypes.STRING, 
-    
     fecha: DataTypes.DATE,
+
+    total: {
+        type: DataTypes.FLOAT, // O DECIMAL(10,2) para más precisión
+        defaultValue: 0
+    },
     estado: {
       type: DataTypes.ENUM('pendiente', 'en_preparacion', 'rechazado', 'entregado'),
       defaultValue: 'pendiente'
