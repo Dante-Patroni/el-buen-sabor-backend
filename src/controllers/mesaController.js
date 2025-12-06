@@ -23,5 +23,26 @@ class MesaController {
         .json({ mensaje: "Error al obtener el estado de las mesas" });
     }
   }
+
+  // ---------------------------------------------------------
+    // 2. CERRAR MESA (EBS-13)
+    // ---------------------------------------------------------
+    async cerrarMesa(req, res) {
+      try {
+        const { id } = req.params; // El ID de la mesa (ej: "4")
+
+        // Llamamos al servicio para ejecutar la lógica
+        const resultado = await this.mesaService.cerrarMesa(id);
+
+        // Respondemos con el resultado
+        res.status(200).json({
+           mensaje: `Mesa ${id} cerrada correctamente`,
+           pedidosActualizados: resultado
+          });
+      }catch (error) {
+        console.error(`Error al cerrar la mesa ${req.params.id}:`, error);
+        res.status(500).json({ error: "No se pudo cerrar la mesa" });
+      }
+    }
 }
 module.exports = MesaController;

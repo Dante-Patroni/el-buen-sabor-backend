@@ -1,15 +1,14 @@
 // Importamos el Modelo de Base de Datos (Sequelize)
-// Necesitamos leer los pedidos para saber qué mesas están ocupadas.
-const { Pedido } = require("../models");
-// ⚠️ Asegúrate de que tu archivo models/index.js exporte 'Pedido' correctamente.
-// Si no usas index.js, importa directo: require('../models/sql/Pedido');
+const { Pedido, Sequelize } = require("../models");
+const { Op } = Sequelize; // Importamos el Operador de Sequelize
 
 class MesaService {
+  
+  // ---------------------------------------------------------
+  // 1. LISTAR ESTADO (GET)
+  // ---------------------------------------------------------
   async listarEstadoMesas() {
-    //1. DEFINICION FISICA (Virtual)
-    // Como no tenemos tabla de mesas, definimos que el restaurante tiene 10 mesas.
-    // Esto es lo que hace que el sistema sea un "MVP" rápido.
-
+    // 1. DEFINICION FISICA (Virtual)
     const mesasFisicas = [
       { id: 1, nombre: "Mesa 1" },
       { id: 2, nombre: "Mesa 2" },
@@ -23,39 +22,30 @@ class MesaService {
       { id: 10, nombre: "Mesa 10" },
     ];
 
-    //// 2. CONSULTA DE "LO QUE ESTÁ PASANDO" (Active Data)
-    // Buscamos SOLO los pedidos que están vivos (ni pagados, ni rechazados).
-    // Traemos 'pendiente' (recién pedido) y 'en_preparacion' (en cocina).
-
+    // 2. CONSULTA DE "LO QUE ESTÁ PASANDO" (Active Data)
     const pedidosActivos = await Pedido.findAll({
       where: {
-        estado: ["pendiente", "en_preparacion"],
+        estado: ["pendiente", "en_preparacion", "entregado"], // Agregué 'entregado' porque si están comiendo, la mesa sigue ocupada
       },
     });
 
-    //// 3. PROCESAMIENTO: DETERMINAR EL ESTADO DE CADA MESA
-
-    // Filtramos los pedidos que pertenecen a ESTA mesa actual (ej: Mesa 4)
-    // Nota: Asegúrate de que en tu DB la columna sea 'mesa' (string o int)
+    // 3. PROCESAMIENTO
     const estadoMesas = mesasFisicas.map((mesa) => {
-      // Filtramos los pedidos que pertenecen a ESTA mesa actual (ej: Mesa 4)
+      // Filtramos pedidos de ESTA mesa
       const pedidosDeLaMesa = pedidosActivos.filter(
-        (pedido) => pedido.mesa == mesa.id,
+        (pedido) => String(pedido.mesa) === String(mesa.id), // Conversión a String para evitar errores de tipo
       );
 
-      // Si hay pedidos en esta mesa, está "ocupada"
       if (pedidosDeLaMesa.length > 0) {
-        // 🔴 ANTES (Posible causante del null):
-        // const totalAcumulado = pedidosDeLaMesa.reduce((sum, pedido) => sum + pedido.total, 0);
-
-        // 🟢 AHORA (Blindado):
-        // Parseamos a Float por si viene como texto ("1500.00") y usamos || 0 por si es null.
+        // Calculamos total blindado
         const totalAcumulado = pedidosDeLaMesa.reduce((sum, pedido) => {
           const valorPedido = parseFloat(pedido.total) || 0;
           return sum + valorPedido;
         }, 0);
+        
+        // Buscamos fecha de apertura
         const primerPedido = pedidosDeLaMesa.sort(
-          (a, b) => a.fecha - b.fecha,
+          (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
         )[0];
 
         return {
@@ -63,10 +53,9 @@ class MesaService {
           estado: "ocupada",
           totalActual: totalAcumulado,
           itemsPendientes: pedidosDeLaMesa.length,
-          fechaApertura: primerPedido.createdAt,
+          fechaApertura: primerPedido ? primerPedido.createdAt : new Date(),
         };
       } else {
-        // Si no hay pedidos, la mesa está "libre"
         return {
           ...mesa,
           estado: "libre",
@@ -75,11 +64,28 @@ class MesaService {
       }
     });
 
-    //// 4. DEVOLVEMOS EL RESULTADO
-
     return estadoMesas;
-    {
-    }
+  }
+
+  // ---------------------------------------------------------
+  // 2. CERRAR MESA (Actualización Masiva - EBS-13)
+  // ---------------------------------------------------------
+  async cerrarMesa(mesaId) {
+    // Ejecutamos un UPDATE masivo en la tabla Pedidos
+    // UPDATE Pedidos SET estado = 'pagado' WHERE mesa = mesaId AND estado != 'pagado'...
+
+    const [cantidadActualizados] = await Pedido.update(
+      { estado: 'pagado' }, 
+      {
+        where: {
+          mesa: mesaId,
+          estado: {
+            [Op.notIn]: ['pagado', 'rechazado']
+          }
+        }
+      }
+    );
+    return cantidadActualizados; // Devuelve cuántos pedidos se cobraron
   }
 }
 

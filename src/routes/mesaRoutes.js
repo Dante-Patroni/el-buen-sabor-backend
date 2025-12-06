@@ -61,4 +61,37 @@ const mesaController = new MesaController();
 // Esto responderá cuando alguien llame a: http://localhost:3000/api/mesas
 router.get("/", (req, res) => mesaController.obtenerEstadoMesas(req, res));
 
+/**
+ * @swagger
+ * /api/mesas/{id}/cierre:
+ *   post:
+ *     summary: Cierra la mesa y marca todos sus pedidos activos como 'pagado'
+ *     tags: [Mesas]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Número o ID de la mesa a cerrar
+ *     responses:
+ *       200:
+ *         description: Mesa cerrada exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Mesa 4 cerrada correctamente"
+ *                 pedidosActualizados:
+ *                   type: integer
+ *                   example: 3
+ *       500:
+ *         description: Error al cerrar la mesa
+ */
+// Endpoint para Cerrar Mesa (Liberar)
+router.post('/:id/cierre', mesaController.cerrarMesa.bind(mesaController));
+
 module.exports = router;
