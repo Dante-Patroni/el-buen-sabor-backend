@@ -8,7 +8,7 @@ const StockSchema = new mongoose.Schema({
   },
   nombrePlato: {
     type: String,
-    required: true,
+    required: false ,
   },
   stockDiario: {
     cantidadInicial: { type: Number, default: 0 },

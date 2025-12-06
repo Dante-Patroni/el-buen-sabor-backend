@@ -38,7 +38,7 @@ const mesaController = new MesaController();
  *                   estado:
  *                     type: string
  *                     enum: [libre, ocupada]
- *                     description: "ocupada" si hay pedidos pendientes, sino "libre"
+ *                     description: '"ocupada" si hay pedidos pendientes, sino "libre"'
  *                     example: "ocupada"
  *                   totalActual:
  *                     type: number

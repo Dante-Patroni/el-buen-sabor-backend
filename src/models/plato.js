@@ -8,7 +8,7 @@ module.exports = (sequelize, DataTypes) => {
      * The `models/index` file will call this method automatically.
      */
     static associate(models) {
-      // define association here
+      Plato.hasMany(models.Pedido, { foreignKey: 'PlatoId' });
     }
   }
   Plato.init(
@@ -16,6 +16,10 @@ module.exports = (sequelize, DataTypes) => {
       nombre: DataTypes.STRING,
       precio: DataTypes.FLOAT,
       ingredientePrincipal: DataTypes.STRING,
+      imagenPath: {
+        type: DataTypes.STRING,
+        allowNull: true 
+      }
     },
     {
       sequelize,

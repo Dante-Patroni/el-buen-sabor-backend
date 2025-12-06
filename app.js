@@ -32,8 +32,8 @@ const startServer = async () => {
     // PASO B: Conectar MySQL (Esperamos con await)
     // { force: false } significa "No borres las tablas si ya existen".
     // Usamos 'alter: true' para que agregue la columna 'total' sin borrar los datos
-    //await sequelize.sync({ alter: true });
-    await sequelize.sync({ force: false });
+    await sequelize.sync({ alter: true });
+    //await sequelize.sync({ force: false });
     console.log("📦 Tablas MySQL sincronizadas");
 
     // PASO C: Activar los Oídos (Eventos)

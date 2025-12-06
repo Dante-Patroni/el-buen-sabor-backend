@@ -1,7 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const PedidoController = require("../controllers/pedidoController");
-
+// Instanciamos el controlador
+const pedidoController = new PedidoController();
 /**
  * @swagger
  * /api/pedidos:
@@ -37,7 +38,7 @@ const PedidoController = require("../controllers/pedidoController");
  *         description: Pedido creado exitosamente
  */
 // 1. CREAR (POST) -> Llama a PedidoController.crear
-router.post("/", (req, res) => PedidoController.crear(req, res));
+router.post("/", (req, res) => pedidoController.crear(req, res));
 
 /**
  * @swagger
@@ -70,7 +71,30 @@ router.post("/", (req, res) => PedidoController.crear(req, res));
  *         description: Error interno del servidor
  */
 // 2. LISTAR (GET) -> Llama a PedidoController.listar
-router.get("/", (req, res) => PedidoController.listar(req, res));
+router.get("/", (req, res) => pedidoController.listar(req, res));
+
+/**
+/**
+ * @swagger
+ * /api/pedidos/mesa/{mesa}:
+ *   get:
+ *     summary: Obtiene el historial de pedidos activos de una mesa específica
+ *     tags: [Pedidos]
+ *     parameters:
+ *       - in: path
+ *         name: mesa
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Número o ID de la mesa
+ *     responses:
+ *       200:
+ *         description: Lista de pedidos de la mesa
+ *       500:
+ *         description: Error del servidor
+ */
+//:mesa con dos puntos, lo que significa que es un parámetro variable (puede ser 4, 8, 10, etc.)
+router.get('/mesa/:mesa', pedidoController.buscarPorMesa.bind(pedidoController));
 
 // ---------------------------------------------------------
 // DELETE /api/pedidos/{id} (Eliminar) - ¡NUEVO! 🆕
@@ -99,6 +123,8 @@ router.get("/", (req, res) => PedidoController.listar(req, res));
  */
 // 3. ELIMINAR (DELETE) -> Llama a PedidoController.eliminar
 // Fíjate en el ':id'. Eso es un Parámetro de Ruta.
-router.delete("/:id", (req, res) => PedidoController.eliminar(req, res));
+router.delete("/:id", (req, res) => pedidoController.eliminar(req, res));
+
+
 
 module.exports = router;

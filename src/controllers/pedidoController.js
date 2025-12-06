@@ -71,6 +71,31 @@ class PedidoController {
       res.status(500).json({ error: "Error al obtener pedidos" });
     }
   }
+  //Recibir el ID: Extraer el número de mesa de la URL (lo que pusimos como :mesa).
+  //Delegar: Pasarle ese número al Servicio para que busque los datos.
+  //Responder: Devolver la lista de pedidos al Frontend.
+  // ---------------------------------------------------------
+  // 3. HISTORIAL DE MESA (EBS-12) 🆕
+  // ---------------------------------------------------------
+  async buscarPorMesa(req, res) {
+    try {
+      const { mesa } = req.params; // El número de mesa viene en la URL: /api/pedidos/mesa/3
+
+      // Validamos que no venga vacío
+      if (!mesa) {
+        return res.status(400).json({ error: "Número de mesa es obligatorio" });
+      }
+
+      // 2. Llamamos al servicio para obtener los pedidos de esa mesa
+      const pedidos = await this.pedidoService.buscarPedidosPorMesa(mesa);
+
+      // 3. Devolvemos la lista de pedidos al Frontend
+      res.status(200).json(pedidos);
+    } catch (error) {
+      console.error("Error buscando pedidos por mesa ${req.params.mesa}:", error);
+      return res.status(500).json({ error: "Error al obtener el historial de la mesa" });
+    }
+  }
 
   // ---------------------------------------------------------
   // 3. ELIMINAR (DELETE) - ¡ESTE ES EL QUE FALTABA! 🆕
@@ -96,4 +121,4 @@ class PedidoController {
   }
 }
 
-module.exports = new PedidoController();
+module.exports = PedidoController;

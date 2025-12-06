@@ -2,7 +2,8 @@
 A diferencia de los Controladores (que solo reciben y responden) o los
  Modelos (que solo guardan datos), el Servicio es el que Piensa y 
  Toma Decisiones.*/
-const { Pedido, Plato } = require("../models");
+const { Pedido, Plato, Sequelize } = require('../models');
+const { Op } = Sequelize; // Importamos el Operador de Sequelize
 
 class PedidoService {
   // 1. Recibimos el adaptador en el constructor (Inyección de Dependencias)
@@ -92,6 +93,31 @@ class PedidoService {
 
     return true;
   }
+
+  // ---------------------------------------------------------
+  // 3. BUSCAR POR MESA (Historial de Sesión)
+  // ---------------------------------------------------------
+  async buscarPedidosPorMesa(mesaNumero) {
+    // Buscamos pedidos que coincidan con la mesa
+    // Y que NO estén rechazados (ni pagados en el futuro)
+    const pedidos = await Pedido.findAll({
+      where: {
+        mesa: mesaNumero,
+        estado: {
+          [Op.not]: ["rechazado", "pagado"] // 'pendiente', 'en_preparacion', 'rechazado', 'pagado' // Excluimos los pedidos rechazados
+        }
+      },
+      include: [{
+        model: Plato, //Traemos datos del plato (nombre, precio) para mostrar en el historial
+        attributes: ['nombre', 'precio', 'imagenPath']
+      }],
+      order: [['createdAt', 'DESC']] // Ordenamos por fecha descendente
+
+    });
+    return pedidos;
+  }
+
 }
+
 
 module.exports = PedidoService;

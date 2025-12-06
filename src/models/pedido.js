@@ -4,9 +4,12 @@ const { Model } = require("sequelize");
 module.exports = (sequelize, DataTypes) => {
   class Pedido extends Model {
     static associate(models) {
-      // Definimos la relación: Un Pedido tiene muchos Mails (si aplica)
-      // Ojo: En tu código actual quizás ya tengas esto o la relación con Plato
-      // Mantén las asociaciones que ya tenías.
+      // Definimos que el Pedido "pertenece a" un Plato.
+      // Esto permite hacer el 'include: [Plato]' en las consultas.
+      Pedido.belongsTo(models.Plato, {
+        foreignKey: 'PlatoId', // La columna que conecta
+        // as: 'plato' // Opcional: si quisieras llamarlo de otra forma
+      });
     }
   }
   Pedido.init(
