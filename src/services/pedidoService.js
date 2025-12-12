@@ -52,17 +52,19 @@ class PedidoService {
 
     // 👇 6. EL FIX: Actualizar el estado de la Mesa a 'OCUPADA'
     if (mesa) {
-        console.log(`🔄 Cambiando estado de Mesa ${mesa} a OCUPADA...`);
-        try {
-            // Actualizamos la mesa. Asumimos que 'mesa' es el ID (primary key).
-            await Mesa.update(
-                { estado: 'ocupada' },
-                totalActual: platoInfo.precio, 
-                { where: { id: mesa } } 
-            );
-        } catch (error) {
-            console.error("⚠️ Error actualizando estado de la mesa:", error.message);
-        }
+      console.log(`🔄 Cambiando estado de Mesa ${mesa} a OCUPADA...`);
+      try {
+        // Actualizamos la mesa. Asumimos que 'mesa' es el ID (primary key).
+        await Mesa.update(
+          {
+            estado: 'ocupada',           // Estado (Minúscula para el test)
+            totalActual: platoInfo.precio
+          }, // Actualizamos el total con el precio del plato
+          { where: { id: mesa } }
+        );
+      } catch (error) {
+        console.error("⚠️ Error actualizando estado de la mesa:", error.message);
+      }
     }
 
     return nuevoPedido;
