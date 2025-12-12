@@ -55,6 +55,12 @@ const startServer = async () => {
     //await sequelize.sync({ force: false });
     console.log("📦 Tablas MySQL sincronizadas");
 
+    // sync con alter:true actualiza las tablas si cambiaste algo
+    await sequelize.sync({ force: false, alter: true }); 
+
+    // EJECUTAR EL SEMBRADOR AQUÍ
+    await seedDatabase();
+
     // PASO C: Activar los Oídos (Eventos)
     setupListeners();
 
