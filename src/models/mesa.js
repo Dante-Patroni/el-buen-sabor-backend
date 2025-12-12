@@ -19,6 +19,10 @@ module.exports = (sequelize, DataTypes) => {
   
   Mesa.init(
     {
+      numero: {
+        type: DataTypes.STRING(10),
+        allowNull: true, // Puede ser null si usas solo ID
+      },
       // Definimos los campos igual que en tu phpMyAdmin
       nombre: {
         type: DataTypes.STRING(50),
