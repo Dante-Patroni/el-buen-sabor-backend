@@ -56,7 +56,8 @@ class PedidoService {
         try {
             // Actualizamos la mesa. Asumimos que 'mesa' es el ID (primary key).
             await Mesa.update(
-                { estado: 'ocupada' }, 
+                { estado: 'ocupada' },
+                totalActual: platoInfo.precio, 
                 { where: { id: mesa } } 
             );
         } catch (error) {
