@@ -7,7 +7,7 @@ class MesaService {
   // ---------------------------------------------------------
   // 1. LISTAR ESTADO (GET) - AHORA CONECTADO A BASE DE DATOS
   // ---------------------------------------------------------
-  async listarEstadoMesas() {
+  async listar() {
     try {
       // 👇 MAGIA: Ya no usamos un array fijo. Leemos la tabla 'mesas' real.
       const mesas = await Mesa.findAll({
@@ -62,4 +62,4 @@ class MesaService {
   }
 }
 
-module.exports = MesaService;
+module.exports = new MesaService();

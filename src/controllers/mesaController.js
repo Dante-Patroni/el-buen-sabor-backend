@@ -1,48 +1,48 @@
-//Importamos el servicio de mesa
+// 👇 Importamos la instancia directa
 const mesaService = require("../services/mesaService");
 
 class MesaController {
-  constructor() {
-    //Instanciamos el servicio de mesa para poder usarlo
-    this.mesaService = new mesaService();
-  }
-
-  //Este método lo llamamos desde la ruta
-  async obtenerEstadoMesas(req, res) {
+  
+  // 1. LISTAR / OBTENER ESTADO
+  async listar(req, res) {
     try {
-      //1. Llamamos al servicio para obtener el estado de las mesas
-      const mesas = await this.mesaService.listarEstadoMesas();
+      const mesas = await mesaService.listar();
 
-      //2. Si todo sale bien, respondemos con código 200 (OK) y los datos
+      // 🕵️‍♂️ EL ESPÍA DE DEBUG (Aquí veremos si totalActual viaja o no)
+      console.log("\n🔍 [DEBUG CONTROLLER] Revisando Mesa 4:");
+      const mesa4 = mesas.find(m => m.id == 4 || m.numero == '4');
+      if (mesa4) {
+          console.log(` - ID: ${mesa4.id}`);
+          console.log(` - Estado: ${mesa4.estado}`);
+          console.log(` - TotalActual: ${mesa4.totalActual} (Tipo: ${typeof mesa4.totalActual})`);
+          console.log(` - Objeto completo: ${JSON.stringify(mesa4)}`);
+      } else {
+          console.log("⚠️ La Mesa 4 NO aparece en la lista.");
+      }
+      console.log("--------------------------------------------------\n");
+
       res.status(200).json(mesas);
     } catch (error) {
-      //3. Si hay un error, respondemos con código 500 (Error del servidor) y el mensaje de error
-      console.error("Error al obtener el estado de las mesas:", error.message);
-      res
-        .status(500)
-        .json({ mensaje: "Error al obtener el estado de las mesas" });
+      console.error("Error al obtener mesas:", error.message);
+      res.status(500).json({ mensaje: "Error al obtener el estado de las mesas" });
     }
   }
 
-  // ---------------------------------------------------------
-    // 2. CERRAR MESA (EBS-13)
-    // ---------------------------------------------------------
-    async cerrarMesa(req, res) {
-      try {
-        const { id } = req.params; // El ID de la mesa (ej: "4")
+  // 2. CERRAR MESA
+  async cerrarMesa(req, res) {
+    try {
+      const { id } = req.params;
+      const resultado = await mesaService.cerrarMesa(id);
 
-        // Llamamos al servicio para ejecutar la lógica
-        const resultado = await this.mesaService.cerrarMesa(id);
-
-        // Respondemos con el resultado
-        res.status(200).json({
+      res.status(200).json({
            mensaje: `Mesa ${id} cerrada correctamente`,
            pedidosActualizados: resultado
-          });
-      }catch (error) {
-        console.error(`Error al cerrar la mesa ${req.params.id}:`, error);
-        res.status(500).json({ error: "No se pudo cerrar la mesa" });
-      }
+      });
+    } catch (error) {
+      console.error(`Error al cerrar la mesa ${req.params.id}:`, error);
+      res.status(500).json({ error: "No se pudo cerrar la mesa" });
     }
+  }
 }
-module.exports = MesaController;
+
+module.exports = new MesaController();
