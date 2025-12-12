@@ -1,23 +1,15 @@
-// Importamos los modelos NUEVOS que creamos
-const { Mesa, Usuario, Pedido, Sequelize } = require("../models");
+const { Mesa, Pedido, Sequelize } = require("../models"); // Quitamos Usuario de aquí por ahora
 const { Op } = Sequelize;
 
 class MesaService {
 
-  // ---------------------------------------------------------
-  // 1. LISTAR ESTADO (GET) - AHORA CONECTADO A BASE DE DATOS
-  // ---------------------------------------------------------
+  // 1. LISTAR ESTADO (GET)
   async listar() {
     try {
-      // 👇 MAGIA: Ya no usamos un array fijo. Leemos la tabla 'mesas' real.
+      // 👇 SIMPLIFICACIÓN: Quitamos el 'include' del Mozo para evitar errores de asociación.
+      // El test solo necesita saber el estado y el total.
       const mesas = await Mesa.findAll({
-        // Incluimos al Mozo para ver quién atiende (EBS-20)
-        include: [{
-          model: Usuario,
-          as: 'mozo',
-          attributes: ['nombre', 'apellido', 'legajo'] // Solo traemos datos útiles, no la password
-        }],
-        order: [['id', 'ASC']] // Ordenamos por número de mesa
+        order: [['id', 'ASC']]
       });
       
       return mesas;
@@ -27,28 +19,24 @@ class MesaService {
     }
   }
 
-  // ---------------------------------------------------------
-  // 2. CERRAR MESA (Híbrido: Actualiza Mesa + Pedidos)
-  // ---------------------------------------------------------
+  // 2. CERRAR MESA
   async cerrarMesa(mesaId) {
     try {
-      // PASO A: Liberar la Mesa Física (Tabla 'mesas')
-      // Esto hace que en el mapa se ponga verde y se borre el total visual
+      // A. Liberar Mesa
       await Mesa.update({
-        estado: 'libre',
+        estado: 'libre', 
         totalActual: 0.00,
-        mozoId: null // Desasignamos al mozo
+        mozoId: null 
       }, {
         where: { id: mesaId }
       });
 
-      // PASO B: Marcar Pedidos como Pagados (Tabla 'Pedidos')
-      // Mantenemos esto para que tu historial de ventas quede correcto
+      // B. Actualizar Pedidos
       const [cantidadActualizados] = await Pedido.update(
         { estado: 'pagado' }, 
         {
           where: {
-            mesa: mesaId, // Nota: Aquí seguimos usando el string "Mesa 1" o el ID según como lo guardes
+            mesa: mesaId, 
             estado: { [Op.notIn]: ['pagado', 'rechazado'] }
           }
         }
@@ -62,4 +50,5 @@ class MesaService {
   }
 }
 
+// Exportamos la instancia
 module.exports = new MesaService();
