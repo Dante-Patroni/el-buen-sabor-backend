@@ -9,6 +9,25 @@ const mesaRouter = require("./src/routes/mesaRoutes");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+//CONFIGURACIONES DE CORS RESTRICTIVAS
+const whitelist = [
+  "http://localhost:3000", // React Local(Postman/Swager)
+  "http://localhost:4200", // Angular/React Local (Navegador)
+  "http://192.168.1.37:3000", // IP Local para Celular o Tablet
+  "http://192.168.1.37", // Dominio de Producción por si acaso
+];
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Si no hay origen (como Postman o App móvil nativa) o está en la lista, permitimos
+    if (!origin || whitelist.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error("Bloqueado por por CORS: Origen no permitido"));
+    }
+  },
+  optionsSuccessStatus: 200, // Para legacy browsers
+};
+
 //Middlewares
 app.use(cors()); // 1. Permite que el celular o React hablen con el servidor.
 app.use(express.json()); // 2. Traduce el cuerpo del mensaje a JSON (si no, recibirías basura binaria)
@@ -56,3 +75,4 @@ startServer(); // Ejecutamos la función de inicio
 // BLOQUE 4: El Enrutador (Routing)
 app.use("/api/pedidos", require("./src/routes/pedidoRoutes"));
 app.use("/api/platos", require("./src/routes/platoRoutes"));
+app.use("/api/usuarios", require("./src/routes/usuarioRoutes"));

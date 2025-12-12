@@ -2,12 +2,11 @@ const swaggerJsdoc = require("swagger-jsdoc");
 
 const options = {
   definition: {
-    openapi: "3.0.0", // Estándar Open API
+    openapi: "3.0.0",
     info: {
       title: "API El Buen Sabor",
       version: "1.0.0",
-      description:
-        "API para gestión de pedidos de restaurante. Documentación automática.",
+      description: "API para gestión de pedidos de restaurante. Documentación automática.",
       contact: {
         name: "Dante Patroni",
         url: "https://github.com/Dante-Patroni/el-buen-sabor-backend.git",
@@ -19,13 +18,21 @@ const options = {
         description: "Servidor de Desarrollo",
       },
     ],
-    // 👇 AGREGA ESTO AQUÍ: Definición de componentes globales
+    // 👇 CAMBIO IMPORTANTE AQUÍ 👇
     components: {
+      // 1. Definimos CÓMO es la seguridad (El tipo de candado)
+      securitySchemes: {
+        bearerAuth: {
+          type: "http",
+          scheme: "bearer",
+          bearerFormat: "JWT",
+        },
+      },
+      // 2. Tus esquemas de datos (Se quedan igual)
       schemas: {
         Plato: {
           type: "object",
           properties: {
-            // Puedes agregar aquí otras propiedades del plato si quieres (nombre, precio, etc.)
             stock: {
               type: "object",
               properties: {
@@ -38,9 +45,14 @@ const options = {
         },
       },
     },
-    // 👆 Fin del agregado
+    // 3. Activamos el candado globalmente
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
+    // 👆 FIN DEL CAMBIO
   },
-  // 👇 Aquí le decimos: "Busca anotaciones en todos los archivos de rutas"
   apis: ["./src/routes/*.js"],
 };
 

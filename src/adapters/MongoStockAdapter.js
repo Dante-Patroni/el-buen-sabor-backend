@@ -27,10 +27,6 @@ class StockAdapter {
       );
 
       // 🧠 LÓGICA DE FUSIÓN (Merge Strategy)
-      // Esto soluciona tu problema actual: Combina los datos viejos y nuevos.
-
-      // A. ¿Es Ilimitado? (Si es true en CUALQUIER lugar, es true)
-      // Revisamos raíz (Legacy) O stockDiario (Nuevo)
       const esIlimitado =
         stockItem.esIlimitado === true ||
         stockItem.stockDiario?.esIlimitado === true;
@@ -40,8 +36,6 @@ class StockAdapter {
         return 9999;
       }
 
-      // B. ¿Cuánta cantidad hay?
-      // Tomamos el mayor valor entre lo viejo y lo nuevo para no bloquear ventas válidas.
       const cantidadVieja = stockItem.cantidad || 0;
       const cantidadNueva = stockItem.stockDiario?.cantidadActual || 0;
 
@@ -55,9 +49,8 @@ class StockAdapter {
     }
   }
 
+  // 2. DESCONTAR STOCK (Resta)
   async descontarStock(platoId, cantidadADescontar) {
-    // ... (Puedes dejar la lógica de escritura igual o ajustarla similar si necesitas)
-    // Por ahora nos urge que funcione la LECTURA para crear el pedido.
     try {
       const idBusqueda = parseInt(platoId);
       const stockItem = await Stock.findOne({ platoId: idBusqueda });
@@ -73,7 +66,7 @@ class StockAdapter {
         } else {
           // Lógica Legacy
           if (!stockItem.esIlimitado) {
-            stockItem.cantidad -= cantidadADescontar; // Usamos el campo viejo
+            stockItem.cantidad -= cantidadADescontar;
             await stockItem.save();
           }
         }
@@ -81,6 +74,38 @@ class StockAdapter {
       }
     } catch (e) {
       console.error(e);
+    }
+  }
+
+  // 👇 3. REPONER STOCK (Suma) - ¡ESTE ES EL MÉTODO QUE FALTABA!
+  async reponerStock(platoId, cantidadAReponer) {
+    try {
+      console.log(`🔄 [StockAdapter] Reponiendo ${cantidadAReponer} items al plato ${platoId}`);
+      const idBusqueda = parseInt(platoId);
+      const stockItem = await Stock.findOne({ platoId: idBusqueda });
+
+      if (stockItem) {
+        // Lógica Híbrida (Igual que descontar, pero sumando)
+        if (stockItem.stockDiario) {
+          if (!stockItem.stockDiario.esIlimitado) {
+            stockItem.stockDiario.cantidadActual += cantidadAReponer;
+            stockItem.ultimaActualizacion = Date.now();
+            await stockItem.save();
+            console.log(`✅ Stock actualizado (Moderno). Nuevo total: ${stockItem.stockDiario.cantidadActual}`);
+          }
+        } else {
+          // Lógica Legacy
+          if (!stockItem.esIlimitado) {
+            stockItem.cantidad += cantidadAReponer;
+            await stockItem.save();
+            console.log(`✅ Stock actualizado (Legacy). Nuevo total: ${stockItem.cantidad}`);
+          }
+        }
+      } else {
+          console.warn(`⚠️ No se encontró el plato ${platoId} para reponer stock.`);
+      }
+    } catch (e) {
+      console.error("❌ Error al reponer stock:", e);
     }
   }
 }

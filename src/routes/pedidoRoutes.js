@@ -1,8 +1,13 @@
 const express = require("express");
 const router = express.Router();
 const PedidoController = require("../controllers/pedidoController");
+
+// 👇 1. IMPORTAMOS AL GUARDIA DE SEGURIDAD
+const authMiddleware = require("../middlewares/authMiddleware");
+
 // Instanciamos el controlador
 const pedidoController = new PedidoController();
+
 /**
  * @swagger
  * /api/pedidos:
@@ -38,7 +43,7 @@ const pedidoController = new PedidoController();
  *         description: Pedido creado exitosamente
  */
 // 1. CREAR (POST) -> Llama a PedidoController.crear
-router.post("/", (req, res) => pedidoController.crear(req, res));
+router.post("/", authMiddleware, (req, res) => pedidoController.crear(req, res));
 
 /**
  * @swagger
@@ -70,7 +75,8 @@ router.post("/", (req, res) => pedidoController.crear(req, res));
  *       500:
  *         description: Error interno del servidor
  */
-// 2. LISTAR (GET) -> Llama a PedidoController.listar
+// 3. LISTAR (GET) - Opcional: ¿Quieres que cualquiera vea la lista o solo el mozo?
+// Por ahora la dejaremos pública para facilitar pruebas, pero idealmente también lleva authMiddleware.
 router.get("/", (req, res) => pedidoController.listar(req, res));
 
 /**
@@ -123,7 +129,7 @@ router.get('/mesa/:mesa', pedidoController.buscarPorMesa.bind(pedidoController))
  */
 // 3. ELIMINAR (DELETE) -> Llama a PedidoController.eliminar
 // Fíjate en el ':id'. Eso es un Parámetro de Ruta.
-router.delete("/:id", (req, res) => pedidoController.eliminar(req, res));
+router.delete("/:id", authMiddleware, (req, res) => pedidoController.eliminar(req, res));
 
 
 

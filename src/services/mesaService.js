@@ -1,91 +1,64 @@
-// Importamos el Modelo de Base de Datos (Sequelize)
-const { Pedido, Sequelize } = require("../models");
-const { Op } = Sequelize; // Importamos el Operador de Sequelize
+// Importamos los modelos NUEVOS que creamos
+const { Mesa, Usuario, Pedido, Sequelize } = require("../models");
+const { Op } = Sequelize;
 
 class MesaService {
-  
+
   // ---------------------------------------------------------
-  // 1. LISTAR ESTADO (GET)
+  // 1. LISTAR ESTADO (GET) - AHORA CONECTADO A BASE DE DATOS
   // ---------------------------------------------------------
   async listarEstadoMesas() {
-    // 1. DEFINICION FISICA (Virtual)
-    const mesasFisicas = [
-      { id: 1, nombre: "Mesa 1" },
-      { id: 2, nombre: "Mesa 2" },
-      { id: 3, nombre: "Mesa 3" },
-      { id: 4, nombre: "Mesa 4" },
-      { id: 5, nombre: "Mesa 5" },
-      { id: 6, nombre: "Mesa 6" },
-      { id: 7, nombre: "Mesa 7" },
-      { id: 8, nombre: "Mesa 8" },
-      { id: 9, nombre: "Mesa 9" },
-      { id: 10, nombre: "Mesa 10" },
-    ];
-
-    // 2. CONSULTA DE "LO QUE ESTÁ PASANDO" (Active Data)
-    const pedidosActivos = await Pedido.findAll({
-      where: {
-        estado: ["pendiente", "en_preparacion", "entregado"], // Agregué 'entregado' porque si están comiendo, la mesa sigue ocupada
-      },
-    });
-
-    // 3. PROCESAMIENTO
-    const estadoMesas = mesasFisicas.map((mesa) => {
-      // Filtramos pedidos de ESTA mesa
-      const pedidosDeLaMesa = pedidosActivos.filter(
-        (pedido) => String(pedido.mesa) === String(mesa.id), // Conversión a String para evitar errores de tipo
-      );
-
-      if (pedidosDeLaMesa.length > 0) {
-        // Calculamos total blindado
-        const totalAcumulado = pedidosDeLaMesa.reduce((sum, pedido) => {
-          const valorPedido = parseFloat(pedido.total) || 0;
-          return sum + valorPedido;
-        }, 0);
-        
-        // Buscamos fecha de apertura
-        const primerPedido = pedidosDeLaMesa.sort(
-          (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
-        )[0];
-
-        return {
-          ...mesa,
-          estado: "ocupada",
-          totalActual: totalAcumulado,
-          itemsPendientes: pedidosDeLaMesa.length,
-          fechaApertura: primerPedido ? primerPedido.createdAt : new Date(),
-        };
-      } else {
-        return {
-          ...mesa,
-          estado: "libre",
-          totalActual: 0,
-        };
-      }
-    });
-
-    return estadoMesas;
+    try {
+      // 👇 MAGIA: Ya no usamos un array fijo. Leemos la tabla 'mesas' real.
+      const mesas = await Mesa.findAll({
+        // Incluimos al Mozo para ver quién atiende (EBS-20)
+        include: [{
+          model: Usuario,
+          as: 'mozo',
+          attributes: ['nombre', 'apellido', 'legajo'] // Solo traemos datos útiles, no la password
+        }],
+        order: [['id', 'ASC']] // Ordenamos por número de mesa
+      });
+      
+      return mesas;
+    } catch (error) {
+      console.error("Error al listar mesas desde BD:", error);
+      throw error;
+    }
   }
 
   // ---------------------------------------------------------
-  // 2. CERRAR MESA (Actualización Masiva - EBS-13)
+  // 2. CERRAR MESA (Híbrido: Actualiza Mesa + Pedidos)
   // ---------------------------------------------------------
   async cerrarMesa(mesaId) {
-    // Ejecutamos un UPDATE masivo en la tabla Pedidos
-    // UPDATE Pedidos SET estado = 'pagado' WHERE mesa = mesaId AND estado != 'pagado'...
+    try {
+      // PASO A: Liberar la Mesa Física (Tabla 'mesas')
+      // Esto hace que en el mapa se ponga verde y se borre el total visual
+      await Mesa.update({
+        estado: 'libre',
+        totalActual: 0.00,
+        mozoId: null // Desasignamos al mozo
+      }, {
+        where: { id: mesaId }
+      });
 
-    const [cantidadActualizados] = await Pedido.update(
-      { estado: 'pagado' }, 
-      {
-        where: {
-          mesa: mesaId,
-          estado: {
-            [Op.notIn]: ['pagado', 'rechazado']
+      // PASO B: Marcar Pedidos como Pagados (Tabla 'Pedidos')
+      // Mantenemos esto para que tu historial de ventas quede correcto
+      const [cantidadActualizados] = await Pedido.update(
+        { estado: 'pagado' }, 
+        {
+          where: {
+            mesa: mesaId, // Nota: Aquí seguimos usando el string "Mesa 1" o el ID según como lo guardes
+            estado: { [Op.notIn]: ['pagado', 'rechazado'] }
           }
         }
-      }
-    );
-    return cantidadActualizados; // Devuelve cuántos pedidos se cobraron
+      );
+      
+      return cantidadActualizados;
+    } catch (error) {
+      console.error("Error al cerrar mesa:", error);
+      throw error;
+    }
   }
 }
 
