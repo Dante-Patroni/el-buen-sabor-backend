@@ -4,12 +4,19 @@ const bcrypt = require('bcryptjs');
 
 const seedDatabase = async () => {
     try {
-        // 1. CREAR USUARIO ADMIN (Si no existe)
+        console.log("🌱 [Seeder] Iniciando sembrado de datos...");
+
+        // Verificación de seguridad: ¿Cargaron los modelos?
+        if (!Usuario || !Mesa) {
+            console.error("❌ [Seeder] Error Crítico: Los modelos Usuario o Mesa son undefined. Revisa las importaciones.");
+            return;
+        }
+
+        // 1. SEMBRAR USUARIO ADMIN
         const adminExiste = await Usuario.findOne({ where: { legajo: '1001' } });
         
         if (!adminExiste) {
-            console.log("🌱 Creando usuario Admin...");
-            // Encriptamos '1234'
+            console.log("🌱 [Seeder] Creando usuario Admin (Dante)...");
             const passwordHash = await bcrypt.hash('1234', 10);
             
             await Usuario.create({
@@ -20,25 +27,30 @@ const seedDatabase = async () => {
                 password: passwordHash,
                 rol: 'administrador' 
             });
-            console.log('✅ Usuario Admin (1001) sembrado con éxito.');
+            console.log('✅ [Seeder] Usuario Admin CREADO.');
+        } else {
+            console.log('ℹ️ [Seeder] El usuario Admin ya existía.');
         }
 
-        // 2. CREAR MESA 4 (Para el test de pedidos)
-        // Buscamos por número (string) porque así lo definimos en el modelo
+        // 2. SEMBRAR MESA 4
         const mesaExiste = await Mesa.findOne({ where: { numero: '4' } }); 
         
         if (!mesaExiste) {
-             console.log("🌱 Creando Mesa 4...");
+            console.log("🌱 [Seeder] Creando Mesa 4...");
             await Mesa.create({
                 numero: '4', 
                 capacidad: 4,
                 estado: 'LIBRE' 
             });
-            console.log('✅ Mesa 4 sembrada con éxito.');
+            console.log('✅ [Seeder] Mesa 4 CREADA.');
+        } else {
+            console.log('ℹ️ [Seeder] La Mesa 4 ya existía.');
         }
 
+        console.log("🌱 [Seeder] Proceso finalizado correctamente.");
+
     } catch (error) {
-        console.error('❌ Error en el seeding inicial:', error);
+        console.error('❌ [Seeder] Error FATAL durante el sembrado:', error);
     }
 };
 
