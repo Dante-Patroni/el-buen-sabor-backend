@@ -15,7 +15,7 @@ const seedDatabase = async () => {
         // 1. SEMBRAR USUARIO ADMIN
         const adminExiste = await Usuario.findOne({ where: { legajo: '1001' } });
         
-        if (!adminExiste) {
+       if (!adminExiste) {
             console.log("🌱 [Seeder] Creando usuario Admin (Dante)...");
             const passwordHash = await bcrypt.hash('1234', 10);
             
@@ -25,11 +25,9 @@ const seedDatabase = async () => {
                 legajo: '1001',
                 email: 'admin@elbuensabor.com',
                 password: passwordHash,
-                rol: 'administrador' 
+                rol: 'admin'  // 👈 ¡AQUÍ ESTÁ LA CORRECCIÓN! (Antes decía 'administrador')
             });
             console.log('✅ [Seeder] Usuario Admin CREADO.');
-        } else {
-            console.log('ℹ️ [Seeder] El usuario Admin ya existía.');
         }
 
         // 2. SEMBRAR MESA 4
