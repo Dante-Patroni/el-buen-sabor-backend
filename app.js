@@ -1,84 +1,95 @@
-const express = require("express"); // 🆕 1. Importamos Express
+const express = require("express");
 const path = require("path");
-const cors = require("cors"); //Seguridad
-const { dbConnection } = require("./src/config/mongo"); // 🆕 1. Importamos la conexión Mongo
-const { sequelize } = require("./src/models"); // 🆕 1. Importamos la conexión SQL
+const cors = require("cors");
+
+// 👇 IMPORTACIONES DE BASE DE DATOS Y CONFIGURACIÓN
+const { dbConnection } = require("./src/config/mongo");
+const { sequelize } = require("./src/models");
 const setupListeners = require("./src/listeners/setupListeners");
+const seedDatabase = require("./src/seeders/initialSeeder"); // ✅ Ruta correcta
+
+// 👇 IMPORTACIONES DE RUTAS
 const mesaRouter = require("./src/routes/mesaRoutes");
+// (Las otras rutas las importaremos directamente abajo para mantener tu estilo)
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-//CONFIGURACIONES DE CORS RESTRICTIVAS
+// ==========================================
+// 🛡️ 1. SEGURIDAD (CORS)
+// ==========================================
 const whitelist = [
-  "http://localhost:3000", // React Local(Postman/Swager)
-  "http://localhost:4200", // Angular/React Local (Navegador)
-  "http://192.168.1.37:3000", // IP Local para Celular o Tablet
-  "http://192.168.1.37", // Dominio de Producción por si acaso
+  "http://localhost:3000",      // Postman / Swagger / Frontend Local
+  "http://localhost:4200",      // Angular Local
+  "http://192.168.18.3:3000",   // 📱 TU CELULAR (IP Fija actualizada)
+  "http://192.168.18.3",        // Variaciones de IP
 ];
+
 const corsOptions = {
   origin: function (origin, callback) {
-    // Si no hay origen (como Postman o App móvil nativa) o está en la lista, permitimos
+    // !origin permite peticiones sin origen (como Apps móviles nativas o Postman)
     if (!origin || whitelist.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
-      callback(new Error("Bloqueado por por CORS: Origen no permitido"));
+      console.log("🚫 Bloqueado por CORS:", origin);
+      callback(new Error("Bloqueado por CORS: Origen no permitido"));
     }
   },
-  optionsSuccessStatus: 200, // Para legacy browsers
+  optionsSuccessStatus: 200,
 };
 
-//Middlewares
-app.use(cors()); // 1. Permite que el celular o React hablen con el servidor.
-app.use(express.json()); // 2. Traduce el cuerpo del mensaje a JSON (si no, recibirías basura binaria)
-app.use("/api/mesas", mesaRouter); // Rutas de mesas
+// APLICAMOS MIDDLEWARES GLOBALES
+app.use(cors(corsOptions)); // ✅ AHORA SÍ usa la configuración restrictiva
+app.use(express.json());    // Traduce JSON
 
-// // 3. La Puerta de las Fotos
-// Esto permite acceder a http://localhost:3000/uploads/foto.jpg
+// ==========================================
+// 📂 2. RUTAS Y DOCUMENTACIÓN
+// ==========================================
+
+// Archivos estáticos (Fotos)
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// 4. La Puerta de la Documentación
+// Documentación (Swagger)
 const swaggerUi = require("swagger-ui-express");
 const swaggerSpecs = require("./src/docs/swagger");
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
 
-// BLOQUE 3: El Arranque Asíncrono (startServer)
-const startServer = async () => {
-  try {
-    // PASO A: Conectar Mongo (Esperamos con await)
-    await dbConnection();
-
-    // PASO B: Conectar MySQL (Esperamos con await)
-    // { force: false } significa "No borres las tablas si ya existen".
-    // Usamos 'alter: true' para que agregue la columna 'total' sin borrar los datos
-    await sequelize.sync({ alter: true });
-    //await sequelize.sync({ force: false });
-    console.log("📦 Tablas MySQL sincronizadas");
-
-    // sync con alter:true actualiza las tablas si cambiaste algo
-    await sequelize.sync({ force: false, alter: true }); 
-
-    // EJECUTAR EL SEMBRADOR AQUÍ
-    await seedDatabase();
-
-    // PASO C: Activar los Oídos (Eventos)
-    setupListeners();
-
-    // PASO D: Si todo lo anterior funcionó, RECIÉN AHÍ abrimos el puerto
-    app.listen(PORT, "0.0.0.0", () => {
-      console.log(`🚀 Servidor 'El Buen Sabor' corriendo.`);
-      console.log(`📡 Accesible localmente en: http://localhost:${PORT}`);
-      console.log(`📡 Accesible en red (Celular): http://<TU_IP_PC>:${PORT}`); // Ej: 192.168.1.37
-      console.log(`📄 Documentación: http://localhost:${PORT}/api-docs`);
-    });
-  } catch (error) {
-    console.error("❌ Error al iniciar el servidor:", error);
-  }
-};
-
-startServer(); // Ejecutamos la función de inicio
-
-// BLOQUE 4: El Enrutador (Routing)
+// API Routes
+app.use("/api/mesas", mesaRouter);
 app.use("/api/pedidos", require("./src/routes/pedidoRoutes"));
 app.use("/api/platos", require("./src/routes/platoRoutes"));
 app.use("/api/usuarios", require("./src/routes/usuarioRoutes"));
+
+// ==========================================
+// 🚀 3. INICIO DEL SERVIDOR
+// ==========================================
+const startServer = async () => {
+  try {
+    // A. Conectar Mongo
+    await dbConnection();
+
+    // B. Conectar MySQL y Sincronizar
+    // alter: true actualiza las tablas si agregas columnas nuevas
+    await sequelize.sync({ force: false, alter: true });
+    console.log("📦 Tablas MySQL sincronizadas");
+
+    // C. Sembrar datos iniciales (Admin y Mesas)
+    await seedDatabase();
+
+    // D. Activar Eventos (Sockets/Listeners)
+    setupListeners();
+
+    // E. Levantar el Servidor
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`🚀 Servidor 'El Buen Sabor' corriendo.`);
+      console.log(`📡 Accesible localmente: http://localhost:${PORT}`);
+      console.log(`📡 Accesible en red:    http://192.168.18.3:${PORT}`);
+      console.log(`📄 Documentación:       http://localhost:${PORT}/api-docs`);
+    });
+
+  } catch (error) {
+    console.error("❌ Error fatal al iniciar el servidor:", error);
+  }
+};
+
+startServer();
