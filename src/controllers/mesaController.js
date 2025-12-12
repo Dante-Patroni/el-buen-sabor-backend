@@ -16,7 +16,9 @@ const listar = async (req, res) => {
         numero: m.numero || m.id.toString(), 
         estado: m.estado, // 'ocupada'
         // Convertimos "1500.00" (String) a 1500 (Number) para que el test no llore
-        totalActual: parseFloat(m.totalActual) || 0 
+        totalActual: monto,
+            total: monto,
+            precio: monto
     }));
 
     // DEBUG: Verificamos el formato final
