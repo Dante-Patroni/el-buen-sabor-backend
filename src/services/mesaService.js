@@ -1,54 +1,48 @@
-const { Mesa, Pedido, Sequelize } = require("../models"); // Quitamos Usuario de aquí por ahora
+const { Mesa, Pedido, Sequelize } = require("../models");
 const { Op } = Sequelize;
 
 class MesaService {
 
-  // 1. LISTAR ESTADO (GET)
+  // 1. LISTAR (GET)
   async listar() {
-    try {
-      // 👇 SIMPLIFICACIÓN: Quitamos el 'include' del Mozo para evitar errores de asociación.
-      // El test solo necesita saber el estado y el total.
-      const mesas = await Mesa.findAll({
-        order: [['id', 'ASC']]
-      });
-      
-      return mesas;
-    } catch (error) {
-      console.error("Error al listar mesas desde BD:", error);
-      throw error;
+    // Verificación de seguridad: ¿Existe el modelo?
+    if (!Mesa) {
+        throw new Error("CRITICAL: El modelo Mesa no se cargó correctamente.");
     }
+
+    // Buscamos simple, sin asociaciones peligrosas por ahora
+    const mesas = await Mesa.findAll({
+      order: [['id', 'ASC']]
+    });
+    
+    return mesas;
   }
 
   // 2. CERRAR MESA
   async cerrarMesa(mesaId) {
-    try {
-      // A. Liberar Mesa
-      await Mesa.update({
-        estado: 'libre', 
-        totalActual: 0.00,
-        mozoId: null 
-      }, {
-        where: { id: mesaId }
-      });
+    // Limpiamos la mesa
+    await Mesa.update({
+      estado: 'libre', 
+      totalActual: 0.00,
+      mozoId: null 
+    }, {
+      where: { id: mesaId }
+    });
 
-      // B. Actualizar Pedidos
-      const [cantidadActualizados] = await Pedido.update(
-        { estado: 'pagado' }, 
-        {
-          where: {
-            mesa: mesaId, 
-            estado: { [Op.notIn]: ['pagado', 'rechazado'] }
-          }
+    // Marcamos pedidos como pagados
+    const [actualizados] = await Pedido.update(
+      { estado: 'pagado' }, 
+      {
+        where: {
+          mesa: mesaId, 
+          estado: { [Op.notIn]: ['pagado', 'rechazado'] }
         }
-      );
-      
-      return cantidadActualizados;
-    } catch (error) {
-      console.error("Error al cerrar mesa:", error);
-      throw error;
-    }
+      }
+    );
+    
+    return actualizados;
   }
 }
 
-// Exportamos la instancia
+// 👇 EXPORTAMOS LA INSTANCIA (IMPORTANTE)
 module.exports = new MesaService();
