@@ -56,7 +56,7 @@ class PedidoService {
         try {
             // Actualizamos la mesa. Asumimos que 'mesa' es el ID (primary key).
             await Mesa.update(
-                { estado: 'OCUPADA' }, 
+                { estado: 'ocupada' }, 
                 { where: { id: mesa } } 
             );
         } catch (error) {
