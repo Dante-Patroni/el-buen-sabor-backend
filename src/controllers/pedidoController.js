@@ -1,14 +1,8 @@
-const PedidoService = require("../services/pedidoService");
-const StockAdapter = require("../adapters/MongoStockAdapter");
-const { Pedido, Plato } = require("../models");
+// 👇 Importamos la instancia DIRECTAMENTE (ya creada en el servicio)
+const pedidoService = require("../services/pedidoService");
 
 class PedidoController {
-  constructor() {
-    // [A] INYECCIÓN DE DEPENDENCIAS (Wiring)
-    this.stockAdapter = new StockAdapter();
-    this.pedidoService = new PedidoService(this.stockAdapter);
-  }
-
+  
   // ---------------------------------------------------------
   // 1. CREAR (POST)
   // ---------------------------------------------------------
@@ -20,16 +14,15 @@ class PedidoController {
         return res.status(400).json({ error: "Faltan datos obligatorios." });
       }
 
-      // Asegurar que mesa sea string (incluso si envías número desde Flutter)
+      // Asegurar que mesa sea string
       const mesaString = String(mesa);
-
-      // Cliente puede ser undefined/string vacío
       const clienteFinal = cliente || "";
 
-      const pedidoCreado = await this.pedidoService.crearYValidarPedido(
-        cliente,
+      // 👇 Usamos 'pedidoService' directamente (sin 'this.')
+      const pedidoCreado = await pedidoService.crearYValidarPedido(
+        clienteFinal,
         platoId,
-        mesa,
+        mesaString
       );
 
       res.status(201).json({
@@ -38,7 +31,7 @@ class PedidoController {
           id: pedidoCreado.id,
           mesa: pedidoCreado.mesa,
           cliente: pedidoCreado.cliente,
-          platoId: pedidoCreado.platoId,
+          platoId: pedidoCreado.PlatoId, // Ojo: Sequelize suele devolver PlatoId o platoId
           fecha: pedidoCreado.fecha,
           estado: pedidoCreado.estado,
         },
@@ -49,6 +42,9 @@ class PedidoController {
         return res.status(409).json({ error: "Stock insuficiente." });
       if (error.message === "PLATO_NO_ENCONTRADO")
         return res.status(404).json({ error: "Plato no encontrado." });
+      if (error.message === "MESA_REQUERIDA")
+          return res.status(400).json({ error: "Número de mesa obligatorio." });
+          
       return res.status(500).json({ error: "Error interno." });
     }
   }
@@ -58,53 +54,47 @@ class PedidoController {
   // ---------------------------------------------------------
   async listar(req, res) {
     try {
-      //1. Extraemos 'estado' de los query params
-      // Ejemplo: /api/pedidos?estado=pendiente => estadoFilter = 'pendiente'
       const { estado } = req.query;
-      //2. Llamamos al servicio para obtener los pedidos
-      const pedidos = await this.pedidoService.listarPedidos(estado);
+      // 👇 Usamos 'pedidoService' directamente
+      const pedidos = await pedidoService.listarPedidos(estado);
 
-      // Devolvemos Array puro para Flutter
       res.status(200).json(pedidos);
     } catch (error) {
       console.error("Error Listar:", error.message);
       res.status(500).json({ error: "Error al obtener pedidos" });
     }
   }
-  //Recibir el ID: Extraer el número de mesa de la URL (lo que pusimos como :mesa).
-  //Delegar: Pasarle ese número al Servicio para que busque los datos.
-  //Responder: Devolver la lista de pedidos al Frontend.
+
   // ---------------------------------------------------------
-  // 3. HISTORIAL DE MESA (EBS-12) 🆕
+  // 3. HISTORIAL DE MESA
   // ---------------------------------------------------------
   async buscarPorMesa(req, res) {
     try {
-      const { mesa } = req.params; // El número de mesa viene en la URL: /api/pedidos/mesa/3
+      const { mesa } = req.params;
 
-      // Validamos que no venga vacío
       if (!mesa) {
         return res.status(400).json({ error: "Número de mesa es obligatorio" });
       }
 
-      // 2. Llamamos al servicio para obtener los pedidos de esa mesa
-      const pedidos = await this.pedidoService.buscarPedidosPorMesa(mesa);
+      // 👇 Usamos 'pedidoService' directamente
+      const pedidos = await pedidoService.buscarPedidosPorMesa(mesa);
 
-      // 3. Devolvemos la lista de pedidos al Frontend
       res.status(200).json(pedidos);
     } catch (error) {
-      console.error("Error buscando pedidos por mesa ${req.params.mesa}:", error);
+      console.error(`Error buscando pedidos por mesa ${req.params.mesa}:`, error);
       return res.status(500).json({ error: "Error al obtener el historial de la mesa" });
     }
   }
 
   // ---------------------------------------------------------
-  // 3. ELIMINAR (DELETE) - ¡ESTE ES EL QUE FALTABA! 🆕
+  // 4. ELIMINAR (DELETE)
   // ---------------------------------------------------------
   async eliminar(req, res) {
     try {
-      const { id } = req.params; // El ID viene en la URL: /api/pedidos/5
+      const { id } = req.params;
 
-      await this.pedidoService.eliminarPedido(id);
+      // 👇 Usamos 'pedidoService' directamente
+      const resultado = await pedidoService.eliminarPedido(id); // Eliminamos y reponemos stock
 
       res.status(200).json({
         mensaje: "Pedido eliminado y stock restaurado correctamente",
