@@ -1,48 +1,47 @@
 const { Mesa, Pedido, Sequelize } = require("../models");
 const { Op } = Sequelize;
 
-class MesaService {
+// Función simple, sin 'class'
+const listar = async () => {
+  console.log("🛠 [Service] Consultando base de datos...");
+  
+  // Verificación de seguridad
+  if (!Mesa) throw new Error("El modelo Mesa no está cargado.");
 
-  // 1. LISTAR (GET)
-  async listar() {
-    // Verificación de seguridad: ¿Existe el modelo?
-    if (!Mesa) {
-        throw new Error("CRITICAL: El modelo Mesa no se cargó correctamente.");
-    }
+  // Buscamos las mesas (traerá totalActual porque está en la BD)
+  const mesas = await Mesa.findAll({
+    order: [['id', 'ASC']]
+  });
 
-    // Buscamos simple, sin asociaciones peligrosas por ahora
-    const mesas = await Mesa.findAll({
-      order: [['id', 'ASC']]
-    });
-    
-    return mesas;
-  }
+  return mesas;
+};
 
-  // 2. CERRAR MESA
-  async cerrarMesa(mesaId) {
-    // Limpiamos la mesa
-    await Mesa.update({
-      estado: 'libre', 
-      totalActual: 0.00,
-      mozoId: null 
-    }, {
-      where: { id: mesaId }
-    });
+const cerrarMesa = async (mesaId) => {
+  // A. Liberar Mesa
+  await Mesa.update({
+    estado: 'libre', 
+    totalActual: 0.00,
+    mozoId: null 
+  }, {
+    where: { id: mesaId }
+  });
 
-    // Marcamos pedidos como pagados
-    const [actualizados] = await Pedido.update(
-      { estado: 'pagado' }, 
-      {
-        where: {
-          mesa: mesaId, 
-          estado: { [Op.notIn]: ['pagado', 'rechazado'] }
-        }
+  // B. Actualizar Pedidos
+  const [actualizados] = await Pedido.update(
+    { estado: 'pagado' }, 
+    {
+      where: {
+        mesa: mesaId, 
+        estado: { [Op.notIn]: ['pagado', 'rechazado'] }
       }
-    );
-    
-    return actualizados;
-  }
-}
+    }
+  );
+  
+  return actualizados;
+};
 
-// 👇 EXPORTAMOS LA INSTANCIA (IMPORTANTE)
-module.exports = new MesaService();
+// Exportamos el objeto directo
+module.exports = {
+  listar,
+  cerrarMesa
+};

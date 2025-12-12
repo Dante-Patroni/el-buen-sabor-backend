@@ -18,8 +18,6 @@ const MesaController = require("../controllers/mesaController");
  * /api/mesas:
  *   get:
  *     summary: Obtiene el estado actual de todas las mesas
- *     description: Calcula si las mesas están ocupadas basándose en pedidos pendientes y suma el total gastado.
- *     tags: [Mesas]
  *     responses:
  *       200:
  *         description: Lista de mesas obtenida correctamente
@@ -39,60 +37,38 @@ const MesaController = require("../controllers/mesaController");
  *                   estado:
  *                     type: string
  *                     enum: [libre, ocupada]
- *                     description: '"ocupada" si hay pedidos pendientes, sino "libre"'
  *                     example: "ocupada"
  *                   totalActual:
  *                     type: number
- *                     description: Suma del precio de los platos pendientes
- *                     example: 1200.50
- *                   itemsPendientes:
- *                     type: integer
- *                     description: Cantidad de platos sin entregar/pagar
- *                     example: 3
- *                   fechaApertura:
- *                     type: string
- *                     format: date-time
- *                     description: Fecha del pedido más antiguo pendiente
- *                     example: "2025-12-04T13:53:14.000Z"
+ *                     description: Total acumulado en la mesa
+ *                     example: 1500.00
  *       500:
- *         description: Error al calcular el estado de las mesas
+ *         description: Error al obtener las mesas
  */
 
 // Definimos la ruta GET raíz (/)
 // Esto responderá cuando alguien llame a: http://localhost:3000/api/mesas
-router.get("/", (req, res) => mesaController.obtenerEstadoMesas(req, res));
-
+router.get("/", mesaController.listar);
 /**
  * @swagger
- * /api/mesas/{id}/cierre:
+ * /api/mesas/{id}/cerrar:
  *   post:
- *     summary: Cierra la mesa y marca todos sus pedidos activos como 'pagado'
+ *     summary: Cierra la mesa y libera al mozo
  *     tags: [Mesas]
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
- *           type: string
+ *           type: integer
  *         description: Número o ID de la mesa a cerrar
  *     responses:
  *       200:
  *         description: Mesa cerrada exitosamente
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Mesa 4 cerrada correctamente"
- *                 pedidosActualizados:
- *                   type: integer
- *                   example: 3
  *       500:
  *         description: Error al cerrar la mesa
  */
 // Endpoint para Cerrar Mesa (Liberar)
-router.post('/:id/cierre', mesaController.cerrarMesa.bind(mesaController));
+router.post("/:id/cerrar", mesaController.cerrarMesa);
 
 module.exports = router;
