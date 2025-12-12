@@ -1,6 +1,8 @@
 const express = require("express");
 const router = express.Router();
 
+const mesaController = require("../controllers/mesaController");
+
 // Importamos el controlador (que crearemos en el paso 2)
 // Nota: Aún no existe el archivo, pero ya lo dejamos listo.
 const MesaController = require("../controllers/mesaController");
