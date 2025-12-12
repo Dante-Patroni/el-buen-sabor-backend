@@ -2,18 +2,19 @@
 A diferencia de los Controladores (que solo reciben y responden) o los
  Modelos (que solo guardan datos), el Servicio es el que Piensa y 
  Toma Decisiones.*/
-const { Pedido, Plato, Sequelize } = require('../models');
+const { Pedido, Plato, Mesa, Sequelize } = require('../models');
 const { Op } = Sequelize; // Importamos el Operador de Sequelize
+const StockAdapter = require('../adapters/MongoStockAdapter');
 
 class PedidoService {
-  // 1. Recibimos el adaptador en el constructor (Inyección de Dependencias)
-  constructor(stockAdapter) {
-    this.stockAdapter = stockAdapter;
+  // 1. 👇 CORRECCIÓN: Instanciamos el adaptador aquí mismo
+  constructor() {
+    this.stockAdapter = new StockAdapter();
   }
 
   // LÓGICA: CREAR PEDIDO
   async crearYValidarPedido(cliente, platoId, mesa) {
-    // 🛡️ BLINDAJE: Aseguramos que sea número (Parses "1" a 1)
+    // 🛡️ BLINDAJE: Aseguramos que sea número
     const idProducto = parseInt(platoId);
 
     // 1. Validación de entrada
@@ -21,18 +22,15 @@ class PedidoService {
       throw new Error("MESA_REQUERIDA");
     }
 
-    // 2. PASO A: Verificar Stock (Usamos la variable blindada idProducto)
-    // ⚠️ CAMBIO AQUÍ: Pasamos idProducto, no platoId
+    // 2. PASO A: Verificar Stock
     const stockActual = await this.stockAdapter.obtenerStock(idProducto);
 
-    // REGLA DE NEGOCIO 1
     if (stockActual <= 0) {
-      // Agregamos el ID al error para saber cuál falló en el log
       console.error(`Error Stock: ID ${idProducto} tiene stock ${stockActual}`);
       throw new Error("STOCK_INSUFICIENTE");
     }
 
-    // 3. Obtener el precio (SQL también prefiere números limpios)
+    // 3. Obtener el precio
     const platoInfo = await Plato.findByPk(idProducto);
 
     if (!platoInfo) {
@@ -46,11 +44,25 @@ class PedidoService {
     const nuevoPedido = await Pedido.create({
       mesa,
       cliente,
-      PlatoId: idProducto, // Usamos el blindado
+      PlatoId: idProducto,
       fecha: new Date(),
       estado: "pendiente",
       total: platoInfo.precio,
     });
+
+    // 👇 6. EL FIX: Actualizar el estado de la Mesa a 'OCUPADA'
+    if (mesa) {
+        console.log(`🔄 Cambiando estado de Mesa ${mesa} a OCUPADA...`);
+        try {
+            // Actualizamos la mesa. Asumimos que 'mesa' es el ID (primary key).
+            await Mesa.update(
+                { estado: 'OCUPADA' }, 
+                { where: { id: mesa } } 
+            );
+        } catch (error) {
+            console.error("⚠️ Error actualizando estado de la mesa:", error.message);
+        }
+    }
 
     return nuevoPedido;
   }
@@ -82,8 +94,7 @@ class PedidoService {
     }
 
     // 2. Devolver el Stock a Mongo (Rollback)
-    // Usamos el PlatoId que estaba guardado en el pedido para saber qué reponer
-    // Solo reponemos si el pedido no estaba ya rechazado (opcional, pero buena práctica)
+    // Solo reponemos si el pedido no estaba ya rechazado
     if (pedido.estado !== "rechazado") {
       await this.stockAdapter.reponerStock(pedido.PlatoId, 1);
     }
@@ -104,7 +115,7 @@ class PedidoService {
       where: {
         mesa: mesaNumero,
         estado: {
-          [Op.not]: ["rechazado", "pagado"] // 'pendiente', 'en_preparacion', 'rechazado', 'pagado' // Excluimos los pedidos rechazados
+          [Op.not]: ["rechazado", "pagado"] // Excluimos los pedidos rechazados/pagados
         }
       },
       include: [{
@@ -112,12 +123,10 @@ class PedidoService {
         attributes: ['nombre', 'precio', 'imagenPath']
       }],
       order: [['createdAt', 'DESC']] // Ordenamos por fecha descendente
-
     });
     return pedidos;
   }
-
 }
 
-
-module.exports = PedidoService;
+// Exportamos la instancia lista para usar
+module.exports = new PedidoService();
