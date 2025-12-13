@@ -1,6 +1,14 @@
 const express = require("express");
 const router = express.Router();
+
+// 1. Importamos las Clases
+const PlatoService = require("../services/platoService");
 const PlatoController = require("../controllers/platoController");
+
+// 2. Instanciamos e Inyectamos (Dependency Injection)
+const platoService = new PlatoService();
+const platoController = new PlatoController(platoService);
+
 const upload = require("../middlewares/upload"); // [B] Importamos el middleware
 
 /**
@@ -14,26 +22,13 @@ const upload = require("../middlewares/upload"); // [B] Importamos el middleware
  * @swagger
  * /api/platos:
  *   get:
- *     summary: Obtiene el menú completo
+ *     summary: Obtiene el menú completo con estado de stock
  *     tags: [Platos]
  *     responses:
  *       200:
- *         description: Lista de platos con imágenes
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   id:
- *                     type: integer
- *                   nombre:
- *                     type: string
- *                   imagenUrl:
- *                     type: string
+ *         description: Lista de platos con imágenes y stock
  */
-router.get("/", (req, res) => PlatoController.listar(req, res));
+router.get("/", platoController.listar);
 
 /**
  * @swagger
@@ -65,8 +60,7 @@ router.get("/", (req, res) => PlatoController.listar(req, res));
  *       404:
  *         description: Plato no encontrado
  */
-router.post("/:id/imagen", upload.single("imagen"), (req, res) =>
-  PlatoController.subirImagen(req, res),
-);
+router.post("/:id/imagen", upload.single("imagen"), platoController.subirImagen);
+
 
 module.exports = router;

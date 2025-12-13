@@ -10,6 +10,9 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'PlatoId', // La columna que conecta
         // as: 'plato' // Opcional: si quisieras llamarlo de otra forma
       });
+
+      // Esto permite: Pedido.findAll({ include: [models.DetallePedido] })
+      Pedido.hasMany(models.DetallePedido);
     }
   }
   Pedido.init(

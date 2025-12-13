@@ -1,63 +1,59 @@
-// 👇 Importamos la instancia DIRECTAMENTE (ya creada en el servicio)
-const pedidoService = require("../services/pedidoService");
-
 class PedidoController {
-  
+
+  // 👇 INYECCIÓN DE DEPENDENCIA CORRECTA
+  constructor(pedidoService) {
+    this.pedidoService = pedidoService;
+  } // <--- ¡Faltaba cerrar esta llave!
+
   // ---------------------------------------------------------
   // 1. CREAR (POST)
   // ---------------------------------------------------------
-  async crear(req, res) {
+  crear = async (req, res) => {
     try {
       const { cliente, platoId, mesa } = req.body;
 
+      // Validación básica (el middleware lo hace, pero esto es doble seguridad)
       if (!platoId || !mesa) {
-        return res.status(400).json({ error: "Faltan datos obligatorios." });
+        return res.status(400).json({ error: "Faltan datos obligatorios (mesa o platoId)." });
       }
 
-      // Asegurar que mesa sea string
+      // Asegurar formatos
       const mesaString = String(mesa);
-      const clienteFinal = cliente || "";
+      const clienteFinal = cliente || "Anónimo";
 
-      // 👇 Usamos 'pedidoService' directamente (sin 'this.')
-      const pedidoCreado = await pedidoService.crearYValidarPedido(
-        clienteFinal,
-        platoId,
-        mesaString
-      );
+      // 👇 CORRECCIÓN CLAVE:
+      // 1. Usamos 'this.pedidoService'.
+      // 2. Enviamos un OBJETO, porque así lo definimos en el Servicio.
+      const pedidoCreado = await this.pedidoService.crearYValidarPedido({
+        mesa: mesaString,
+        platoId: platoId,
+        cliente: clienteFinal
+      });
 
       res.status(201).json({
-        mensaje: "Pedido creado exitosamente",
-        data: {
-          id: pedidoCreado.id,
-          mesa: pedidoCreado.mesa,
-          cliente: pedidoCreado.cliente,
-          platoId: pedidoCreado.PlatoId, // Ojo: Sequelize suele devolver PlatoId o platoId
-          fecha: pedidoCreado.fecha,
-          estado: pedidoCreado.estado,
-        },
+        mensaje: "Pedido creado exitosamente 👨‍🍳",
+        data: pedidoCreado
       });
+
     } catch (error) {
       console.error("Error Crear:", error.message);
-      if (error.message === "STOCK_INSUFICIENTE")
-        return res.status(409).json({ error: "Stock insuficiente." });
-      if (error.message === "PLATO_NO_ENCONTRADO")
-        return res.status(404).json({ error: "Plato no encontrado." });
-      if (error.message === "MESA_REQUERIDA")
-          return res.status(400).json({ error: "Número de mesa obligatorio." });
-          
-      return res.status(500).json({ error: "Error interno." });
+
+      // Manejo de errores de negocio
+      if (error.message === "STOCK_INSUFICIENTE") return res.status(409).json({ error: "No hay stock suficiente para este plato." });
+      if (error.message.includes("Plato no encontrado")) return res.status(404).json({ error: "El plato solicitado no existe." });
+
+      return res.status(500).json({ error: "Error interno al procesar el pedido." });
     }
   }
 
   // ---------------------------------------------------------
   // 2. LISTAR (GET)
   // ---------------------------------------------------------
-  async listar(req, res) {
+  // 👇 Convertido a Arrow Function para asegurar el 'this'
+  listar = async (req, res) => {
     try {
-      const { estado } = req.query;
-      // 👇 Usamos 'pedidoService' directamente
-      const pedidos = await pedidoService.listarPedidos(estado);
-
+      // Usamos el método estandarizado 'obtenerTodos' del servicio
+      const pedidos = await this.pedidoService.obtenerTodos();
       res.status(200).json(pedidos);
     } catch (error) {
       console.error("Error Listar:", error.message);
@@ -68,7 +64,7 @@ class PedidoController {
   // ---------------------------------------------------------
   // 3. HISTORIAL DE MESA
   // ---------------------------------------------------------
-  async buscarPorMesa(req, res) {
+  buscarPorMesa = async (req, res) => {
     try {
       const { mesa } = req.params;
 
@@ -76,25 +72,27 @@ class PedidoController {
         return res.status(400).json({ error: "Número de mesa es obligatorio" });
       }
 
-      // 👇 Usamos 'pedidoService' directamente
-      const pedidos = await pedidoService.buscarPedidosPorMesa(mesa);
+      // ⚠️ Nota: Asegúrate de agregar 'buscarPedidosPorMesa' en tu Service si no existe aún.
+      // Si usas el findAll con filtro, sería algo como: this.pedidoService.listar({ where: { mesa } })
+      // Por ahora asumo que agregarás el método en el servicio:
+      const pedidos = await this.pedidoService.buscarPedidosPorMesa(mesa);
 
       res.status(200).json(pedidos);
     } catch (error) {
       console.error(`Error buscando pedidos por mesa ${req.params.mesa}:`, error);
-      return res.status(500).json({ error: "Error al obtener el historial de la mesa" });
+      res.status(500).json({ error: "Error al obtener el historial de la mesa" });
     }
   }
 
   // ---------------------------------------------------------
   // 4. ELIMINAR (DELETE)
   // ---------------------------------------------------------
-  async eliminar(req, res) {
+  eliminar = async (req, res) => {
     try {
       const { id } = req.params;
 
-      // 👇 Usamos 'pedidoService' directamente
-      const resultado = await pedidoService.eliminarPedido(id); // Eliminamos y reponemos stock
+      // 👇 Usamos 'this.pedidoService'
+      await this.pedidoService.eliminarPedido(id);
 
       res.status(200).json({
         mensaje: "Pedido eliminado y stock restaurado correctamente",
@@ -106,7 +104,7 @@ class PedidoController {
         return res.status(404).json({ error: "El pedido no existe" });
       }
 
-      return res.status(500).json({ error: "Error interno del servidor" });
+      res.status(500).json({ error: "Error interno del servidor" });
     }
   }
 }
