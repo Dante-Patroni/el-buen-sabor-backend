@@ -1,12 +1,17 @@
 const express = require("express");
 const router = express.Router();
+
+// 1. Importamos las CLASES (No instancias)
+const PedidoService = require("../services/pedidoService");
 const PedidoController = require("../controllers/pedidoController");
 
-// 👇 1. IMPORTAMOS AL GUARDIA DE SEGURIDAD
-const authMiddleware = require("../middlewares/authMiddleware");
+// 2. Instanciamos e Inyectamos (¡AQUÍ ESTÁ LA CLAVE!)
+// Primero creamos el servicio...
+const pedidoService = new PedidoService();
 
-// Instanciamos el controlador
-const pedidoController = new PedidoController();
+// ... y luego SE LO PASAMOS al controlador dentro del paréntesis.
+// Si el paréntesis está vacío (), this.pedidoService será undefined.
+const pedidoController = new PedidoController(pedidoService);
 
 /**
  * @swagger
@@ -43,8 +48,7 @@ const pedidoController = new PedidoController();
  *         description: Pedido creado exitosamente
  */
 // 1. CREAR (POST) -> Llama a PedidoController.crear
-router.post("/", authMiddleware, (req, res) => pedidoController.crear(req, res));
-
+router.post("/", pedidoController.crear);
 /**
  * @swagger
  * /api/pedidos:
@@ -77,8 +81,7 @@ router.post("/", authMiddleware, (req, res) => pedidoController.crear(req, res))
  */
 // 3. LISTAR (GET) - Opcional: ¿Quieres que cualquiera vea la lista o solo el mozo?
 // Por ahora la dejaremos pública para facilitar pruebas, pero idealmente también lleva authMiddleware.
-router.get("/", (req, res) => pedidoController.listar(req, res));
-
+router.get("/", pedidoController.listar);
 /**
 /**
  * @swagger
@@ -99,9 +102,7 @@ router.get("/", (req, res) => pedidoController.listar(req, res));
  *       500:
  *         description: Error del servidor
  */
-//:mesa con dos puntos, lo que significa que es un parámetro variable (puede ser 4, 8, 10, etc.)
-router.get('/mesa/:mesa', pedidoController.buscarPorMesa.bind(pedidoController));
-
+router.get("/mesa/:mesa", pedidoController.buscarPorMesa);
 // ---------------------------------------------------------
 // DELETE /api/pedidos/{id} (Eliminar) - ¡NUEVO! 🆕
 // ---------------------------------------------------------
@@ -129,8 +130,7 @@ router.get('/mesa/:mesa', pedidoController.buscarPorMesa.bind(pedidoController))
  */
 // 3. ELIMINAR (DELETE) -> Llama a PedidoController.eliminar
 // Fíjate en el ':id'. Eso es un Parámetro de Ruta.
-router.delete("/:id", authMiddleware, (req, res) => pedidoController.eliminar(req, res));
-
+router.delete("/:id", pedidoController.eliminar);
 
 
 module.exports = router;

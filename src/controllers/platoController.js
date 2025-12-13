@@ -1,69 +1,56 @@
-const { Plato } = require("../models");
-const StockAdapter = require("../adapters/MongoStockAdapter"); // [Node.js Pattern: Dependency Injection]
+// Nota: No importamos el servicio aquí, se inyectará en el constructor.
 
 class PlatoController {
-  constructor() {
-    this.stockAdapter = new StockAdapter();
+
+  // 👇 Inyección de Dependencias
+  constructor(platoService) {
+    this.platoService = platoService;
   }
 
-  // Usamos arrow function o bind en el constructor para mantener el scope de 'this'
-  async listar(req, res) {
+  // 1. Listar Platos
+  listar = async (req, res) => {
     try {
-      console.log("⚡ [DEBUG] Iniciando Listar Platos...");
-      // 1. Obtener definiciones estáticas (SQL)
-      const platosSql = await Plato.findAll();
+      // Delegamos el trabajo sucio al servicio
+      const menu = await this.platoService.listar();
 
-      // 2. Obtener estado dinámico del stock (MongoDB/Adapter)
-      // Asumimos que el adapter tiene un método para traer todo el stock
-      const stockMap = await this.stockAdapter.obtenerStockCompleto();
-
-      // 3. Fusión de datos (Data Merging)
-      const menuCompleto = platosSql.map((p) => {
-        const platoJson = p.toJSON();
-
-        // Agregamos URL imagen
-        if (platoJson.imagenPath) {
-          platoJson.imagenUrl = `${req.protocol}://${req.get("host")}/${platoJson.imagenPath}`;
-        }
-
-        // [UX REQUIREMENT] Agregamos lógica de Stock
-        // Buscamos el stock de este plato en el mapa recuperado
-        const stockInfo = stockMap[platoJson.id] || {
-          cantidadActual: 0,
-          esIlimitado: false,
-        };
-
-        // 🕵️ LOG 2: Ver qué encontró para el Plato 1 (Milanesa)
-        if (platoJson.id === 1) {
-          console.log(`🍔 [DEBUG] StockInfo para Plato 1:`, stockInfo);
-        }
-
-        platoJson.stock = {
-          cantidad: stockInfo.cantidad,
-          ilimitado: stockInfo.esIlimitado,
-          estado: this._calcularEstadoStock(
-            stockInfo.cantidadActual,
-            stockInfo.esIlimitado,
-          ),
-        };
-
-        return platoJson;
-      });
-
-      res.json(menuCompleto);
+      res.status(200).json(menu);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Error al obtener el menú actualizado" });
+      console.error("Error en PlatoController.listar:", error);
+      res.status(500).json({ error: "Error al obtener el menú." });
     }
   }
 
-  // Helper para lógica de negocio visual (Backend for Frontend pattern)
-  _calcularEstadoStock(cantidad, esIlimitado) {
-    if (esIlimitado) return "DISPONIBLE";
-    if (cantidad <= 0) return "AGOTADO";
-    if (cantidad < 5) return "BAJO_STOCK"; // Para el texto rojo que pidió UX
-    return "DISPONIBLE";
+  // 👇 MOTODO PARA SUBIR IMAGEN
+  subirImagen = async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      // 1. Validación: Error 400 (Bad Request)
+      if (!req.file) {
+        return res.status(400).json({ error: "No se envió ninguna imagen." });
+      }
+
+      // 2. Llamamos al servicio
+      const platoActualizado = await this.platoService.actualizarImagen(id, req.file.filename);
+
+      // 3. Validación: Error 404 (Not Found)
+      if (!platoActualizado) {
+        return res.status(404).json({ error: "Plato no encontrado." });
+      }
+
+      // 4. Éxito: 200 OK
+      res.status(200).json({
+        mensaje: "Imagen subida correctamente",
+        plato: platoActualizado
+      });
+
+    } catch (error) {
+      console.error("Error al subir imagen:", error);
+      res.status(500).json({ error: "Error interno al procesar la imagen." });
+    }
   }
 }
 
-module.exports = new PlatoController();
+
+// 👇 Exportamos la CLASE
+module.exports = PlatoController;
