@@ -45,25 +45,29 @@ jobs:
       - name: Instalar dependencias
         run: npm ci
 
-      # 🚀 EJECUCIÓN: Preparamos el terreno y corremos los tests
+     # 🚀 EJECUCIÓN: Preparamos el terreno y corremos los tests
       - name: Ejecutar Tests E2E
         env:
           PORT: 3000
           # 👇 Usamos localhost porque el servicio 'mongo' expone el puerto al runner
           MONGO_URI: mongodb://localhost:27017/el_buen_sabor_test
-          DB_USERNAME: root
-          DB_PASSWORD: root
-          DB_DATABASE: el_buen_sabor_test
+          DB_USER: root       # Ojo: En tu .env local se llama DB_USER, asegúrate de usar el mismo nombre aquí
+          DB_PASS: root
+          DB_NAME: el_buen_sabor_test
           DB_HOST: 127.0.0.1
+          DB_DIALECT: mysql   # Agregamos esto por si tu config lo pide
           NODE_ENV: test
+          
+          # 🔐 LA CLAVE MAESTRA (¡Esto es lo que falta!)
+          # GitHub inyectará aquí lo que guardaste en Settings > Secrets
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+
         run: |
           # 1. Crear tablas en MySQL
           npx sequelize-cli db:migrate 
 
-          # 2. Cargar datos de prueba (El Plato ID 2)
-          # ⚠️ Si no tienes seeds, comenta la siguiente línea, pero el test podría fallar (404)
-          npx sequelize-cli db:seed:all 
-
+          # 2. Cargar datos de prueba
+          # npx sequelize-cli db:seed:all  <-- (Descomenta si ya tienes seeders)
 
           # 3. Arrancar servidor en background (&)
           npm start &
