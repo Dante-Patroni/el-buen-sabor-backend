@@ -49,25 +49,22 @@ jobs:
       - name: Ejecutar Tests E2E
         env:
           PORT: 3000
-          # 👇 Usamos localhost porque el servicio 'mongo' expone el puerto al runner
           MONGO_URI: mongodb://localhost:27017/el_buen_sabor_test
-          DB_USER: root       # Ojo: En tu .env local se llama DB_USER, asegúrate de usar el mismo nombre aquí
+          DB_USER: root
           DB_PASS: root
           DB_NAME: el_buen_sabor_test
           DB_HOST: 127.0.0.1
-          DB_DIALECT: mysql   # Agregamos esto por si tu config lo pide
+          DB_DIALECT: mysql
           NODE_ENV: test
-          
-          # 🔐 LA CLAVE MAESTRA (¡Esto es lo que falta!)
-          # GitHub inyectará aquí lo que guardaste en Settings > Secrets
+          # Inyectamos el secreto desde GitHub
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
         run: |
           # 1. Crear tablas en MySQL
           npx sequelize-cli db:migrate 
 
-          # 2. Cargar datos de prueba
-          npx sequelize-cli db:seed:all  <-- (Descomenta si ya tienes seeders)
+          # 2. Cargar datos de prueba (Ahora sí ejecutamos esto)
+          npx sequelize-cli db:seed:all
 
           # 3. Arrancar servidor en background (&)
           npm start &
