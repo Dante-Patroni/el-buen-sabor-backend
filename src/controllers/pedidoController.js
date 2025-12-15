@@ -53,7 +53,7 @@ class PedidoController {
   listar = async (req, res) => {
     try {
       // Usamos el método estandarizado 'obtenerTodos' del servicio
-      const pedidos = await this.pedidoService.obtenerTodos();
+      const pedidos = await this.pedidoService.listarPedidos();
       res.status(200).json(pedidos);
     } catch (error) {
       console.error("Error Listar:", error.message);

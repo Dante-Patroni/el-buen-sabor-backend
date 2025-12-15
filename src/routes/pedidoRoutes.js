@@ -4,6 +4,8 @@ const router = express.Router();
 // 1. Importamos las CLASES (No instancias)
 const PedidoService = require("../services/pedidoService");
 const PedidoController = require("../controllers/pedidoController");
+const authMiddleware = require("../middlewares/authMiddleware");
+const { validarPedido } = require('../middlewares/pedidoValidator');
 
 // 2. Instanciamos e Inyectamos (¡AQUÍ ESTÁ LA CLAVE!)
 // Primero creamos el servicio...
@@ -18,9 +20,9 @@ const pedidoController = new PedidoController(pedidoService);
  * /api/pedidos:
  *   post:
  *     summary: Crea un nuevo pedido
- *     tags:
- *       - Pedidos
- *     description: Valida stock con el sistema Legacy y crea el pedido si es posible.
+ *     tags: [Pedidos]
+ *     security:
+ *       - bearerAuth: []  # Requiere token
  *     requestBody:
  *       required: true
  *       content:
@@ -29,26 +31,54 @@ const pedidoController = new PedidoController(pedidoService);
  *             type: object
  *             required:
  *               - mesa
- *               - platoId
+ *               - productos
  *             properties:
  *               mesa:
  *                 type: string
- *                 description: Número de mesa (OBLIGATORIO)
  *                 example: "5"
- *               platoId:
- *                 type: integer
- *                 description: ID del plato a pedir (OBLIGATORIO)
- *                 example: 1
  *               cliente:
  *                 type: string
- *                 description: Nombre del cliente (OPCIONAL)
- *                 example: "Dante Patroni"
+ *                 example: "Juan Pérez"
+ *               productos:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     platoId:
+ *                       type: integer
+ *                       example: 1
+ *                     cantidad:
+ *                       type: integer
+ *                       example: 2
+ *                     aclaracion:
+ *                       type: string
+ *                       example: "Sin sal"
  *     responses:
  *       201:
  *         description: Pedido creado exitosamente
+ *       400:
+ *         description: Error de validación (Faltan datos o formato incorrecto)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errores:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       msg:
+ *                         type: string
+ *                         example: "El pedido debe tener al menos un producto"
+ *       401:
+ *         description: No autorizado (Falta token)
+ *       500:
+ *         description: Error interno del servidor
  */
+
 // 1. CREAR (POST) -> Llama a PedidoController.crear
-router.post("/", pedidoController.crear);
+router.post("/", authMiddleware, validarPedido, pedidoController.crear);
 /**
  * @swagger
  * /api/pedidos:
@@ -81,7 +111,7 @@ router.post("/", pedidoController.crear);
  */
 // 3. LISTAR (GET) - Opcional: ¿Quieres que cualquiera vea la lista o solo el mozo?
 // Por ahora la dejaremos pública para facilitar pruebas, pero idealmente también lleva authMiddleware.
-router.get("/", pedidoController.listar);
+router.get("/", authMiddleware, pedidoController.listar);
 /**
 /**
  * @swagger
@@ -102,7 +132,7 @@ router.get("/", pedidoController.listar);
  *       500:
  *         description: Error del servidor
  */
-router.get("/mesa/:mesa", pedidoController.buscarPorMesa);
+router.get("/mesa/:mesa", authMiddleware, pedidoController.buscarPorMesa);
 // ---------------------------------------------------------
 // DELETE /api/pedidos/{id} (Eliminar) - ¡NUEVO! 🆕
 // ---------------------------------------------------------
@@ -130,7 +160,7 @@ router.get("/mesa/:mesa", pedidoController.buscarPorMesa);
  */
 // 3. ELIMINAR (DELETE) -> Llama a PedidoController.eliminar
 // Fíjate en el ':id'. Eso es un Parámetro de Ruta.
-router.delete("/:id", pedidoController.eliminar);
+router.delete("/:id", authMiddleware, pedidoController.eliminar);
 
 
 module.exports = router;

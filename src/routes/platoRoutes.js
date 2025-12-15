@@ -4,6 +4,7 @@ const router = express.Router();
 // 1. Importamos las Clases
 const PlatoService = require("../services/platoService");
 const PlatoController = require("../controllers/platoController");
+const authMiddleware = require("../middlewares/authMiddleware");
 
 // 2. Instanciamos e Inyectamos (Dependency Injection)
 const platoService = new PlatoService();
@@ -60,7 +61,7 @@ router.get("/", platoController.listar);
  *       404:
  *         description: Plato no encontrado
  */
-router.post("/:id/imagen", upload.single("imagen"), platoController.subirImagen);
+router.post("/:id/imagen", authMiddleware, upload.single("imagen"), platoController.subirImagen);
 
 
 module.exports = router;

@@ -12,6 +12,15 @@ const seedDatabase = require("./src/seeders/initialSeeder"); // ✅ Ruta correct
 const mesaRouter = require("./src/routes/mesaRoutes");
 // (Las otras rutas las importaremos directamente abajo para mantener tu estilo)
 
+// Cargar variables de entorno (CRUCIAL: Esto va antes de validar)
+require('dotenv').config();
+
+// VALIDACIÓN DE VARIABLES DE ENTORNO
+if (!process.env.JWT_SECRET) {
+  console.error("❌ FATAL ERROR: JWT_SECRET no está definido en .env");
+  process.exit(1);
+}
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 

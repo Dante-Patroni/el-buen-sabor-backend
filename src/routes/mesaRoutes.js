@@ -4,6 +4,7 @@ const router = express.Router();
 // 1. Importamos Clases
 const MesaService = require("../services/mesaService");
 const MesaController = require("../controllers/mesaController");
+const authMiddleware = require("../middlewares/authMiddleware");
 
 // 2. Instanciamos e Inyectamos (Singleton Manual)
 const mesaService = new MesaService();
@@ -50,7 +51,7 @@ const mesaController = new MesaController(mesaService);
 
 // Definimos la ruta GET raíz (/)
 // Esto responderá cuando alguien llame a: http://localhost:3000/api/mesas
-router.get("/", mesaController.listar);
+router.get("/", authMiddleware, mesaController.listar);
 /**
  * @swagger
  * /api/mesas/{id}/cerrar:
@@ -71,7 +72,7 @@ router.get("/", mesaController.listar);
  *         description: Error al cerrar la mesa
  */
 // Endpoint para Cerrar Mesa (Liberar)
-router.post("/:id/cerrar", mesaController.cerrarMesa);
+router.post("/:id/cerrar", authMiddleware, mesaController.cerrarMesa);
 
 module.exports = router;
  

@@ -4,7 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 // Clave secreta para firmar (En producción esto va en .env)
-const JWT_SECRET = process.env.JWT_SECRET || 'ClaveSecretaDante123';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 class UsuarioService {
 
