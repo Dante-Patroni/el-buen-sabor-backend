@@ -10,39 +10,18 @@ class PedidoController {
   // ---------------------------------------------------------
   crear = async (req, res) => {
     try {
-      const { cliente, platoId, mesa } = req.body;
-
-      // Validación básica (el middleware lo hace, pero esto es doble seguridad)
-      if (!platoId || !mesa) {
-        return res.status(400).json({ error: "Faltan datos obligatorios (mesa o platoId)." });
-      }
-
-      // Asegurar formatos
-      const mesaString = String(mesa);
-      const clienteFinal = cliente || "Anónimo";
-
-      // 👇 CORRECCIÓN CLAVE:
-      // 1. Usamos 'this.pedidoService'.
-      // 2. Enviamos un OBJETO, porque así lo definimos en el Servicio.
-      const pedidoCreado = await this.pedidoService.crearYValidarPedido({
-        mesa: mesaString,
-        platoId: platoId,
-        cliente: clienteFinal
+      // 1. Ya NO validamos manualmente aquí si falta mesa o platoId.
+      // El middleware 'validarPedido' ya hizo ese trabajo sucio antes de entrar aquí.
+      
+      const pedido = await this.pedidoService.crearYValidarPedido(req.body);
+      
+      res.status(201).json({ 
+        message: "Pedido creado con éxito", 
+        data: pedido 
       });
-
-      res.status(201).json({
-        mensaje: "Pedido creado exitosamente 👨‍🍳",
-        data: pedidoCreado
-      });
-
     } catch (error) {
       console.error("Error Crear:", error.message);
-
-      // Manejo de errores de negocio
-      if (error.message === "STOCK_INSUFICIENTE") return res.status(409).json({ error: "No hay stock suficiente para este plato." });
-      if (error.message.includes("Plato no encontrado")) return res.status(404).json({ error: "El plato solicitado no existe." });
-
-      return res.status(500).json({ error: "Error interno al procesar el pedido." });
+      res.status(500).json({ error: error.message });
     }
   }
 

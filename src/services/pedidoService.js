@@ -9,41 +9,64 @@ class PedidoService {
   }
 
   // 1. CREAR PEDIDO
+  // 1. CREAR PEDIDO (Soporta múltiples productos)
   async crearYValidarPedido(datosPedido) {
-    const { mesa: mesaNumero, platoId, cliente } = datosPedido;
+    // 👇 CAMBIO 1: Ahora extraemos 'productos' (el array), no un solo platoId
+    const { mesa: mesaNumero, productos, cliente } = datosPedido;
 
     try {
-      // A. Validar Stock (MongoDB)
-      const idProducto = parseInt(platoId);
-      await this.stockAdapter.descontarStock(idProducto, 1);
+      let totalCalculado = 0;
+      const detallesParaCrear = []; // Guardamos los datos temporalmente
 
-      // B. Obtener Precio del Plato (MySQL)
-      const plato = await Plato.findByPk(idProducto);
-      if (!plato) throw new Error("PLATO_NO_ENCONTRADO");
+      // A. Validar y Calcular (Iteramos sobre cada producto del array)
+      for (const item of productos) {
+        const idProducto = parseInt(item.platoId);
+        const cantidad = parseInt(item.cantidad) || 1;
 
-      // C. Crear el Pedido (MySQL)
+        // 1. Validar Stock (MongoDB) - Descontamos la cantidad solicitada
+        await this.stockAdapter.descontarStock(idProducto, cantidad);
+
+        // 2. Obtener Precio (MySQL)
+        const plato = await Plato.findByPk(idProducto);
+        if (!plato) throw new Error(`El plato ID ${idProducto} no existe`);
+
+        // 3. Calcular Subtotal
+        const subtotal = plato.precio * cantidad;
+        totalCalculado += subtotal;
+
+        // 4. Preparamos el detalle para guardarlo luego
+        detallesParaCrear.push({
+          PlatoId: plato.id,
+          cantidad: cantidad,
+          subtotal: subtotal,
+          aclaracion: item.aclaracion || ""
+        });
+      }
+
+      // B. Crear el Pedido (MySQL) - Cabecera
       const nuevoPedido = await Pedido.create({
         mesa: mesaNumero,
         cliente: cliente || "Anónimo",
         estado: 'pendiente',
-        total: plato.precio
+        total: totalCalculado // 👇 Total real de la suma de todo
       });
 
-      // D. Crear el Detalle
-      await DetallePedido.create({
-        PedidoId: nuevoPedido.id,
-        PlatoId: plato.id,
-        cantidad: 1,
-        subtotal: plato.precio
-      });
+      // C. Crear los Detalles (MySQL) - Renglones
+      for (const detalle of detallesParaCrear) {
+        await DetallePedido.create({
+          PedidoId: nuevoPedido.id, // Vinculamos al pedido recién creado
+          ...detalle
+        });
+      }
 
-      // E. Actualizar la Mesa (Sincronización automática: SUMAR)
-      await this._actualizarMesa(mesaNumero, plato.precio);
+      // D. Actualizar la Mesa (Sincronización automática: SUMAR TOTAL)
+      await this._actualizarMesa(mesaNumero, totalCalculado);
 
       return nuevoPedido;
 
     } catch (error) {
       console.error("Error en PedidoService:", error);
+      // Opcional: Aquí podrías implementar una lógica para "devolver" el stock si algo falla
       throw error;
     }
   }

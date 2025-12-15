@@ -184,7 +184,7 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "http://localhost:3000/api/pedidos",
+					"raw": "http://localhost:3000/api/mesas",
 					"protocol": "http",
 					"host": [
 						"localhost"
@@ -192,7 +192,7 @@
 					"port": "3000",
 					"path": [
 						"api",
-						"pedidos"
+						"mesas"
 					]
 				}
 			},
