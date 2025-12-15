@@ -67,7 +67,7 @@ jobs:
           npx sequelize-cli db:migrate 
 
           # 2. Cargar datos de prueba
-          # npx sequelize-cli db:seed:all  <-- (Descomenta si ya tienes seeders)
+          npx sequelize-cli db:seed:all  <-- (Descomenta si ya tienes seeders)
 
           # 3. Arrancar servidor en background (&)
           npm start &
