@@ -98,7 +98,7 @@
 					"bearer": [
 						{
 							"key": "token",
-							"value": "{{token}}",
+							"value": "{{token_seguridad}}",
 							"type": "string"
 						}
 					]
