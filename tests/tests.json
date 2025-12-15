@@ -98,7 +98,7 @@
 					"bearer": [
 						{
 							"key": "token",
-							"value": "{{token_seguridad}}",
+							"value": "{{token}}",
 							"type": "string"
 						}
 					]
@@ -107,7 +107,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{ \"mesa\": \"4\", \"cliente\": \"Prueba Celular\", \"platoId\": 1 }",
+					"raw": "{\r\n    \"mesa\": \"4\",\r\n    \"cliente\": \"Prueba CI/CD\",\r\n    \"productos\": [\r\n        {\r\n            \"platoId\": 1,\r\n            \"cantidad\": 1,\r\n            \"aclaracion\": \"Sin cebolla\"\r\n        }\r\n    ]\r\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -171,10 +171,20 @@
 				}
 			],
 			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{token_seguridad}}",
+							"type": "string"
+						}
+					]
+				},
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "http://localhost:3000/api/mesas",
+					"raw": "http://localhost:3000/api/pedidos",
 					"protocol": "http",
 					"host": [
 						"localhost"
@@ -182,7 +192,7 @@
 					"port": "3000",
 					"path": [
 						"api",
-						"mesas"
+						"pedidos"
 					]
 				}
 			},
