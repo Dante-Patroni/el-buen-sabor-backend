@@ -1,18 +1,13 @@
-// Nota: No importamos el servicio aquí, se inyectará en el constructor.
-
 class PlatoController {
 
-  // 👇 Inyección de Dependencias
   constructor(platoService) {
     this.platoService = platoService;
   }
 
-  // 1. Listar Platos
+  // 1. LISTAR
   listar = async (req, res) => {
     try {
-      // Delegamos el trabajo sucio al servicio
       const menu = await this.platoService.listar();
-
       res.status(200).json(menu);
     } catch (error) {
       console.error("Error en PlatoController.listar:", error);
@@ -20,25 +15,49 @@ class PlatoController {
     }
   }
 
-  // 👇 MOTODO PARA SUBIR IMAGEN
-  subirImagen = async (req, res) => {
+  // 👇 2. NUEVO: CREAR (Esto arregla el error "is not a function")
+  crear = async (req, res) => {
+    try {
+      const nuevoPlato = await this.platoService.crearPlato(req.body);
+      res.status(201).json(nuevoPlato);
+    } catch (error) {
+      console.error("Error al crear plato:", error);
+      res.status(500).json({ error: "Error interno al crear el plato." });
+    }
+  }
+
+  // 👇 3. NUEVO: EDITAR (PUT)
+  editar = async (req, res) => {
     try {
       const { id } = req.params;
+      const platoActualizado = await this.platoService.updatePlato(id, req.body);
 
-      // 1. Validación: Error 400 (Bad Request)
-      if (!req.file) {
-        return res.status(400).json({ error: "No se envió ninguna imagen." });
-      }
-
-      // 2. Llamamos al servicio
-      const platoActualizado = await this.platoService.actualizarImagen(id, req.file.filename);
-
-      // 3. Validación: Error 404 (Not Found)
       if (!platoActualizado) {
         return res.status(404).json({ error: "Plato no encontrado." });
       }
 
-      // 4. Éxito: 200 OK
+      res.status(200).json(platoActualizado);
+    } catch (error) {
+      console.error("Error al editar plato:", error);
+      res.status(500).json({ error: "Error interno al editar." });
+    }
+  }
+
+  // 4. SUBIR IMAGEN
+  subirImagen = async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      if (!req.file) {
+        return res.status(400).json({ error: "No se envió ninguna imagen." });
+      }
+
+      const platoActualizado = await this.platoService.actualizarImagen(id, req.file.filename);
+
+      if (!platoActualizado) {
+        return res.status(404).json({ error: "Plato no encontrado." });
+      }
+
       res.status(200).json({
         mensaje: "Imagen subida correctamente",
         plato: platoActualizado
@@ -51,6 +70,4 @@ class PlatoController {
   }
 }
 
-
-// 👇 Exportamos la CLASE
 module.exports = PlatoController;
