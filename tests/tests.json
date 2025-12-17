@@ -17,7 +17,7 @@
 						"exec": [
 							"var jsonData = pm.response.json();\r",
 							"// Guardamos el token para que lo usen las otras peticiones\r",
-							"pm.globals.set(\"token_seguridad\", jsonData.token);\r",
+							"pm.collectionVariables.set(\"token_seguridad\", jsonData.token);\r",
 							"console.log(\"Token guardado:\", jsonData.token);"
 						],
 						"type": "text/javascript",
@@ -231,6 +231,16 @@
 		{
 			"name": "Crear Plato",
 			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{token_seguridad}}",
+							"type": "string"
+						}
+					]
+				},
 				"method": "POST",
 				"header": [],
 				"url": {

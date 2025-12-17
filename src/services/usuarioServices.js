@@ -1,10 +1,10 @@
 const { Usuario } = require('../models');
 // 👇 1. Importamos la librería de seguridad
-const bcrypt = require('bcryptjs'); 
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 // Clave secreta para firmar (En producción esto va en .env)
-const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_SECRET = process.env.JWT_SECRET || 'ClaveSecretaDante123';
 
 class UsuarioService {
 
@@ -28,12 +28,12 @@ class UsuarioService {
             // 👇 2. AQUÍ GENERAMOS EL TOKEN
             // Guardamos datos útiles dentro del token (ID, Rol, Nombre)
             const token = jwt.sign(
-                { 
-                    id: usuario.id, 
-                    rol: usuario.rol, 
-                    nombre: usuario.nombre 
-                }, 
-                JWT_SECRET, 
+                {
+                    id: usuario.id,
+                    rol: usuario.rol,
+                    nombre: usuario.nombre
+                },
+                JWT_SECRET,
                 { expiresIn: '24h' } // El token vence en 24 horas
             );
 
