@@ -7,7 +7,7 @@ module.exports = (sequelize, DataTypes) => {
       // Un Mozo puede tener MUCHAS mesas asignadas a la vez
       // Esto permite hacer: usuario.getMesas()
       Usuario.hasMany(models.Mesa, { 
-        foreignKey: 'mozoId', // Coincide con el campo en Mesa
+        foreignKey: 'mozo_id', // Coincide con el campo en Mesa
         as: 'mesasAsignadas' 
       });
     }

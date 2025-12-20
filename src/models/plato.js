@@ -13,12 +13,20 @@ module.exports = (sequelize, DataTypes) => {
     {
       nombre: DataTypes.STRING,
       precio: DataTypes.FLOAT,
-      // 👇 NUEVO: Para mostrar "Medallón de carne con lechuga..." en la carta
+      
+      // 👇 NUEVO: Agregamos esto para que el Backend lea el stock
+      stockActual: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0,
+        allowNull: false
+      },
+
+      // 👇 Para mostrar "Medallón de carne con lechuga..." en la carta
       descripcion: { 
         type: DataTypes.STRING, 
         allowNull: true 
       },
-      // 👇 NUEVO: El interruptor para el "Menú del Día"
+      // 👇 El interruptor para el "Menú del Día"
       esMenuDelDia: {
         type: DataTypes.BOOLEAN,
         defaultValue: false

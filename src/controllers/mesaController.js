@@ -22,6 +22,7 @@ class MesaController {
               nombre: m.nombre || `Mesa ${m.id}`,
               numero: m.numero || m.id.toString(),
               estado: m.estado,
+              mozo: m.mozo,
               
               // Campos para pasar los tests
               itemsPendientes: itemsCalc, 
@@ -37,7 +38,23 @@ class MesaController {
     }
   }
 
-  // 2. CERRAR MESA
+  // 2. Abrir Mesa
+  abrirMesa = async (req, res) => {
+    try {
+      const { id } = req.params; // ID de la mesa
+      const { idMozo } = req.body; // El ID del mozo que viene del token o body
+
+      // Validación simple
+      if (!idMozo) return res.status(400).json({ message: 'Se requiere idMozo' });
+
+      const mesaActualizada = await this.mesaService.abrirMesa(id, idMozo);
+      res.json({ message: 'Mesa abierta con éxito', mesa: mesaActualizada });
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  };
+
+  // 3. CERRAR MESA
   cerrarMesa = async (req, res) => {
     try {
       const { id } = req.params;

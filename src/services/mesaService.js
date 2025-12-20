@@ -1,4 +1,4 @@
-const { Mesa, Pedido, Sequelize } = require("../models");
+const { Mesa, Pedido, Usuario, Sequelize } = require("../models");
 const { Op } = Sequelize;
 
 class MesaService {
@@ -7,7 +7,14 @@ class MesaService {
   async listar() {
     try {
       const mesas = await Mesa.findAll({
-        order: [['id', 'ASC']]
+        order: [['id', 'ASC']],
+        // 👇 ESTO ES CRÍTICO: "Eager Loading"
+        // Le dice a Sequelize: "Traeme también los datos del Mozo asociado"
+        include: [{
+          model: Usuario,
+          as: 'mozo', // Debe coincidir con tu belongsTo en mesa.js
+          attributes: ['nombre', 'apellido', 'legajo'] // Solo traemos lo necesario, no la password
+        }]
       });
       return mesas;
     } catch (error) {
@@ -15,8 +22,26 @@ class MesaService {
       throw error;
     }
   }
+  // 2. ABRIR MESA
+  async abrirMesa(idMesa, idMozo) {
+    try {
+      const mesa = await Mesa.findByPk(idMesa);
+      if (!mesa) throw new Error('Mesa no encontrada');
+      
+      if (mesa.estado === 'ocupada') throw new Error('La mesa ya está ocupada');
 
-  // 2. CERRAR MESA (Lógica compleja de negocio)
+      mesa.estado = 'ocupada';
+      mesa.mozoId = idMozo; // Vinculamos al mozo
+      await mesa.save();
+
+      return mesa;
+    } catch (error) {
+      console.error("Error en MesaService.abrirMesa:", error);
+      throw error;
+    }
+  }
+
+  // 3. CERRAR MESA (Lógica compleja de negocio)
   async cerrarMesa(mesaId) {
     try {
       // A. Liberar Mesa

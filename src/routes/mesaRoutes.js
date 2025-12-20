@@ -11,9 +11,39 @@ const mesaService = new MesaService();
 const mesaController = new MesaController(mesaService);
 /**
  * @swagger
- * tags:
- *   name: Mesas
- *   description: Gestión de estados de mesas en tiempo real
+ * components:
+ *   schemas:
+ *     Mesa:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *           description: ID único de la mesa
+ *         numero:
+ *           type: string
+ *           description: Número o nombre visual de la mesa
+ *         estado:
+ *           type: string
+ *           enum: [libre, ocupada]
+ *         totalActual:
+ *           type: number
+ *           format: float
+ *           description: Monto acumulado de los pedidos
+ *         mozo:
+ *           type: object
+ *           properties:
+ *             nombre:
+ *               type: string
+ *             apellido:
+ *               type: string
+ *       example:
+ *         id: 1
+ *         numero: "4"
+ *         estado: ocupada
+ *         totalActual: 1500.50
+ *         mozo:
+ *           nombre: "Dante"
+ *           apellido: "Patroni"
  */
 
 /**
@@ -54,24 +84,90 @@ const mesaController = new MesaController(mesaService);
 router.get("/", authMiddleware, mesaController.listar);
 /**
  * @swagger
- * /api/mesas/{id}/cerrar:
+ * /api/mesas/{id}/abrir:
  *   post:
- *     summary: Cierra la mesa y libera al mozo
+ *     summary: Ocupa una mesa y asigna un mozo
+ *     description: Cambia el estado de la mesa a 'ocupada' y guarda la relación con el Mozo.
  *     tags: [Mesas]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
- *         required: true
  *         schema:
  *           type: integer
- *         description: Número o ID de la mesa a cerrar
+ *         required: true
+ *         description: ID de la mesa a abrir
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - idMozo
+ *             properties:
+ *               idMozo:
+ *                 type: integer
+ *                 description: ID del usuario (Mozo) que abre la mesa
+ *                 example: 5
  *     responses:
  *       200:
- *         description: Mesa cerrada exitosamente
+ *         description: Mesa abierta exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Mesa abierta con éxito"
+ *                 mesa:
+ *                   $ref: '#/components/schemas/Mesa'
+ *       400:
+ *         description: Datos faltantes (idMozo) o mesa ya ocupada
+ *       404:
+ *         description: Mesa no encontrada
  *       500:
- *         description: Error al cerrar la mesa
+ *         description: Error en el servidor
  */
-// Endpoint para Cerrar Mesa (Liberar)
+router.post("/:id/abrir", authMiddleware, mesaController.abrirMesa);
+
+/**
+ * @swagger
+ * /api/mesas/{id}/cerrar:
+ *   post:
+ *     summary: Cierra la cuenta de una mesa
+ *     description: Libera la mesa (estado 'libre'), desvincula al mozo y marca todos los pedidos pendientes como 'pagados'.
+ *     tags: [Mesas]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: ID de la mesa a cerrar
+ *     responses:
+ *       200:
+ *         description: Mesa cerrada correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Mesa cerrada y pedidos finalizados"
+ *                 detalles:
+ *                   type: array
+ *                   description: Lista de pedidos afectados (opcional según tu servicio)
+ *       404:
+ *         description: Mesa no encontrada
+ *       500:
+ *         description: Error en el servidor
+ */
 router.post("/:id/cerrar", authMiddleware, mesaController.cerrarMesa);
 
 module.exports = router;

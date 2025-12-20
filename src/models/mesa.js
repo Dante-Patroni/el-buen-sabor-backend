@@ -11,7 +11,7 @@ module.exports = (sequelize, DataTypes) => {
     static associate(models) {
       // La Mesa pertenece a un Usuario (Mozo)
       Mesa.belongsTo(models.Usuario, { 
-        foreignKey: 'mozoId', 
+        foreignKey: 'mozo_id', 
         as: 'mozo' // Así podremos hacer mesa.mozo.nombre
       });
     }
