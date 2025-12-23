@@ -69,6 +69,7 @@ app.use("/api/pedidos", require("./src/routes/pedidoRoutes"));
 app.use("/api/platos", require("./src/routes/platoRoutes"));
 app.use("/api/usuarios", require("./src/routes/usuarioRoutes"));
 app.use('/api/rubros', require('./src/routes/rubroRoutes'));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ==========================================
 // 🚀 3. INICIO DEL SERVIDOR
