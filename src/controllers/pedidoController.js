@@ -86,6 +86,46 @@ class PedidoController {
       res.status(500).json({ error: "Error interno del servidor" });
     }
   }
-}
 
+  // ---------------------------------------------------------
+  // 4. CERRAR MESA
+  // ---------------------------------------------------------
+  cerrarMesa = async (req, res) => {
+    try {
+      console.log("------------------------------------------------");
+      console.log("🛑 DEBUG: INICIANDO CERRAR MESA");
+      console.log("📥 Headers:", req.headers['content-type']); // ¿Dice application/json?
+      console.log("📦 Body Completo (req.body):", req.body);     // ¿Llega vacío {} o undefined?
+      console.log("🔗 Params (req.params):", req.params);       // ¿Viene algo en la URL?
+      console.log("------------------------------------------------");
+
+      // Intentamos leer mesaId
+      const { mesaId } = req.body;
+      console.log("🧐 mesaId extraído:", mesaId);
+
+      // Validación con Log de error
+      if (!mesaId) {
+        console.error("❌ ERROR: mesaId es undefined o null");
+        // Si req.body está vacío, quizás falta el middleware de express.json()
+        if (!req.body || Object.keys(req.body).length === 0) {
+            console.error("⚠️ ALERTA: req.body está vacío. Revisa si enviaste JSON en Postman o si falta app.use(express.json()) en tu server.");
+        }
+        return res.status(400).json({ error: "Número de mesa es obligatorio" });
+      }
+
+      const resultado = await this.pedidoService.cerrarMesa(mesaId);
+
+      console.log("✅ ÉXITO: Mesa cerrada. Resultado:", resultado);
+      res.status(200).json(resultado);
+
+    } catch (error) {
+      console.error("🔥 EXCEPCIÓN en cerrarMesa:", error.message);
+      
+      if (error.message === 'Mesa no encontrada') return res.status(404).json({ error: error.message });
+      if (error.message.includes('consumos pendientes')) return res.status(400).json({ error: error.message });
+      
+      res.status(500).json({ error: "Error interno del servidor" });
+    }
+  }
+}
 module.exports = PedidoController;

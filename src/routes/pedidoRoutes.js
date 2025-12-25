@@ -162,5 +162,37 @@ router.get("/mesa/:mesa", authMiddleware, pedidoController.buscarPorMesa);
 // Fíjate en el ':id'. Eso es un Parámetro de Ruta.
 router.delete("/:id", authMiddleware, pedidoController.eliminar);
 
+/**
+ * @swagger
+ * /api/pedidos/cerrar-mesa:
+ *   post:
+ *     summary: Cierra la mesa, cobra los pedidos y libera el espacio
+ *     tags: [Pedidos]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - mesaId
+ *             properties:
+ *               mesaId:
+ *                 type: string
+ *                 description: ID o Número de la mesa a cerrar
+ *                 example: "5"
+ *     responses:
+ *       200:
+ *         description: Mesa cerrada y cobrada correctamente
+ *       400:
+ *         description: La mesa no tiene consumos pendientes
+ *       404:
+ *         description: Mesa no encontrada
+ */
+//  4. CERRAR MESA (POST)
+router.post("/cerrar-mesa", authMiddleware, pedidoController.cerrarMesa);
+
 
 module.exports = router;

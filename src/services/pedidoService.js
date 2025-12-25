@@ -1,5 +1,7 @@
-const { Pedido, DetallePedido, Plato, Mesa } = require("../models");
+const { Pedido, DetallePedido, Plato, Mesa, sequelize } = require("../models");
 const StockAdapter = require("../adapters/MongoStockAdapter");
+const { Op } = require('sequelize'); // 🆕 Para operadores lógicos
+const pedidoEmitter = require('../events/pedidoEvents');
 
 class PedidoService {
 
@@ -137,6 +139,83 @@ class PedidoService {
       await mesa.save();
     }
   }
+
+  // =================================================================
+    // 💰 CERRAR MESA (Versión Debuggeada y Blindada)
+    // =================================================================
+    async cerrarMesa(mesaId) {
+        const t = await sequelize.transaction();
+
+        try {
+            console.log(`🔎 Servicio: Buscando Mesa ID ${mesaId}...`);
+            const mesa = await Mesa.findByPk(mesaId, { transaction: t });
+
+            if (!mesa) throw new Error('Mesa no encontrada');
+
+            // 👇 IMPRIMIMOS LO QUE ENCONTRAMOS (Para ver si tiene número)
+            console.log("📄 Datos de la Mesa encontrada:", mesa.toJSON());
+
+            // 🛡️ PARCHE DE SEGURIDAD (FALLBACK):
+            // Si la columna 'numero' está vacía, usamos el ID convertido a string.
+            // Esto evita que 'mesa.numero' sea undefined.
+            const numeroParaBuscar = mesa.numero || mesa.id.toString();
+            
+            console.log(`🎯 Buscando pedidos para la mesa visual: "${numeroParaBuscar}"`);
+
+            const pedidosPorCobrar = await Pedido.findAll({
+                where: {
+                    // Usamos la variable segura
+                    mesa: numeroParaBuscar, 
+                    estado: { [Op.notIn]: ['pagado', 'rechazado'] }
+                },
+                transaction: t
+            });
+
+            if (pedidosPorCobrar.length === 0) {
+                console.log("⚠️ No se encontraron pedidos cobrables.");
+                throw new Error('La mesa no tiene consumos pendientes de cobro.');
+            }
+
+            console.log(`💰 Encontrados ${pedidosPorCobrar.length} pedidos. Calculando total...`);
+
+            const totalCalculado = pedidosPorCobrar.reduce((acc, p) => acc + p.total, 0);
+
+            await Pedido.update(
+                { estado: 'pagado' },
+                {
+                    where: {
+                        id: pedidosPorCobrar.map(p => p.id)
+                    },
+                    transaction: t
+                }
+            );
+
+            mesa.estado = 'libre';
+            mesa.totalActual = 0;
+            await mesa.save({ transaction: t });
+
+            await t.commit();
+
+            // Evento
+            pedidoEmitter.emit('mesa-cerrada', { 
+                mesaId, 
+                mesaNumero: numeroParaBuscar,
+                total: totalCalculado,
+                items: pedidosPorCobrar.length 
+            });
+
+            return {
+                mensaje: 'Mesa cerrada correctamente',
+                totalCobrado: totalCalculado,
+                pedidosProcesados: pedidosPorCobrar.length
+            };
+
+        } catch (error) {
+            await t.rollback();
+            // Re-lanzamos el error para que el Controller lo muestre
+            throw error; 
+        }
+    }
 }
 
 // 👇 ESTANDARIZACIÓN: Exportamos la Clase
