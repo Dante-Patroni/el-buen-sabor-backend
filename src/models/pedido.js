@@ -31,6 +31,8 @@ module.exports = (sequelize, DataTypes) => {
           "en_preparacion",
           "rechazado",
           "entregado",
+          "pagado",   // 🆕 AGREGADO
+          "cancelado" // 🆕 AGREGADO
         ),
         defaultValue: "pendiente",
       },

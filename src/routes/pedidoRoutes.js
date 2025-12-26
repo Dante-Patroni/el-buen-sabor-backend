@@ -79,6 +79,9 @@ const pedidoController = new PedidoController(pedidoService);
 
 // 1. CREAR (POST) -> Llama a PedidoController.crear
 router.post("/", authMiddleware, validarPedido, pedidoController.crear);
+
+// 1.5 CERRAR MESA (POST)
+router.post("/cerrar-mesa", authMiddleware, pedidoController.cerrarMesa);
 /**
  * @swagger
  * /api/pedidos:

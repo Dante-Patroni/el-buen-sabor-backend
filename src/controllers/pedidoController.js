@@ -12,12 +12,12 @@ class PedidoController {
     try {
       // 1. Ya NO validamos manualmente aquí si falta mesa o platoId.
       // El middleware 'validarPedido' ya hizo ese trabajo sucio antes de entrar aquí.
-      
+
       const pedido = await this.pedidoService.crearYValidarPedido(req.body);
-      
-      res.status(201).json({ 
-        message: "Pedido creado con éxito", 
-        data: pedido 
+
+      res.status(201).json({
+        message: "Pedido creado con éxito",
+        data: pedido
       });
     } catch (error) {
       console.error("Error Crear:", error.message);
@@ -60,6 +60,30 @@ class PedidoController {
     } catch (error) {
       console.error(`Error buscando pedidos por mesa ${req.params.mesa}:`, error);
       res.status(500).json({ error: "Error al obtener el historial de la mesa" });
+    }
+  }
+
+  // ---------------------------------------------------------
+  // 3.5 CERRAR MESA (POST)
+  // ---------------------------------------------------------
+  cerrarMesa = async (req, res) => {
+    try {
+      const { mesaId } = req.body;
+
+      if (!mesaId) {
+        return res.status(400).json({ error: "Falta el ID de la mesa (mesaId)" });
+      }
+
+      const resultado = await this.pedidoService.cerrarMesa(mesaId);
+
+      res.status(200).json({
+        mensaje: "Mesa cerrada y cobrada exitosamente",
+        ...resultado
+      });
+
+    } catch (error) {
+      console.error("Error Cerrar Mesa:", error.message);
+      res.status(500).json({ error: "No se pudo cerrar la mesa" });
     }
   }
 

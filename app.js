@@ -1,4 +1,6 @@
 const express = require("express");
+const http = require("http"); // 🆕 NECESARIO PARA SOCKETS
+const { Server } = require("socket.io"); // 🆕 LIBRERÍA DE TIEMPO REAL
 const path = require("path");
 const cors = require("cors");
 
@@ -6,16 +8,14 @@ const cors = require("cors");
 const { dbConnection } = require("./src/config/mongo");
 const { sequelize } = require("./src/models");
 const setupListeners = require("./src/listeners/setupListeners");
-const seedDatabase = require("./src/seeders/initialSeeder"); // ✅ Ruta correcta
+const seedDatabase = require("./src/seeders/initialSeeder");
 
 // 👇 IMPORTACIONES DE RUTAS
 const mesaRouter = require("./src/routes/mesaRoutes");
-// (Las otras rutas las importaremos directamente abajo para mantener tu estilo)
 
-// Cargar variables de entorno (CRUCIAL: Esto va antes de validar)
+// Cargar variables de entorno
 require('dotenv').config();
 
-// VALIDACIÓN DE VARIABLES DE ENTORNO
 if (!process.env.JWT_SECRET) {
   console.error("❌ FATAL ERROR: JWT_SECRET no está definido en .env");
   process.exit(1);
@@ -25,18 +25,18 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // ==========================================
-// 🛡️ 1. SEGURIDAD (CORS)
+// 🛡️ 1. SEGURIDAD (CORS - Express)
 // ==========================================
 const whitelist = [
-  "http://localhost:3000",      // Postman / Swagger / Frontend Local
-  "http://localhost:4200",      // Angular Local
-  "http://192.168.18.3:3000",   // 📱 TU CELULAR (IP Fija actualizada)
-  "http://192.168.18.3",        // Variaciones de IP
+  "http://localhost:3000",      
+  "http://localhost:4200",      
+  "http://192.168.18.3:3000",   
+  "http://192.168.18.3",        
+  "http://127.0.0.1:5500"       // ✅ Monitor de Cocina
 ];
 
 const corsOptions = {
   origin: function (origin, callback) {
-    // !origin permite peticiones sin origen (como Apps móviles nativas o Postman)
     if (!origin || whitelist.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
@@ -47,55 +47,57 @@ const corsOptions = {
   optionsSuccessStatus: 200,
 };
 
-// APLICAMOS MIDDLEWARES GLOBALES
-app.use(cors(corsOptions)); // ✅ AHORA SÍ usa la configuración restrictiva
-app.use(express.json());    // Traduce JSON
+app.use(cors(corsOptions));
+app.use(express.json());
 
 // ==========================================
-// 📂 2. RUTAS Y DOCUMENTACIÓN
+// 📡 2. CONFIGURACIÓN WEBSOCKETS (LO QUE FALTABA)
 // ==========================================
+// Creamos un servidor HTTP nativo que envuelve a Express
+const server = http.createServer(app);
 
-// Archivos estáticos (Fotos)
+// Configuramos Socket.io sobre ese servidor
+const io = new Server(server, {
+    cors: {
+        origin: "*", // 🔓 Permitimos todo para que el HTML local conecte sin problemas
+        methods: ["GET", "POST"]
+    }
+});
+
+// ==========================================
+// 📂 3. RUTAS
+// ==========================================
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// Documentación (Swagger)
 const swaggerUi = require("swagger-ui-express");
 const swaggerSpecs = require("./src/docs/swagger");
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
 
-// API Routes
 app.use("/api/mesas", mesaRouter);
 app.use("/api/pedidos", require("./src/routes/pedidoRoutes"));
 app.use("/api/platos", require("./src/routes/platoRoutes"));
 app.use("/api/usuarios", require("./src/routes/usuarioRoutes"));
 app.use('/api/rubros', require('./src/routes/rubroRoutes'));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ==========================================
-// 🚀 3. INICIO DEL SERVIDOR
+// 🚀 4. INICIO DEL SERVIDOR
 // ==========================================
 const startServer = async () => {
   try {
-    // A. Conectar Mongo
     await dbConnection();
-
-    // B. Conectar MySQL y Sincronizar
-    // alter: true actualiza las tablas si agregas columnas nuevas
     await sequelize.sync({ force: false, alter: true });
     console.log("📦 Tablas MySQL sincronizadas");
-
-    // C. Sembrar datos iniciales (Admin y Mesas)
     await seedDatabase();
 
-    // D. Activar Eventos (Sockets/Listeners)
-    setupListeners();
+    // 👇 IMPORTANTE: Pasamos 'io' para que los eventos puedan salir
+    setupListeners(io); 
 
-    // E. Levantar el Servidor
-    app.listen(PORT, "0.0.0.0", () => {
+    // 👇 IMPORTANTE: Usamos 'server.listen', NO 'app.listen'
+    server.listen(PORT, "0.0.0.0", () => {
       console.log(`🚀 Servidor 'El Buen Sabor' corriendo.`);
       console.log(`📡 Accesible localmente: http://localhost:${PORT}`);
       console.log(`📡 Accesible en red:    http://192.168.18.3:${PORT}`);
-      console.log(`📄 Documentación:       http://localhost:${PORT}/api-docs`);
+      console.log(`⚡ WebSockets:         ACTIVOS (Puerto compartido)`);
     });
 
   } catch (error) {

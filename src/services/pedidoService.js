@@ -90,7 +90,7 @@ class PedidoService {
     });
   }
 
-  // 4. ELIMINAR PEDIDO (Faltaba este método)
+  // 4. ELIMINAR PEDIDO
   async eliminarPedido(id) {
     try {
       // A. Buscar el pedido antes de borrarlo
@@ -109,6 +109,71 @@ class PedidoService {
 
       return true;
     } catch (error) {
+      throw error;
+    }
+  }
+
+  // 5. CERRAR MESA (Validar, Cobrar y Liberar)
+  async cerrarMesa(mesaId) {
+    try {
+      // 1. Buscar la mesa
+      const mesa = await Mesa.findByPk(mesaId);
+      if (!mesa) throw new Error("Mesa no encontrada");
+
+      // 2. Obtener pedidos PENDIENTES de esa mesa
+      const pedidosPendientes = await Pedido.findAll({
+        where: {
+          mesa: mesaId,
+          estado: 'pendiente'
+        }
+      });
+
+      if (pedidosPendientes.length === 0) {
+        // Opción: Permitir cerrar aunque no haya pedidos (si solo ocuparon la mesa)
+        // Pero devolvemos total 0.
+      }
+
+      // 3. Calcular Total final (redundante con mesa.totalActual, pero seguro)
+      const totalCierre = mesa.totalActual || 0;
+
+      // 4. Actualizar estado de los pedidos a 'pagado'
+      // Usamos update masivo de Sequelize
+      // 👇 FIX ROBUSTO: Cerramos TODO lo que no esté ya pagado o cancelado.
+      // Esto limpia estados 'null', '', 'pendiente', 'entregado', etc.
+      const { Op } = require("sequelize");
+      await Pedido.update(
+        { estado: 'pagado' },
+        {
+          where: {
+            mesa: mesaId,
+            estado: {
+              [Op.or]: [
+                { [Op.eq]: 'pendiente' },
+                { [Op.eq]: 'en_preparacion' },
+                { [Op.eq]: 'entregado' },
+                // También atrapamos los estados inválidos/sucios
+                { [Op.is]: null },
+                { [Op.eq]: '' }
+              ]
+            }
+          }
+        }
+      );
+
+      // 5. Liberar la mesa
+      mesa.estado = 'libre';
+      mesa.totalActual = 0; // Reseteamos contador
+      mesa.mozoAsignado = null; // Opcional: liberar mozo
+      await mesa.save();
+
+      return {
+        mesaId: mesa.id,
+        totalCobrado: totalCierre,
+        pedidosCerrados: pedidosPendientes.length
+      };
+
+    } catch (error) {
+      console.error("Error al cerrar mesa:", error);
       throw error;
     }
   }
