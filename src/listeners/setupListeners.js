@@ -1,12 +1,23 @@
 const pedidoEmitter = require("../events/pedidoEvents");
 
-const setupListeners = () => {
-  // 👂 OÍDO 1: LA COCINA (Simulación de impresión de comanda)
+// 👇 1. CAMBIO AQUÍ: Agregamos (io) para recibir el megáfono
+const setupListeners = (io) => {
+  
+  // 👂 OÍDO 1: LA COCINA (Simulación de impresión + Pantalla Web)
   pedidoEmitter.on("pedido-creado", ({ pedido }) => {
     console.log("----------------------------------------------------");
     console.log(`👨‍🍳 COCINA: ¡Nuevo pedido recibido! (#${pedido.id})`);
     console.log(`🥘 Plato ID: ${pedido.platoId} | Cliente: ${pedido.cliente}`);
     console.log("🔥 Empezando a cocinar... (Esto corre en paralelo)");
+
+    // 👇 2. CAMBIO AQUÍ: ¡Gritamos al Monitor Web!
+    if (io) {
+        console.log("📡 SOCKET: Enviando datos a la pantalla de cocina...");
+        io.emit('nuevo-pedido', pedido);
+    } else {
+        console.warn("⚠️ Advertencia: WebSocket no inicializado en listeners.");
+    }
+    
     console.log("----------------------------------------------------");
   });
 
@@ -27,7 +38,7 @@ const setupListeners = () => {
     }, 3000);
   });
 
-  console.log("👂 Sistema de Eventos: LISTENERS ACTIVADOS");
+  console.log("👂 Sistema de Eventos: LISTENERS ACTIVADOS (Con WebSockets)");
 };
 
 module.exports = setupListeners;
