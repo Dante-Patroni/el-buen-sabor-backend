@@ -2,7 +2,7 @@ const { Pedido, DetallePedido, Plato, Mesa } = require("../models");
 const StockAdapter = require("../adapters/MongoStockAdapter");
 
 // 👇 1. 🆕 IMPORTAR EL EMISOR DE EVENTOS
-const pedidoEmitter = require("../events/pedidoEvents"); 
+const pedidoEmitter = require("../events/pedidoEvents");
 
 class PedidoService {
 
@@ -16,19 +16,24 @@ class PedidoService {
 
     try {
       let totalCalculado = 0;
-      const detallesParaCrear = []; 
+      const detallesParaCrear = [];
 
       // A. Validar y Calcular
       for (const item of productos) {
-        const idProducto = parseInt(item.platoId);
+        // Validación defensiva (por si se llama sin middleware)
+        const platoId = parseInt(item.platoId);
         const cantidad = parseInt(item.cantidad) || 1;
 
+        if (!platoId || platoId < 1) {
+          throw new Error('platoId inválido');
+        }
+
         // 1. Validar Stock (MongoDB)
-        await this.stockAdapter.descontarStock(idProducto, cantidad);
+        await this.stockAdapter.descontarStock(platoId, cantidad);
 
         // 2. Obtener Precio (MySQL)
-        const plato = await Plato.findByPk(idProducto);
-        if (!plato) throw new Error(`El plato ID ${idProducto} no existe`);
+        const plato = await Plato.findByPk(platoId);
+        if (!plato) throw new Error(`El plato ID ${platoId} no existe`);
 
         // 3. Calcular Subtotal
         const subtotal = plato.precio * cantidad;
@@ -48,16 +53,16 @@ class PedidoService {
         mesa: mesaNumero,
         cliente: cliente || "Anónimo",
         estado: 'pendiente',
-        total: totalCalculado 
+        total: totalCalculado
       });
 
-      // C. Crear los Detalles (MySQL) - Renglones
-      for (const detalle of detallesParaCrear) {
-        await DetallePedido.create({
-          PedidoId: nuevoPedido.id, 
+      // C. Crear los Detalles (MySQL) - Renglones (Optimizado con bulkCreate)
+      await DetallePedido.bulkCreate(
+        detallesParaCrear.map(detalle => ({
+          PedidoId: nuevoPedido.id,
           ...detalle
-        });
-      }
+        }))
+      );
 
       // D. Actualizar la Mesa
       await this._actualizarMesa(mesaNumero, totalCalculado);
@@ -140,7 +145,7 @@ class PedidoService {
       // Liberar mesa
       mesa.estado = 'libre';
       mesa.totalActual = 0;
-      mesa.mozoAsignado = null; 
+      mesa.mozoAsignado = null;
       await mesa.save();
 
       return {
