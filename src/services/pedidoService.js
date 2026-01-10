@@ -5,88 +5,92 @@ const StockAdapter = require("../adapters/MongoStockAdapter");
 const pedidoEmitter = require("../events/pedidoEvents");
 
 class PedidoService {
-
-  constructor() {
-    this.stockAdapter = new StockAdapter();
+  constructor(pedidoRepository, stockAdapter, pedidoEmitter) {
+    this.pedidoRepository = pedidoRepository;
+    this.stockAdapter = stockAdapter;
+    this.pedidoEmitter = pedidoEmitter;
   }
 
   // 1. CREAR PEDIDO (Soporta múltiples productos)
-  async crearYValidarPedido(datosPedido) {
+   async crearYValidarPedido(datosPedido) {
     const { mesa: mesaNumero, productos, cliente } = datosPedido;
 
-    try {
-      let totalCalculado = 0;
-      const detallesParaCrear = [];
+    let totalCalculado = 0;
+    const detallesParaCrear = [];
 
-      // A. Validar y Calcular
-      for (const item of productos) {
-        // Validación defensiva (por si se llama sin middleware)
-        const platoId = parseInt(item.platoId);
-        const cantidad = parseInt(item.cantidad) || 1;
+    // 1️⃣ Validar y calcular
+    for (const item of productos) {
+      const platoId = parseInt(item.platoId);
+      const cantidad = parseInt(item.cantidad) || 1;
 
-        if (!platoId || platoId < 1) {
-          throw new Error('platoId inválido');
-        }
-
-        // 1. Validar Stock (MongoDB)
-        await this.stockAdapter.descontarStock(platoId, cantidad);
-
-        // 2. Obtener Precio (MySQL)
-        const plato = await Plato.findByPk(platoId);
-        if (!plato) throw new Error(`El plato ID ${platoId} no existe`);
-
-        // 3. Calcular Subtotal
-        const subtotal = plato.precio * cantidad;
-        totalCalculado += subtotal;
-
-        // 4. Preparamos detalle
-        detallesParaCrear.push({
-          PlatoId: plato.id,
-          cantidad: cantidad,
-          subtotal: subtotal,
-          aclaracion: item.aclaracion || ""
-        });
+      if (!platoId || platoId < 1) {
+        throw new Error("platoId inválido");
       }
 
-      // B. Crear el Pedido (MySQL) - Cabecera
-      const nuevoPedido = await Pedido.create({
-        mesa: mesaNumero,
-        cliente: cliente || "Anónimo",
-        estado: 'pendiente',
-        total: totalCalculado
+      // Stock (infraestructura, pero abstracta)
+      await this.stockAdapter.descontarStock(platoId, cantidad);
+
+      // Precio (vía repository)
+      const plato = await this.pedidoRepository.buscarPlatoPorId(platoId);
+      if (!plato) {
+        throw new Error(`El plato ID ${platoId} no existe`);
+      }
+
+      const subtotal = plato.precio * cantidad;
+      totalCalculado += subtotal;
+
+      detallesParaCrear.push({
+        PlatoId: plato.id,
+        cantidad,
+        subtotal,
+        aclaracion: item.aclaracion || ""
       });
-
-      // C. Crear los Detalles (MySQL) - Renglones (Optimizado con bulkCreate)
-      await DetallePedido.bulkCreate(
-        detallesParaCrear.map(detalle => ({
-          PedidoId: nuevoPedido.id,
-          ...detalle
-        }))
-      );
-
-      // D. Actualizar la Mesa
-      await this._actualizarMesa(mesaNumero, totalCalculado);
-
-      // 👇 2. 🆕 ¡EL MOMENTO MÁGICO! DISPARAMOS EL EVENTO
-      // Esto despierta al Listener (setupListeners.js), que a su vez grita por WebSocket
-      console.log("📢 SERVICE: Emitiendo evento 'pedido-creado'...");
-      pedidoEmitter.emit("pedido-creado", { pedido: nuevoPedido.toJSON() });
-
-      return nuevoPedido;
-
-    } catch (error) {
-      console.error("Error en PedidoService:", error);
-      throw error;
     }
+
+    // 2️⃣ Crear pedido
+    const nuevoPedido = await this.pedidoRepository.crearPedido({
+      mesa: mesaNumero,
+      cliente: cliente || "Anónimo",
+      estado: "pendiente",
+      total: totalCalculado
+    });
+
+    // 3️⃣ Crear detalles
+    await this.pedidoRepository.crearDetalles(
+      detallesParaCrear.map(det => ({
+        PedidoId: nuevoPedido.id,
+        ...det
+      }))
+    );
+
+    // 4️⃣ Actualizar mesa
+    await this._actualizarMesa(mesaNumero, totalCalculado);
+
+    // 5️⃣ Evento
+    this.pedidoEmitter.emit("pedido-creado", {
+      pedido: nuevoPedido.toJSON()
+    });
+
+    return nuevoPedido;
   }
+
+  async _actualizarMesa(mesaId, monto) {
+    const mesa = await this.pedidoRepository.buscarMesaPorId(mesaId);
+    if (!mesa) return;
+
+    const totalAnterior = parseFloat(mesa.totalActual) || 0;
+    const nuevoTotal = Math.max(0, totalAnterior + parseFloat(monto));
+
+    mesa.totalActual = nuevoTotal;
+    mesa.estado = nuevoTotal > 0 ? "ocupada" : "libre";
+
+    await this.pedidoRepository.actualizarMesa(mesa);
+  }
+
 
   // 2. LISTAR PEDIDOS
   async listarPedidos(estado) {
-    const filtro = estado ? { where: { estado } } : {};
-    return await Pedido.findAll({
-      ...filtro,
-      include: [DetallePedido]
-    });
+    return await this.pedidoRepository.listarPedidosPorEstado(estado);
   }
 
   // 3. BUSCAR POR MESA
