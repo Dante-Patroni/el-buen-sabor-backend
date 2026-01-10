@@ -95,62 +95,44 @@ class PedidoService {
 
   // 3. BUSCAR POR MESA
   async buscarPedidosPorMesa(mesaNumero) {
-    return await Pedido.findAll({
-      where: { mesa: mesaNumero },
-      include: [DetallePedido]
-    });
+    return await this.pedidoRepository.buscarPedidosPorMesa(mesaNumero);
   }
 
   // 4. ELIMINAR PEDIDO
   async eliminarPedido(id) {
-    try {
-      const pedido = await Pedido.findByPk(id);
+      const pedido = await this.pedidoRepository.buscarPedidoPorId(id);
       if (!pedido) throw new Error("PEDIDO_NO_ENCONTRADO");
+
       await this._actualizarMesa(pedido.mesa, -pedido.total);
-      await pedido.destroy();
+      await this.pedidoRepository.eliminarPedidoPorId(id);
       return true;
-    } catch (error) {
-      throw error;
-    }
-  }
+    } 
+    
 
   // 5. CERRAR MESA
   async cerrarMesa(mesaId) {
-    try {
-      const mesa = await Mesa.findByPk(mesaId);
+
+      const mesa = await this.pedidoRepository.buscarMesaPorId(mesaId);
       if (!mesa) throw new Error("Mesa no encontrada");
 
-      const pedidosPendientes = await Pedido.findAll({
-        where: { mesa: mesaId, estado: 'pendiente' }
-      });
+      const pedidosAbiertos = 
+      await this.pedidoRepository.buscarPedidosAbiertosPorEstado(mesaId);
+
+      if (pedidosAbiertos.length === 0) {
+        throw new Error("No hay pedidos pendientes para esta mesa");
+      }
 
       const totalCierre = mesa.totalActual || 0;
 
       // Actualizar estados
-      const { Op } = require("sequelize");
-      await Pedido.update(
-        { estado: 'pagado' },
-        {
-          where: {
-            mesa: mesaId,
-            estado: {
-              [Op.or]: [
-                { [Op.eq]: 'pendiente' },
-                { [Op.eq]: 'en_preparacion' },
-                { [Op.eq]: 'entregado' },
-                { [Op.is]: null },
-                { [Op.eq]: '' }
-              ]
-            }
-          }
-        }
-      );
+      await this.pedidoRepository.marcarpedidosComoPagados(mesaId);
 
       // Liberar mesa
       mesa.estado = 'libre';
       mesa.totalActual = 0;
       mesa.mozoAsignado = null;
-      await mesa.save();
+      
+      await this.pedidoRepository.actualizarMesa(mesa);
 
       return {
         mesaId: mesa.id,
@@ -158,15 +140,12 @@ class PedidoService {
         pedidosCerrados: pedidosPendientes.length
       };
 
-    } catch (error) {
-      console.error("Error al cerrar mesa:", error);
-      throw error;
-    }
+    
   }
 
   // --- MÉTODOS PRIVADOS ---
   async _actualizarMesa(mesaId, monto) {
-    const mesa = await Mesa.findByPk(mesaId);
+    const mesa = await this.pedidoRepository.buscarMesaPorId(mesaId);
     if (mesa) {
       const totalAnterior = parseFloat(mesa.totalActual) || 0;
       const montoFloat = parseFloat(monto);
@@ -174,7 +153,7 @@ class PedidoService {
       if (nuevoTotal < 0) nuevoTotal = 0;
       mesa.totalActual = nuevoTotal;
       if (nuevoTotal > 0) mesa.estado = 'ocupada';
-      await mesa.save();
+      await this.pedidoRepository.actualizarMesa(mesa);
     }
   }
 }

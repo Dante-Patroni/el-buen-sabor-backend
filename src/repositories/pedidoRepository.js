@@ -23,7 +23,29 @@ class PedidoRepository {
   async listarPedidosPorEstado(estado) {
     throw new Error("Not implemented");
   }
-}
+  async buscarPedidosPorMesa(mesaNumero) {
+    throw new Error("Not implemented");
+  }
 
+  async buscarPedidoPorId(id) {
+    throw new Error("Not implemented");
+  }
+
+  async buscarPedidoAbiertosPorMesa(mesaId) {
+    throw new Error("Not implemented");
+  }
+  async marcarPedidosComoPagados(mesaId) {
+    throw new Error("Not implemented");
+  }
+
+  async eliminarPedidoPorId(id) {
+    throw new Error("Not implemented");
+  }
+
+  async actualizarEstadoPedido(mesaId) {
+    throw new Error("Not implemented");
+  }
+
+}
 
 module.exports = PedidoRepository;
