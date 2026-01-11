@@ -4,16 +4,23 @@ const router = express.Router();
 // 1. Importamos las CLASES (No instancias)
 const PedidoService = require("../services/pedidoService");
 const PedidoController = require("../controllers/pedidoController");
-const authMiddleware = require("../middlewares/authMiddleware");
-const { validarPedido } = require('../middlewares/pedidoValidator');
+const SequelizePedidoRepository = require("../repositories/sequelize/sequelizePedidoRepository");
+const StockAdapter = require("../adapters/MongoStockAdapter");
+const pedidoEmitter = require("../events/pedidoEvents");
 
-// 2. Instanciamos e Inyectamos (¡AQUÍ ESTÁ LA CLAVE!)
-// Primero creamos el servicio...
-const pedidoService = new PedidoService();
+const pedidoRepository = new SequelizePedidoRepository();
+const stockAdapter = new StockAdapter();
 
-// ... y luego SE LO PASAMOS al controlador dentro del paréntesis.
-// Si el paréntesis está vacío (), this.pedidoService será undefined.
+const pedidoService = new PedidoService(
+  pedidoRepository,
+  stockAdapter,
+  pedidoEmitter
+);
+
 const pedidoController = new PedidoController(pedidoService);
+const authMiddleware = require("../middlewares/authMiddleware");
+const { validarPedido } = require("../middlewares/pedidoValidator");
+
 
 /**
  * @swagger
