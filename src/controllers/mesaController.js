@@ -5,7 +5,7 @@ class MesaController {
     this.mesaService = mesaService;
   }
 
-  // 1. LISTAR (Con la lógica de itemsPendientes que ganaste ayer)
+  // 1. LISTAR 
   listar = async (req, res) => {
     try {
       const mesasRaw = await this.mesaService.listar();
@@ -14,7 +14,7 @@ class MesaController {
           // Convertimos decimal a float
           const valorNumerico = parseFloat(m.totalActual) || 0;
 
-          // Lógica deducida ayer: Si hay plata o está ocupada, hay items.
+          // Lógica deducida: Si hay plata o está ocupada, hay items.
           const itemsCalc = (valorNumerico > 0 || m.estado === 'ocupada') ? 1 : 0;
 
           return {
@@ -54,21 +54,6 @@ class MesaController {
     }
   };
 
-  // 3. CERRAR MESA
-  cerrarMesa = async (req, res) => {
-    try {
-      const { id } = req.params;
-      const resultado = await this.mesaService.cerrarMesa(id);
-
-      res.status(200).json({
-           mensaje: `Mesa ${id} cerrada correctamente`,
-           pedidosActualizados: resultado
-      });
-    } catch (error) {
-      console.error(`❌ Error al cerrar mesa:`, error);
-      res.status(500).json({ error: "No se pudo cerrar la mesa" });
-    }
-  }
 }
 
 

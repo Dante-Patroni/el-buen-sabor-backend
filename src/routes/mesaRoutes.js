@@ -5,10 +5,13 @@ const router = express.Router();
 const MesaService = require("../services/mesaService");
 const MesaController = require("../controllers/mesaController");
 const authMiddleware = require("../middlewares/authMiddleware");
+const SequelizeMesaRepository = require("../repositories/sequelize/sequelizeMesaRepository");
 
-// 2. Instanciamos e Inyectamos (Singleton Manual)
-const mesaService = new MesaService();
+// 1. Instanciamos Repositorio
+const mesaRepository = new SequelizeMesaRepository();
+const mesaService = new MesaService(mesaRepository);
 const mesaController = new MesaController(mesaService);
+
 /**
  * @swagger
  * components:
@@ -133,42 +136,6 @@ router.get("/", authMiddleware, mesaController.listar);
  */
 router.post("/:id/abrir", authMiddleware, mesaController.abrirMesa);
 
-/**
- * @swagger
- * /api/mesas/{id}/cerrar:
- *   post:
- *     summary: Cierra la cuenta de una mesa
- *     description: Libera la mesa (estado 'libre'), desvincula al mozo y marca todos los pedidos pendientes como 'pagados'.
- *     tags: [Mesas]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         schema:
- *           type: integer
- *         required: true
- *         description: ID de la mesa a cerrar
- *     responses:
- *       200:
- *         description: Mesa cerrada correctamente
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Mesa cerrada y pedidos finalizados"
- *                 detalles:
- *                   type: array
- *                   description: Lista de pedidos afectados (opcional según tu servicio)
- *       404:
- *         description: Mesa no encontrada
- *       500:
- *         description: Error en el servidor
- */
-router.post("/:id/cerrar", authMiddleware, mesaController.cerrarMesa);
 
 module.exports = router;
  
