@@ -30,7 +30,7 @@ const platoController = new PlatoController(platoService);
  *         description: Lista de platos
  */
 // GET: Listar (Público)
-router.get("/", (req, res) => platoController.listar(req, res));
+router.get("/", (req, res) => platoController.listarMenu(req, res));
 
 /**
  * @swagger

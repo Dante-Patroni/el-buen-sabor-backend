@@ -5,9 +5,9 @@ class PlatoController {
   }
 
   // 1. LISTAR
-  listar = async (req, res) => {
+  listarMenu = async (req, res) => {
     try {
-      const menu = await this.platoService.listar();
+      const menu = await this.platoService.listarMenu();
       res.status(200).json(menu);
     } catch (error) {
       console.error("Error en PlatoController.listar:", error);

@@ -8,7 +8,7 @@ class PlatoService {
     }
 
     // 1. LISTAR (Tu lógica Híbrida MySQL + Mongo)
-    async listar() {
+    async listarMenu() {
         try {
             // A. MySQL: Traemos platos e incluimos el nombre del Rubro
             const platosSql = await Plato.findAll({
