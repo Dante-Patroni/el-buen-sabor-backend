@@ -467,7 +467,7 @@
 						{
 							"key": "imagen",
 							"type": "file",
-							"src": "/D:/DANTE/IUA/04_CUARTO_CUATRIMESTRE/ProgramacionWebII_001757/EJERCICIOSNODEJS/backend-el-buen-sabor/tests/assets/milanesa.jpg"
+							"src": "tests/assets/milanesa.jpg"
 						}
 					]
 				},
