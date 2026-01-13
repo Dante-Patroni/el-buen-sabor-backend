@@ -32,11 +32,6 @@ class SequelizePlatoRepository extends PlatoRepository {
   });
 }
 
-    // 4. CARGAR IMAGEN
-    async actualizarProducto(producto) {
-  return await producto.save();
-}
-
 }
 
 module.exports = SequelizePlatoRepository;

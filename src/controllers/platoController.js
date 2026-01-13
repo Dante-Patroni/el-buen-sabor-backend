@@ -52,9 +52,9 @@ class PlatoController {
         return res.status(400).json({ error: "No se envió ninguna imagen." });
       }
 
-       const imagenPath = `/uploads/${req.file.filename}`;
+      const productoActualizado =
+        await this.platoService.cargarImagenProducto(id, req.file.filename);
 
-      const productoActualizado = await this.platoService.cargarImagenProducto(id, req.file.filename);
 
       if (!productoActualizado) {
         return res.status(404).json({ error: "Producto no encontrado." });

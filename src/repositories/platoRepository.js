@@ -15,10 +15,7 @@ class PlatoRepository {
     async modificarProductoSeleccionado(id, datos) {
         throw new Error("Método no implementado");
     }
-    // 4. CARGAR IMAGEN
-   async actualizarProducto(producto) {
-  throw new Error("Método no implementado");
-}
+
 }
 
 module.exports = PlatoRepository;

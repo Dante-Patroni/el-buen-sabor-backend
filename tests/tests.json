@@ -16,8 +16,17 @@
 					"script": {
 						"exec": [
 							"var jsonData = pm.response.json();\r",
-							"// Guardamos el token para que lo usen las otras peticiones\r",
-							"pm.collectionVariables.set(\"token_seguridad\", jsonData.token);\r",
+							"\r",
+							"// Verificamos que todo salió bien\r",
+							"pm.test(\"Login exitoso\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"    pm.expect(jsonData).to.have.property('token');\r",
+							"});\r",
+							"\r",
+							"// 👇 EL CAMBIO MÁGICO: collectionVariables\r",
+							"// Esto guarda el token DENTRO del archivo de la colección\r",
+							"pm.collectionVariables.set(\"token_seguridad\", jsonData.token); \r",
+							"\r",
 							"console.log(\"Token guardado:\", jsonData.token);"
 						],
 						"type": "text/javascript",
@@ -66,23 +75,30 @@
 							"    pm.response.to.have.status(201);",
 							"});",
 							"",
+							"// Si no es 201, NO seguimos evaluando el body",
+							"if (pm.response.code !== 201) {",
+							"    console.warn(\"Respuesta no esperada, se cancela validación de negocio\");",
+							"    return;",
+							"}",
+							"",
 							"// 2. Validar tiempo de respuesta (Performance)",
 							"pm.test(\"Response time is less than 1000ms\", function () {",
-							"    // Subí un poco el tiempo porque ahora consultamos a Mongo y SQL",
 							"    pm.expect(pm.response.responseTime).to.be.below(1000);",
 							"});",
 							"",
 							"// 3. Validar Datos y Lógica de Negocio",
 							"pm.test(\"El pedido nace en estado PENDIENTE\", function () {",
-							"    var jsonData = pm.response.json();",
-							"    ",
-							"    // Verificamos que traiga ID",
+							"    const jsonData = pm.response.json();",
+							"",
+							"    // A. Validar estructura mínima",
+							"    pm.expect(jsonData).to.have.property(\"data\");",
 							"    pm.expect(jsonData.data).to.have.property(\"id\");",
-							"    ",
-							"    // Ahora debe ser \"pendiente\", no \"en_preparacion\"",
+							"    pm.expect(jsonData.data).to.have.property(\"estado\");",
+							"",
+							"    // B. Validar estado de negocio",
 							"    pm.expect(jsonData.data.estado).to.eql(\"pendiente\"); ",
-							"    ",
-							"    // Guardamos la Mesa en una variable global para usarla en el siguiente test",
+							"",
+							"    // C. Guardamos la mesa para el siguiente test",
 							"    pm.collectionVariables.set(\"mesa_test\", jsonData.data.mesa);",
 							"});"
 						],
@@ -142,25 +158,38 @@
 							"    pm.response.to.have.status(200);\r",
 							"});\r",
 							"\r",
+							"// Si no es 200, no seguimos\r",
+							"if (pm.response.code !== 200) {\r",
+							"    console.warn(\"Respuesta no OK, se cancelan validaciones de negocio\");\r",
+							"    return;\r",
+							"}\r",
+							"\r",
 							"// 2. Validar lógica de Mesa Ocupada\r",
 							"pm.test(\"La Mesa 4 debe estar OCUPADA y tener PRECIO\", function () {\r",
-							"    var jsonData = pm.response.json();\r",
-							"    \r",
-							"    // Buscamos la Mesa 4 dentro del array de mesas\r",
-							"    // (O la mesa que hayas guardado en la variable mesa_test)\r",
-							"    var mesaTarget = jsonData.find(m => m.nombre === \"Mesa 4\" || m.id == 4);\r",
+							"    const jsonData = pm.response.json();\r",
 							"\r",
-							"    // A. Validar que la mesa existe en la respuesta\r",
-							"    pm.expect(mesaTarget).to.not.be.undefined;\r",
+							"    // A. La respuesta debe ser un array\r",
+							"    pm.expect(jsonData).to.be.an(\"array\");\r",
 							"\r",
-							"    // B. Validar el semáforo (Debe ser ocupada porque acabamos de crear un pedido)\r",
+							"    // B. Obtenemos la mesa desde variable o fallback\r",
+							"    const mesaId = pm.collectionVariables.get(\"mesa_test\") || 4;\r",
+							"\r",
+							"    const mesaTarget = jsonData.find(\r",
+							"        m => m.id == mesaId || m.nombre === `Mesa ${mesaId}`\r",
+							"    );\r",
+							"\r",
+							"    // C. Validar que la mesa exista\r",
+							"    pm.expect(mesaTarget, \"La mesa no existe en la respuesta\").to.not.be.undefined;\r",
+							"\r",
+							"    // D. Estado de negocio\r",
 							"    pm.expect(mesaTarget.estado).to.eql(\"ocupada\");\r",
 							"\r",
-							"    // C. Validar items pendientes\r",
+							"    // E. Items pendientes\r",
+							"    pm.expect(mesaTarget.itemsPendientes).to.be.a(\"number\");\r",
 							"    pm.expect(mesaTarget.itemsPendientes).to.be.above(0);\r",
 							"\r",
-							"    // D. Validar el dinero (Lo que arreglamos al final)\r",
-							"    // El total debe ser mayor a 0 (significa que sumó el precio del plato)\r",
+							"    // F. Total acumulado\r",
+							"    pm.expect(mesaTarget.totalActual).to.be.a(\"number\");\r",
 							"    pm.expect(mesaTarget.totalActual).to.be.above(0);\r",
 							"});"
 						],
@@ -229,36 +258,6 @@
 			"response": []
 		},
 		{
-			"name": "Crear Plato",
-			"request": {
-				"auth": {
-					"type": "bearer",
-					"bearer": [
-						{
-							"key": "token",
-							"value": "{{token_seguridad}}",
-							"type": "string"
-						}
-					]
-				},
-				"method": "POST",
-				"header": [],
-				"url": {
-					"raw": "http://localhost:3000/api/platos",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "3000",
-					"path": [
-						"api",
-						"platos"
-					]
-				}
-			},
-			"response": []
-		},
-		{
 			"name": "PUT Cambiar Menu Dia",
 			"request": {
 				"auth": {
@@ -293,6 +292,197 @@
 						"api",
 						"platos",
 						"1"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Cerrar Mesa",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{token_seguridad}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"mesaId\": \"5\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:3000/api/pedidos/cerrar-mesa",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"api",
+						"pedidos",
+						"cerrar-mesa"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Crear Plato",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// 1. Validar creación correcta\r",
+							"pm.test(\"Status code is 201\", function () {\r",
+							"    pm.response.to.have.status(201);\r",
+							"});\r",
+							"\r",
+							"// Si no se creó, no seguimos\r",
+							"if (pm.response.code !== 201) {\r",
+							"    console.warn(\"El plato no fue creado, se cancelan tests siguientes\");\r",
+							"    return;\r",
+							"}\r",
+							"\r",
+							"// 2. Validar estructura de respuesta\r",
+							"const jsonData = pm.response.json();\r",
+							"\r",
+							"pm.test(\"El plato fue creado correctamente\", function () {\r",
+							"    pm.expect(jsonData).to.have.property(\"id\");\r",
+							"    pm.expect(jsonData).to.have.property(\"nombre\");\r",
+							"    pm.expect(jsonData).to.have.property(\"precio\");\r",
+							"});\r",
+							"\r",
+							"// 3. Validar datos de negocio\r",
+							"pm.test(\"Datos del plato correctos\", function () {\r",
+							"    pm.expect(jsonData.nombre).to.eql(\"Milanesa Napolitana\");\r",
+							"    pm.expect(jsonData.precio).to.be.above(0);\r",
+							"});\r",
+							"\r",
+							"// 4. Guardar ID para pasos siguientes (imagen, edición)\r",
+							"pm.collectionVariables.set(\"platoId\", jsonData.id);\r",
+							"\r",
+							"console.log(\"Plato creado con ID:\", jsonData.id);"
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{token_seguridad}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"nombre\": \"Milanesa Napolitana\",\r\n  \"precio\": 8500,\r\n  \"rubroId\": 1,\r\n  \"esMenuDelDia\": true\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:3000/api/platos",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"api",
+						"platos"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Subir Imagen Plato",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"\r",
+							"let jsonData;\r",
+							"\r",
+							"pm.test(\"La respuesta es JSON\", function () {\r",
+							"    jsonData = pm.response.json();\r",
+							"    pm.expect(jsonData).to.be.an(\"object\");\r",
+							"});\r",
+							"\r",
+							"pm.test(\"Imagen asociada al plato\", function () {\r",
+							"    pm.expect(jsonData).to.have.property(\"plato\");\r",
+							"    pm.expect(jsonData.plato).to.have.property(\"imagenPath\");\r",
+							"    pm.expect(jsonData.plato.imagenPath).to.include(\"/uploads/\");\r",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{token_seguridad}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "imagen",
+							"type": "file",
+							"src": "/D:/DANTE/IUA/06- TESIS/fotos_menu/10-MilanesaACaballo.jpg"
+						}
+					]
+				},
+				"url": {
+					"raw": "http://localhost:3000/api/platos/{{platoId}}/imagen",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"api",
+						"platos",
+						"{{platoId}}",
+						"imagen"
 					]
 				}
 			},
@@ -334,6 +524,10 @@
 		},
 		{
 			"key": "token_seguridad",
+			"value": ""
+		},
+		{
+			"key": "platoId",
 			"value": ""
 		}
 	]

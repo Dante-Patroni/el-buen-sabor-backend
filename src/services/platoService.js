@@ -28,9 +28,14 @@ constructor(platoRepository) {
   const producto = await this.platoRepository.buscarProductoPorId(id);
   if (!producto) return null;
 
-  producto.imagenPath = imagenPath;
+  const imagenPath = `/uploads/${nombreArchivo}`;
 
-  return await this.platoRepository.actualizarProducto(producto);
+  await this.platoRepository.modificarProductoSeleccionado(id, {
+    imagenPath
+  });
+
+  // 🔑 volvemos a traer el producto actualizado
+  return await this.platoRepository.buscarProductoPorId(id);
 }
 
 
