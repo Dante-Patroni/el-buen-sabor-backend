@@ -1,15 +1,15 @@
 const express = require("express");
 const router = express.Router();
 
-// 1. Importamos las Clases
-// Asegúrate de que estos archivos exporten una CLASE (module.exports = class ...)
+const SequelizePlatoRepository = require("../repositories/sequelize/sequelizePlatoRepository");
 const PlatoService = require("../services/platoService");
 const PlatoController = require("../controllers/platoController");
 const authMiddleware = require("../middlewares/authMiddleware");
 const upload = require("../middlewares/upload");
 
-// 2. Instanciamos e Inyectamos (Dependency Injection)
-const platoService = new PlatoService();
+// 👇 INYECCIÓN CORRECTA
+const platoRepository = new SequelizePlatoRepository();
+const platoService = new PlatoService(platoRepository);
 const platoController = new PlatoController(platoService);
 
 /**
@@ -30,7 +30,7 @@ const platoController = new PlatoController(platoService);
  *         description: Lista de platos
  */
 // GET: Listar (Público)
-router.get("/", (req, res) => platoController.listarMenu(req, res));
+router.get("/", (req, res) => platoController.listarMenuCompleto(req, res));
 
 /**
  * @swagger
@@ -60,7 +60,7 @@ router.get("/", (req, res) => platoController.listarMenu(req, res));
  *         description: Plato creado exitosamente
  */
 // POST: Crear (Privado - Requiere Token) - 🚨 AQUÍ ESTABA EL FALTANTE
-router.post("/", authMiddleware, (req, res) => platoController.crear(req, res));
+router.post("/", authMiddleware, (req, res) => platoController.crearNuevoProducto(req, res));
 
 /**
  * @swagger
@@ -91,7 +91,7 @@ router.post("/", authMiddleware, (req, res) => platoController.crear(req, res));
  *         description: Plato actualizado
  */
 // PUT: Editar (Privado - Requiere Token)
-router.put("/:id", authMiddleware, (req, res) => platoController.editar(req, res));
+router.put("/:id", authMiddleware, (req, res) => platoController.modificarProducto(req, res));
 
 /**
  * @swagger
@@ -121,6 +121,6 @@ router.put("/:id", authMiddleware, (req, res) => platoController.editar(req, res
  *         description: Imagen subida correctamente
  */
 // POST Imagen: Subir foto (Privado)
-router.post("/:id/imagen", authMiddleware, upload.single("imagen"), (req, res) => platoController.subirImagen(req, res));
+router.post("/:id/imagen", authMiddleware, upload.single("imagen"), (req, res) => platoController.cargarImagenProducto(req, res));
 
 module.exports = router;

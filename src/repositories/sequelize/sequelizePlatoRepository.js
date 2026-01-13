@@ -1,10 +1,11 @@
-const { Plato, Rubro } = require("../models"); // Asegúrate de importar Rubro si quieres devolver la categoría
+const { Plato, Rubro } = require("../../models");
+const PlatoRepository = require("../platoRepository");
 
 
 
 class SequelizePlatoRepository extends PlatoRepository {
 
-    // 1. LISTAR MENU COMPLETO
+    //LISTAR MENU COMPLETO
     async listarMenuCompleto() {
             // A. MySQL: Traemos platos e incluimos el nombre del Rubro
             return await Plato.findAll({
@@ -13,17 +14,29 @@ class SequelizePlatoRepository extends PlatoRepository {
 
     }
 
-// 👇 2. CREAR PLATO
-    async crearPlato(datos) {
+// CREAR NUEVO PRODUCTO
+    async crearNuevoProducto(datos) {
         // datos trae: nombre, precio, rubroId, esMenuDelDia, etc.
-        try {
-            const nuevoPlato = await Plato.create(datos);
-            // Opcional: Crear stock inicial en Mongo aquí si quisieras
-            return nuevoPlato;
-        } catch (error) {
-            throw error;
-        }
+            return await Plato.create(datos);
     }
 
+    //BUSCAR PRODUCTO POR ID
+    async buscarProductoPorId(id) {
+            return await Plato.findByPk(id);
+
+    }
+//MODIFICAR PRODUCTO ID
+    async modificarProductoSeleccionado(id, datos) {
+  return await Plato.update(datos, {
+    where: { id }
+  });
+}
+
+    // 4. CARGAR IMAGEN
+    async actualizarProducto(producto) {
+  return await producto.save();
+}
 
 }
+
+module.exports = SequelizePlatoRepository;

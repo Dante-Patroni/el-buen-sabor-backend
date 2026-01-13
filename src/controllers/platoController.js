@@ -5,9 +5,9 @@ class PlatoController {
   }
 
   // 1. LISTAR
-  listarMenu = async (req, res) => {
+  listarMenuCompleto = async (req, res) => {
     try {
-      const menu = await this.platoService.listarMenu();
+      const menu = await this.platoService.listarMenuCompleto();
       res.status(200).json(menu);
     } catch (error) {
       console.error("Error en PlatoController.listar:", error);
@@ -16,21 +16,21 @@ class PlatoController {
   }
 
   // 👇 2. NUEVO: CREAR (Esto arregla el error "is not a function")
-  crear = async (req, res) => {
+  crearNuevoProducto = async (req, res) => {
     try {
-      const nuevoPlato = await this.platoService.crearPlato(req.body);
+      const nuevoPlato = await this.platoService.crearNuevoProducto(req.body);
       res.status(201).json(nuevoPlato);
     } catch (error) {
-      console.error("Error al crear plato:", error);
-      res.status(500).json({ error: "Error interno al crear el plato." });
+      console.error("Error al crear producto:", error);
+      res.status(500).json({ error: "Error interno al crear el producto." });
     }
   }
 
   // 👇 3. NUEVO: EDITAR (PUT)
-  editar = async (req, res) => {
+  modificarProducto = async (req, res) => {
     try {
       const { id } = req.params;
-      const platoActualizado = await this.platoService.updatePlato(id, req.body);
+      const platoActualizado = await this.platoService.modificarProducto(id, req.body);
 
       if (!platoActualizado) {
         return res.status(404).json({ error: "Plato no encontrado." });
@@ -44,7 +44,7 @@ class PlatoController {
   }
 
   // 4. SUBIR IMAGEN
-  subirImagen = async (req, res) => {
+  cargarImagenProducto = async (req, res) => {
     try {
       const { id } = req.params;
 
@@ -52,15 +52,17 @@ class PlatoController {
         return res.status(400).json({ error: "No se envió ninguna imagen." });
       }
 
-      const platoActualizado = await this.platoService.actualizarImagen(id, req.file.filename);
+       const imagenPath = `/uploads/${req.file.filename}`;
 
-      if (!platoActualizado) {
-        return res.status(404).json({ error: "Plato no encontrado." });
+      const productoActualizado = await this.platoService.cargarImagenProducto(id, req.file.filename);
+
+      if (!productoActualizado) {
+        return res.status(404).json({ error: "Producto no encontrado." });
       }
 
       res.status(200).json({
         mensaje: "Imagen subida correctamente",
-        plato: platoActualizado
+        plato: productoActualizado
       });
 
     } catch (error) {
