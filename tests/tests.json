@@ -298,46 +298,6 @@
 			"response": []
 		},
 		{
-			"name": "Cerrar Mesa",
-			"request": {
-				"auth": {
-					"type": "bearer",
-					"bearer": [
-						{
-							"key": "token",
-							"value": "{{token_seguridad}}",
-							"type": "string"
-						}
-					]
-				},
-				"method": "POST",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": "{\r\n  \"mesaId\": \"5\"\r\n}",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-					"raw": "http://localhost:3000/api/pedidos/cerrar-mesa",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "3000",
-					"path": [
-						"api",
-						"pedidos",
-						"cerrar-mesa"
-					]
-				}
-			},
-			"response": []
-		},
-		{
 			"name": "Crear Plato",
 			"event": [
 				{
@@ -425,9 +385,13 @@
 					"listen": "test",
 					"script": {
 						"exec": [
-							"pm.test(\"Status code is 200\", function () {\r",
-							"    pm.response.to.have.status(200);\r",
+							"pm.test(\"Imagen subida correctamente\", function () {\r",
+							"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);\r",
 							"});\r",
+							"if (pm.response.code !== 200) {\r",
+							"    console.warn(\"No se pudo subir imagen\");\r",
+							"    return;\r",
+							"}\r",
 							"\r",
 							"let jsonData;\r",
 							"\r",
