@@ -1,23 +1,16 @@
-const usuarioService = require('../services/usuarioServices');
-
 class UsuarioController {
+    constructor(usuarioService) {
+        this.usuarioService = usuarioService;
+    }
 
-    async login(req, res) {
+    login = async (req, res) => {
         try {
             const { legajo, password } = req.body;
 
-            // Delegamos la lógica al servicio (igual que hacías con el Adapter)
-            const resultado = await usuarioService.login(legajo, password);
+            // Delegamos la lógica al servicio
+            const resultado = await this.usuarioService.login(legajo, password);
 
-            if (!resultado.exito) {
-                return res.status(resultado.status).json({ mensaje: resultado.mensaje });
-            }
-
-            return res.status(200).json({
-                mensaje: resultado.mensaje,
-                token: resultado.token,
-                usuario: resultado.usuario
-            });
+           res.status(resultado.status).json(resultado.body);
 
         } catch (error) {
             console.error("Error en controller login:", error);
@@ -26,4 +19,4 @@ class UsuarioController {
     }
 }
 
-module.exports = new UsuarioController();
+module.exports = UsuarioController;

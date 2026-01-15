@@ -1,6 +1,15 @@
 const express = require('express');
 const router = express.Router();
-const usuarioController = require('../controllers/usuarioController');
+
+const UsuarioController = require('../controllers/usuarioController');
+const SequelizeUsuarioRepository = require("../repositories/sequelize/sequelizeUsuarioRepository");
+const UsuarioService = require("../services/usuarioService");
+const authMiddleware = require("../middlewares/authMiddleware");
+
+// 👇 INYECCIÓN CORRECTA
+const usuarioRepository = new SequelizeUsuarioRepository();
+const usuarioService = new UsuarioService(usuarioRepository);
+const usuarioController = new UsuarioController(usuarioService);
 
 /**
  * @swagger
