@@ -15,27 +15,71 @@ API RESTful desarrollada con **Node.js, Express y MySQL** para la gestión de pe
 
 ## 🏛️ Arquitectura
 
-El proyecto sigue una **Arquitectura en Capas (Layered Architecture)** combinada con **Event-Driven Architecture** para asegurar la escalabilidad y mantenibilidad:
+El proyecto implementa **Hexagonal Architecture (Ports & Adapters)** combinada con **Event-Driven Architecture** para máxima flexibilidad, testabilidad y mantenibilidad:
 
-### Capas del Sistema
+### Flujo de Capas (6 niveles de abstracción)
 
-- **`src/routes`**: Definición de endpoints y configuración de middlewares
-- **`src/controllers`**: Manejo de peticiones HTTP y respuestas
-- **`src/services`**: Lógica de negocio, validaciones y transacciones
-- **`src/models`**: Definición de entidades y relaciones de base de datos (Sequelize)
-- **`src/middlewares`**: Autenticación JWT, validación de datos, manejo de errores
-- **`src/adapters`**: Conexión con sistemas externos (MongoDB Stock Adapter)
-- **`src/events`**: Sistema de eventos para comunicación desacoplada
-- **`src/listeners`**: Listeners que reaccionan a eventos del sistema
+```
+Routes → Controllers → Services → Repository (Interface) → SequelizeRepository → Database
+```
+
+**1. Routes (Puertos de entrada HTTP)**
+- Define endpoints REST
+- Aplica middlewares (autenticación, validación)
+- Ejemplo: `POST /api/pedidos`
+
+**2. Controllers (Adaptadores HTTP)**
+- Maneja request/response
+- Delega lógica al Service
+- Retorna códigos HTTP apropiados
+
+**3. Services (Núcleo de Negocio)**
+- Lógica de negocio y validaciones
+- Orquesta operaciones complejas
+- **Depende de abstracciones, NO de implementaciones**
+
+**4. Repository (Interfaz/Contrato)**
+- Define QUÉ operaciones se pueden hacer
+- NO implementa nada (clase abstracta)
+- Permite cambiar de BD sin tocar Services
+
+**5. SequelizeRepository (Adaptador de BD)**
+- Implementación concreta con Sequelize
+- Traduce operaciones a SQL
+- Podría reemplazarse por MongoRepository, etc.
+
+**6. Database (MySQL)**
+- Persistencia de datos
 
 ### Patrones de Diseño Implementados
 
-- ✅ **MVC (Model-View-Controller)**: Separación de responsabilidades
-- ✅ **Repository Pattern**: Servicios como capa de acceso a datos
-- ✅ **Adapter Pattern**: Integración con MongoDB para stock
-- ✅ **Dependency Injection**: Bajo acoplamiento entre componentes
+- ✅ **Hexagonal Architecture (Ports & Adapters)**: Núcleo de negocio independiente de frameworks
+- ✅ **Repository Pattern**: Abstracción completa del acceso a datos
+- ✅ **Dependency Injection**: Inyección de dependencias en Services y Controllers
+- ✅ **Dependency Inversion Principle (SOLID)**: Services dependen de interfaces, no de implementaciones
+- ✅ **Adapter Pattern**: Integración con MongoDB para stock (MongoStockAdapter)
 - ✅ **Event-Driven Architecture**: Comunicación asíncrona mediante eventos
 - ✅ **Singleton Pattern**: Instancia única del EventEmitter
+
+### Ventajas de esta Arquitectura
+
+**🔄 Flexibilidad**
+- Cambiar de MySQL a PostgreSQL sin tocar la lógica de negocio
+- Reemplazar Sequelize por TypeORM modificando solo los Repositories
+
+**🧪 Testabilidad**
+- Services testeables sin base de datos (usando mocks)
+- 60%+ de cobertura de tests (E2E + Unitarios)
+
+**🔧 Mantenibilidad**
+- Cada capa tiene una responsabilidad única y clara
+- Cambios aislados (modificar un Repository no afecta Services)
+
+**📈 Escalabilidad**
+- Fácil agregar nuevas features sin romper código existente
+- Preparado para microservicios (Services independientes)
+
+---
 
 ## 📡 Características Principales
 
@@ -200,72 +244,120 @@ npx http-server -p 5500
 # Luego abre: http://127.0.0.1:5500/cocina.html
 ```
 
-## 🔄 Flujo de un Pedido
+## 🔄 Flujo de un Pedido (Hexagonal Architecture en Acción)
 
 1. **Cliente envía petición** → `POST /api/pedidos` con token JWT
-2. **Middleware de autenticación** → Verifica el token
-3. **Middleware de validación** → Valida datos del pedido
-4. **Controlador** → Recibe la petición
-5. **Servicio** → Ejecuta lógica de negocio:
-   - Descuenta stock en MongoDB
+2. **Route** → Recibe la petición y aplica middlewares
+3. **Middleware de autenticación** → Verifica el token JWT
+4. **Middleware de validación** → Valida formato de datos (express-validator)
+5. **Controller** → Recibe la petición validada
+6. **Service** → Ejecuta lógica de negocio:
+   - Consulta platos vía **Repository Interface** (abstracción)
+   - **SequelizeRepository** traduce a consultas SQL
+   - Valida stock disponible
    - Calcula totales
+   - Descuenta stock en MySQL vía Repository
    - Crea pedido en MySQL
    - Actualiza estado de la mesa
-6. **Sistema de Eventos** → Emite evento `pedido-creado`
-7. **Listeners** → Reaccionan al evento:
+7. **Sistema de Eventos** → Emite evento `pedido-creado`
+8. **Listeners** → Reaccionan al evento:
    - Envía notificación a cocina por WebSocket
    - Simula facturación electrónica (AFIP)
-8. **Respuesta al cliente** → `201 Created` con datos del pedido
+9. **Controller** → Formatea respuesta HTTP
+10. **Respuesta al cliente** → `201 Created` con datos del pedido
+
+### 🎯 Ventaja de la Abstracción
+
+```javascript
+// El Service NO conoce Sequelize, solo la interfaz
+class PedidoService {
+  constructor(pedidoRepository, platoRepository) {
+    this.pedidoRepository = pedidoRepository; // ← Interfaz
+    this.platoRepository = platoRepository;   // ← Interfaz
+  }
+  
+  async crearPedido(datos) {
+    // Usa métodos abstractos, no SQL directo
+    const plato = await this.platoRepository.buscarPorId(id);
+    await this.pedidoRepository.crearPedido(datos);
+  }
+}
+
+// En producción: MySQL con Sequelize
+const repo = new SequelizePedidoRepository();
+
+// En tests: Mock (sin BD)
+const repo = { buscarPorId: jest.fn(), crearPedido: jest.fn() };
+
+// Mañana: PostgreSQL con TypeORM
+const repo = new TypeORMPedidoRepository();
+
+// El Service NO CAMBIA ✅
+const service = new PedidoService(repo, ...);
+```
 
 ## 📁 Estructura del Proyecto
 
 ```
 backend-el-buen-sabor/
 ├── src/
-│   ├── adapters/          # Adaptadores para sistemas externos
+│   ├── adapters/          # 🔌 Adaptadores para sistemas externos
 │   │   └── MongoStockAdapter.js
-│   ├── config/            # Configuración de BD y servicios
+│   ├── config/            # ⚙️ Configuración de BD y servicios
 │   │   ├── config.js
 │   │   └── mongo.js
-│   ├── controllers/       # Controladores HTTP
+│   ├── controllers/       # 🎮 Adaptadores HTTP (manejan req/res)
 │   │   ├── pedidoController.js
 │   │   ├── platoController.js
 │   │   ├── mesaController.js
 │   │   └── usuarioController.js
-│   ├── events/            # Sistema de eventos
+│   ├── events/            # 📢 Sistema de eventos
 │   │   └── pedidoEvents.js
-│   ├── listeners/         # Listeners de eventos
+│   ├── listeners/         # 👂 Listeners de eventos
 │   │   └── setupListeners.js
-│   ├── middlewares/       # Middlewares personalizados
+│   ├── middlewares/       # 🛡️ Middlewares personalizados
 │   │   ├── authMiddleware.js
 │   │   ├── pedidoValidator.js
 │   │   └── upload.js
-│   ├── models/            # Modelos Sequelize
+│   ├── models/            # 📊 Modelos Sequelize (ORM)
 │   │   ├── index.js
 │   │   ├── pedido.js
 │   │   ├── detallePedido.js
 │   │   ├── plato.js
 │   │   ├── mesa.js
 │   │   └── usuario.js
-│   ├── routes/            # Definición de rutas
+│   ├── repositories/      # 🗄️ Capa de abstracción de datos
+│   │   ├── pedidoRepository.js      # ← INTERFAZ (contrato)
+│   │   ├── platoRepository.js       # ← INTERFAZ
+│   │   ├── mesaRepository.js        # ← INTERFAZ
+│   │   ├── usuarioRepository.js     # ← INTERFAZ
+│   │   └── sequelize/               # ← IMPLEMENTACIONES
+│   │       ├── sequelizePedidoRepository.js
+│   │       ├── sequelizePlatoRepository.js
+│   │       ├── sequelizeMesaRepository.js
+│   │       └── sequelizeUsuarioRepository.js
+│   ├── routes/            # 🛣️ Definición de endpoints REST
 │   │   ├── pedidoRoutes.js
 │   │   ├── platoRoutes.js
 │   │   ├── mesaRoutes.js
 │   │   └── usuarioRoutes.js
-│   ├── services/          # Lógica de negocio
+│   ├── services/          # 💼 Núcleo de lógica de negocio
 │   │   ├── pedidoService.js
 │   │   ├── platoService.js
 │   │   ├── mesaService.js
-│   │   └── usuarioServices.js
-│   └── docs/              # Documentación Swagger
+│   │   └── usuarioService.js
+│   └── docs/              # 📚 Documentación Swagger
 │       └── swagger.js
-├── migrations/            # Migraciones de base de datos
-├── seeders/              # Datos de prueba
-├── tests/                # Tests E2E con Postman
-├── uploads/              # Archivos subidos (imágenes)
-├── app.js                # Punto de entrada de la aplicación
+├── migrations/            # 🔄 Migraciones de base de datos
+├── seeders/              # 🌱 Datos de prueba
+├── tests/                # 🧪 Tests E2E (Newman) + Unitarios (Jest)
+│   ├── services/         # Tests unitarios de Services
+│   └── tests.json        # Colección Postman
+├── uploads/              # 📁 Archivos subidos (imágenes)
+├── app.js                # 🚀 Punto de entrada de la aplicación
+├── jest.config.js        # ⚙️ Configuración de Jest
 ├── package.json
-└── .env                  # Variables de entorno (no versionado)
+└── .env                  # 🔐 Variables de entorno (no versionado)
 ```
 
 ## 🚀 Scripts Disponibles
