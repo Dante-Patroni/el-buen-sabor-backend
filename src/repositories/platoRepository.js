@@ -7,11 +7,16 @@ class PlatoRepository {
     async crearNuevoProducto(datos) {
         throw new Error("Método no implementado");
     }
-    //BUSCAR PRODUCTO POR ID
-    async buscarProductoPorId(id) {
+
+    async actualizarStock(id, nuevoStock) {
         throw new Error("Método no implementado");
     }
-    //MODIFICAR PRODUCTO ID
+    
+    async buscarPorId(id) {
+    throw new Error("Not implemented");
+  }
+
+   //MODIFICAR PRODUCTO ID
     async modificarProductoSeleccionado(id, datos) {
         throw new Error("Método no implementado");
     }

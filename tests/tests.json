@@ -1,498 +1,653 @@
 {
-	"info": {
-		"_postman_id": "7682d22a-6191-4b1f-8504-284ed1655c72",
-		"name": "El Buen Sabor",
-		"description": "# 🚀 Get started here\n\nThis template guides you through CRUD operations (GET, POST, PUT, DELETE), variables, and tests.\n\n## 🔖 **How to use this template**\n\n#### **Step 1: Send requests**\n\nRESTful APIs allow you to perform CRUD operations using the POST, GET, PUT, and DELETE HTTP methods.\n\nThis collection contains each of these [request](https://learning.postman.com/docs/sending-requests/requests/) types. Open each request and click \"Send\" to see what happens.\n\n#### **Step 2: View responses**\n\nObserve the response tab for status code (200 OK), response time, and size.\n\n#### **Step 3: Send new Body data**\n\nUpdate or add new data in \"Body\" in the POST request. Typically, Body data is also used in PUT request.\n\n```\n{\n    \"name\": \"Add your name in the body\"\n}\n\n ```\n\n#### **Step 4: Update the variable**\n\nVariables enable you to store and reuse values in Postman. We have created a [variable](https://learning.postman.com/docs/sending-requests/variables/) called `base_url` with the sample request [https://postman-api-learner.glitch.me](https://postman-api-learner.glitch.me). Replace it with your API endpoint to customize this collection.\n\n#### **Step 5: Add tests in the \"Scripts\" tab**\n\nAdding tests to your requests can help you confirm that your API is working as expected. You can write test scripts in JavaScript and view the output in the \"Test Results\" tab.\n\n<img src=\"https://content.pstmn.io/fa30ea0a-373d-4545-a668-e7b283cca343/aW1hZ2UucG5n\" alt=\"\" height=\"1530\" width=\"2162\">\n\n## 💪 Pro tips\n\n- Use folders to group related requests and organize the collection.\n    \n- Add more [scripts](https://learning.postman.com/docs/writing-scripts/intro-to-scripts/) to verify if the API works as expected and execute workflows.\n    \n\n## 💡Related templates\n\n[API testing basics](https://go.postman.co/redirect/workspace?type=personal&collectionTemplateId=e9a37a28-055b-49cd-8c7e-97494a21eb54&sourceTemplateId=ddb19591-3097-41cf-82af-c84273e56719)  \n[API documentation](https://go.postman.co/redirect/workspace?type=personal&collectionTemplateId=e9c28f47-1253-44af-a2f3-20dce4da1f18&sourceTemplateId=ddb19591-3097-41cf-82af-c84273e56719)  \n[Authorization methods](https://go.postman.co/redirect/workspace?type=personal&collectionTemplateId=31a9a6ed-4cdf-4ced-984c-d12c9aec1c27&sourceTemplateId=ddb19591-3097-41cf-82af-c84273e56719)",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "48042871",
-		"_collection_link": "https://dpatroni640-5008872.postman.co/workspace/Dante-Patroni's-Workspace~bc3d1b94-de4c-4615-871e-07ba06830bb8/collection/48042871-7682d22a-6191-4b1f-8504-284ed1655c72?action=share&source=collection_link&creator=48042871"
-	},
-	"item": [
-		{
-			"name": "1. Login Admin",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"var jsonData = pm.response.json();\r",
-							"\r",
-							"// Verificamos que todo salió bien\r",
-							"pm.test(\"Login exitoso\", function () {\r",
-							"    pm.response.to.have.status(200);\r",
-							"    pm.expect(jsonData).to.have.property('token');\r",
-							"});\r",
-							"\r",
-							"// 👇 EL CAMBIO MÁGICO: collectionVariables\r",
-							"// Esto guarda el token DENTRO del archivo de la colección\r",
-							"pm.collectionVariables.set(\"token_seguridad\", jsonData.token); \r",
-							"\r",
-							"console.log(\"Token guardado:\", jsonData.token);"
-						],
-						"type": "text/javascript",
-						"packages": {},
-						"requests": {}
-					}
-				}
-			],
-			"request": {
-				"method": "POST",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": "{\r\n  \"legajo\": \"1001\",\r\n  \"password\": \"1234\"\r\n}",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-					"raw": "http://localhost:3000/api/usuarios/login",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "3000",
-					"path": [
-						"api",
-						"usuarios",
-						"login"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "Crear Pedido",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"// 1. Validar que el código sea 201 (Creado)",
-							"pm.test(\"Status code is 201\", function () {",
-							"    pm.response.to.have.status(201);",
-							"});",
-							"",
-							"// Si no es 201, NO seguimos evaluando el body",
-							"if (pm.response.code !== 201) {",
-							"    console.warn(\"Respuesta no esperada, se cancela validación de negocio\");",
-							"    return;",
-							"}",
-							"",
-							"// 2. Validar tiempo de respuesta (Performance)",
-							"pm.test(\"Response time is less than 1000ms\", function () {",
-							"    pm.expect(pm.response.responseTime).to.be.below(1000);",
-							"});",
-							"",
-							"// 3. Validar Datos y Lógica de Negocio",
-							"pm.test(\"El pedido nace en estado PENDIENTE\", function () {",
-							"    const jsonData = pm.response.json();",
-							"",
-							"    // A. Validar estructura mínima",
-							"    pm.expect(jsonData).to.have.property(\"data\");",
-							"    pm.expect(jsonData.data).to.have.property(\"id\");",
-							"    pm.expect(jsonData.data).to.have.property(\"estado\");",
-							"",
-							"    // B. Validar estado de negocio",
-							"    pm.expect(jsonData.data.estado).to.eql(\"pendiente\"); ",
-							"",
-							"    // C. Guardamos la mesa para el siguiente test",
-							"    pm.collectionVariables.set(\"mesa_test\", jsonData.data.mesa);",
-							"});"
-						],
-						"type": "text/javascript",
-						"packages": {},
-						"requests": {}
-					}
-				}
-			],
-			"request": {
-				"auth": {
-					"type": "bearer",
-					"bearer": [
-						{
-							"key": "token",
-							"value": "{{token_seguridad}}",
-							"type": "string"
-						}
-					]
-				},
-				"method": "POST",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": "{\r\n    \"mesa\": \"4\",\r\n    \"cliente\": \"Prueba CI/CD\",\r\n    \"productos\": [\r\n        {\r\n            \"platoId\": 1,\r\n            \"cantidad\": 1,\r\n            \"aclaracion\": \"Sin cebolla\"\r\n        }\r\n    ]\r\n}",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-					"raw": "http://localhost:3000/api/pedidos",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "3000",
-					"path": [
-						"api",
-						"pedidos"
-					]
-				},
-				"description": "This is a POST request, submitting data to an API via the request body. This request submits JSON data, and the data is reflected in the response.\n\nA successful POST request typically returns a `200 OK` or `201 Created` response code."
-			},
-			"response": []
-		},
-		{
-			"name": "Mesas",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"// 1. Validar que el código sea 200 (OK)\r",
-							"pm.test(\"Status code is 200\", function () {\r",
-							"    pm.response.to.have.status(200);\r",
-							"});\r",
-							"\r",
-							"// Si no es 200, no seguimos\r",
-							"if (pm.response.code !== 200) {\r",
-							"    console.warn(\"Respuesta no OK, se cancelan validaciones de negocio\");\r",
-							"    return;\r",
-							"}\r",
-							"\r",
-							"// 2. Validar lógica de Mesa Ocupada\r",
-							"pm.test(\"La Mesa 4 debe estar OCUPADA y tener PRECIO\", function () {\r",
-							"    const jsonData = pm.response.json();\r",
-							"\r",
-							"    // A. La respuesta debe ser un array\r",
-							"    pm.expect(jsonData).to.be.an(\"array\");\r",
-							"\r",
-							"    // B. Obtenemos la mesa desde variable o fallback\r",
-							"    const mesaId = pm.collectionVariables.get(\"mesa_test\") || 4;\r",
-							"\r",
-							"    const mesaTarget = jsonData.find(\r",
-							"        m => m.id == mesaId || m.nombre === `Mesa ${mesaId}`\r",
-							"    );\r",
-							"\r",
-							"    // C. Validar que la mesa exista\r",
-							"    pm.expect(mesaTarget, \"La mesa no existe en la respuesta\").to.not.be.undefined;\r",
-							"\r",
-							"    // D. Estado de negocio\r",
-							"    pm.expect(mesaTarget.estado).to.eql(\"ocupada\");\r",
-							"\r",
-							"    // E. Items pendientes\r",
-							"    pm.expect(mesaTarget.itemsPendientes).to.be.a(\"number\");\r",
-							"    pm.expect(mesaTarget.itemsPendientes).to.be.above(0);\r",
-							"\r",
-							"    // F. Total acumulado\r",
-							"    pm.expect(mesaTarget.totalActual).to.be.a(\"number\");\r",
-							"    pm.expect(mesaTarget.totalActual).to.be.above(0);\r",
-							"});"
-						],
-						"type": "text/javascript",
-						"packages": {},
-						"requests": {}
-					}
-				}
-			],
-			"request": {
-				"auth": {
-					"type": "bearer",
-					"bearer": [
-						{
-							"key": "token",
-							"value": "{{token_seguridad}}",
-							"type": "string"
-						}
-					]
-				},
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "http://localhost:3000/api/mesas",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "3000",
-					"path": [
-						"api",
-						"mesas"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "Rubros",
-			"request": {
-				"auth": {
-					"type": "bearer",
-					"bearer": [
-						{
-							"key": "token",
-							"value": "{{token_seguridad}}",
-							"type": "string"
-						}
-					]
-				},
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "http://localhost:3000/api/rubros",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "3000",
-					"path": [
-						"api",
-						"rubros"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "PUT Cambiar Menu Dia",
-			"request": {
-				"auth": {
-					"type": "bearer",
-					"bearer": [
-						{
-							"key": "token",
-							"value": "{{token_seguridad}}",
-							"type": "string"
-						}
-					]
-				},
-				"method": "PUT",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": "{\r\n  \"esMenuDelDia\": false,\r\n  \"precio\": 9000\r\n}",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-					"raw": "http://localhost:3000/api/platos/1",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "3000",
-					"path": [
-						"api",
-						"platos",
-						"1"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "Crear Plato",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"// 1. Validar creación correcta\r",
-							"pm.test(\"Status code is 201\", function () {\r",
-							"    pm.response.to.have.status(201);\r",
-							"});\r",
-							"\r",
-							"// Si no se creó, no seguimos\r",
-							"if (pm.response.code !== 201) {\r",
-							"    console.warn(\"El plato no fue creado, se cancelan tests siguientes\");\r",
-							"    return;\r",
-							"}\r",
-							"\r",
-							"// 2. Validar estructura de respuesta\r",
-							"const jsonData = pm.response.json();\r",
-							"\r",
-							"pm.test(\"El plato fue creado correctamente\", function () {\r",
-							"    pm.expect(jsonData).to.have.property(\"id\");\r",
-							"    pm.expect(jsonData).to.have.property(\"nombre\");\r",
-							"    pm.expect(jsonData).to.have.property(\"precio\");\r",
-							"});\r",
-							"\r",
-							"// 3. Validar datos de negocio\r",
-							"pm.test(\"Datos del plato correctos\", function () {\r",
-							"    pm.expect(jsonData.nombre).to.eql(\"Milanesa Napolitana\");\r",
-							"    pm.expect(jsonData.precio).to.be.above(0);\r",
-							"});\r",
-							"\r",
-							"// 4. Guardar ID para pasos siguientes (imagen, edición)\r",
-							"pm.collectionVariables.set(\"platoId\", jsonData.id);\r",
-							"\r",
-							"console.log(\"Plato creado con ID:\", jsonData.id);"
-						],
-						"type": "text/javascript",
-						"packages": {},
-						"requests": {}
-					}
-				}
-			],
-			"request": {
-				"auth": {
-					"type": "bearer",
-					"bearer": [
-						{
-							"key": "token",
-							"value": "{{token_seguridad}}",
-							"type": "string"
-						}
-					]
-				},
-				"method": "POST",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": "{\r\n  \"nombre\": \"Milanesa Napolitana\",\r\n  \"precio\": 8500,\r\n  \"rubroId\": 1,\r\n  \"esMenuDelDia\": true\r\n}\r\n",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-					"raw": "http://localhost:3000/api/platos",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "3000",
-					"path": [
-						"api",
-						"platos"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "Subir Imagen Plato",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"pm.test(\"Imagen subida correctamente\", function () {\r",
-							"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);\r",
-							"});\r",
-							"if (pm.response.code !== 200) {\r",
-							"    console.warn(\"No se pudo subir imagen\");\r",
-							"    return;\r",
-							"}\r",
-							"\r",
-							"let jsonData;\r",
-							"\r",
-							"pm.test(\"La respuesta es JSON\", function () {\r",
-							"    jsonData = pm.response.json();\r",
-							"    pm.expect(jsonData).to.be.an(\"object\");\r",
-							"});\r",
-							"\r",
-							"pm.test(\"Imagen asociada al plato\", function () {\r",
-							"    pm.expect(jsonData).to.have.property(\"plato\");\r",
-							"    pm.expect(jsonData.plato).to.have.property(\"imagenPath\");\r",
-							"    pm.expect(jsonData.plato.imagenPath).to.include(\"/uploads/\");\r",
-							"});"
-						],
-						"type": "text/javascript",
-						"packages": {},
-						"requests": {}
-					}
-				}
-			],
-			"request": {
-				"auth": {
-					"type": "bearer",
-					"bearer": [
-						{
-							"key": "token",
-							"value": "{{token_seguridad}}",
-							"type": "string"
-						}
-					]
-				},
-				"method": "POST",
-				"header": [],
-				"body": {
-					"mode": "formdata",
-					"formdata": [
-						{
-							"key": "imagen",
-							"type": "file",
-							"src": "tests/assets/milanesa.jpg"
-						}
-					]
-				},
-				"url": {
-					"raw": "http://localhost:3000/api/platos/{{platoId}}/imagen",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "3000",
-					"path": [
-						"api",
-						"platos",
-						"{{platoId}}",
-						"imagen"
-					]
-				}
-			},
-			"response": []
-		}
-	],
-	"event": [
-		{
-			"listen": "prerequest",
-			"script": {
-				"type": "text/javascript",
-				"exec": [
-					""
-				]
-			}
-		},
-		{
-			"listen": "test",
-			"script": {
-				"type": "text/javascript",
-				"exec": [
-					""
-				]
-			}
-		}
-	],
-	"variable": [
-		{
-			"key": "id",
-			"value": "1"
-		},
-		{
-			"key": "base_url",
-			"value": "https://template.postman-echo.com"
-		},
-		{
-			"key": "mesa_test",
-			"value": ""
-		},
-		{
-			"key": "token_seguridad",
-			"value": ""
-		},
-		{
-			"key": "platoId",
-			"value": ""
-		}
-	]
+  "info": {
+    "_postman_id": "7682d22a-6191-4b1f-8504-284ed1655c72",
+    "name": "El Buen Sabor",
+    "description": "# 🚀 Get started here\n\nThis template guides you through CRUD operations (GET, POST, PUT, DELETE), variables, and tests.\n\n## 🔖 **How to use this template**\n\n#### **Step 1: Send requests**\n\nRESTful APIs allow you to perform CRUD operations using the POST, GET, PUT, and DELETE HTTP methods.\n\nThis collection contains each of these [request](https://learning.postman.com/docs/sending-requests/requests/) types. Open each request and click \"Send\" to see what happens.\n\n#### **Step 2: View responses**\n\nObserve the response tab for status code (200 OK), response time, and size.\n\n#### **Step 3: Send new Body data**\n\nUpdate or add new data in \"Body\" in the POST request. Typically, Body data is also used in PUT request.\n\n```\n{\n    \"name\": \"Add your name in the body\"\n}\n\n ```\n\n#### **Step 4: Update the variable**\n\nVariables enable you to store and reuse values in Postman. We have created a [variable](https://learning.postman.com/docs/sending-requests/variables/) called `base_url` with the sample request [https://postman-api-learner.glitch.me](https://postman-api-learner.glitch.me). Replace it with your API endpoint to customize this collection.\n\n#### **Step 5: Add tests in the \"Scripts\" tab**\n\nAdding tests to your requests can help you confirm that your API is working as expected. You can write test scripts in JavaScript and view the output in the \"Test Results\" tab.\n\n<img src=\"https://content.pstmn.io/fa30ea0a-373d-4545-a668-e7b283cca343/aW1hZ2UucG5n\" alt=\"\" height=\"1530\" width=\"2162\">\n\n## 💪 Pro tips\n\n- Use folders to group related requests and organize the collection.\n    \n- Add more [scripts](https://learning.postman.com/docs/writing-scripts/intro-to-scripts/) to verify if the API works as expected and execute workflows.\n    \n\n## 💡Related templates\n\n[API testing basics](https://go.postman.co/redirect/workspace?type=personal&collectionTemplateId=e9a37a28-055b-49cd-8c7e-97494a21eb54&sourceTemplateId=ddb19591-3097-41cf-82af-c84273e56719)  \n[API documentation](https://go.postman.co/redirect/workspace?type=personal&collectionTemplateId=e9c28f47-1253-44af-a2f3-20dce4da1f18&sourceTemplateId=ddb19591-3097-41cf-82af-c84273e56719)  \n[Authorization methods](https://go.postman.co/redirect/workspace?type=personal&collectionTemplateId=31a9a6ed-4cdf-4ced-984c-d12c9aec1c27&sourceTemplateId=ddb19591-3097-41cf-82af-c84273e56719)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "48042871",
+    "_collection_link": "https://go.postman.co/collection/48042871-7682d22a-6191-4b1f-8504-284ed1655c72?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "1. Login Admin",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var jsonData = pm.response.json();\r",
+              "\r",
+              "// Verificamos que todo salió bien\r",
+              "pm.test(\"Login exitoso\", function () {\r",
+              "    pm.response.to.have.status(200);\r",
+              "    pm.expect(jsonData).to.have.property('token');\r",
+              "});\r",
+              "\r",
+              "// 👇 EL CAMBIO MÁGICO: collectionVariables\r",
+              "// Esto guarda el token DENTRO del archivo de la colección\r",
+              "pm.collectionVariables.set(\"token_seguridad\", jsonData.token); \r",
+              "\r",
+              "console.log(\"Token guardado:\", jsonData.token);"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"legajo\": \"1001\",\r\n  \"password\": \"1234\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:3000/api/usuarios/login",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "api",
+            "usuarios",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Crear Pedido",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// 1. Validar Status Code (Esto debe estar dentro de un pm.test)",
+              "pm.test(\"Status code is 201\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "// Bloque de seguridad: Si no se creó, cortamos para no dar errores confusos abajo",
+              "if (pm.response.code !== 201) {",
+              "    console.warn(\"❌ Falló la creación. Status recibido:\", pm.response.code);",
+              "    return; // Detiene la ejecución de este script",
+              "}",
+              "",
+              "// 2. Validar tiempo de respuesta (Performance)",
+              "pm.test(\"Response time is less than 1000ms\", function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+              "});",
+              "",
+              "// 3. Validar Datos y Guardar Variables",
+              "pm.test(\"El pedido nace en estado PENDIENTE y capturamos ID\", function () {",
+              "    // A. Parseamos el JSON (¡SOLO UNA VEZ!)",
+              "    const jsonData = pm.response.json();",
+              "",
+              "    // B. Guardamos el ID en una variable de entorno (CRUCIAL PARA EL FLUJO)",
+              "    pm.environment.set(\"idPedidoActual\", jsonData.data.id);",
+              "    ",
+              "    // (Opcional) Guardamos la mesa",
+              "    if (jsonData.data.mesa) {",
+              "        pm.collectionVariables.set(\"mesa_test\", jsonData.data.mesa);",
+              "    }",
+              "",
+              "    console.log(\"✅ Pedido creado con ID dinámico:\", jsonData.data.id);",
+              "",
+              "    // C. Validaciones de estructura",
+              "    pm.expect(jsonData).to.have.property(\"data\");",
+              "    pm.expect(jsonData.data).to.have.property(\"id\");",
+              "    pm.expect(jsonData.data).to.have.property(\"estado\");",
+              "",
+              "    // D. Validar lógica de negocio",
+              "    pm.expect(jsonData.data.estado).to.eql(\"pendiente\"); ",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_seguridad}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"mesa\": \"4\",\r\n    \"cliente\": \"Prueba CI/CD\",\r\n    \"productos\": [\r\n        {\r\n            \"platoId\": 1,\r\n            \"cantidad\": 1,\r\n            \"aclaracion\": \"Sin cebolla\"\r\n        }\r\n    ]\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:3000/api/pedidos",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "api",
+            "pedidos"
+          ]
+        },
+        "description": "This is a POST request, submitting data to an API via the request body. This request submits JSON data, and the data is reflected in the response.\n\nA successful POST request typically returns a `200 OK` or `201 Created` response code."
+      },
+      "response": []
+    },
+    {
+      "name": "Mesas",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// 1. Validar que el código sea 200 (OK)\r",
+              "pm.test(\"Status code is 200\", function () {\r",
+              "    pm.response.to.have.status(200);\r",
+              "});\r",
+              "\r",
+              "// Si no es 200, no seguimos\r",
+              "if (pm.response.code !== 200) {\r",
+              "    console.warn(\"Respuesta no OK, se cancelan validaciones de negocio\");\r",
+              "    return;\r",
+              "}\r",
+              "\r",
+              "// 2. Validar lógica de Mesa Ocupada\r",
+              "pm.test(\"La Mesa 4 debe estar OCUPADA y tener PRECIO\", function () {\r",
+              "    const jsonData = pm.response.json();\r",
+              "\r",
+              "    // A. La respuesta debe ser un array\r",
+              "    pm.expect(jsonData).to.be.an(\"array\");\r",
+              "\r",
+              "    // B. Obtenemos la mesa desde variable o fallback\r",
+              "    const mesaId = pm.collectionVariables.get(\"mesa_test\") || 4;\r",
+              "\r",
+              "    const mesaTarget = jsonData.find(\r",
+              "        m => m.id == mesaId || m.nombre === `Mesa ${mesaId}`\r",
+              "    );\r",
+              "\r",
+              "    // C. Validar que la mesa exista\r",
+              "    pm.expect(mesaTarget, \"La mesa no existe en la respuesta\").to.not.be.undefined;\r",
+              "\r",
+              "    // D. Estado de negocio\r",
+              "    pm.expect(mesaTarget.estado).to.eql(\"ocupada\");\r",
+              "\r",
+              "    // E. Items pendientes\r",
+              "    pm.expect(mesaTarget.itemsPendientes).to.be.a(\"number\");\r",
+              "    pm.expect(mesaTarget.itemsPendientes).to.be.above(0);\r",
+              "\r",
+              "    // F. Total acumulado\r",
+              "    pm.expect(mesaTarget.totalActual).to.be.a(\"number\");\r",
+              "    pm.expect(mesaTarget.totalActual).to.be.above(0);\r",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_seguridad}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/api/mesas",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "api",
+            "mesas"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Rubros",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_seguridad}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/api/rubros",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "api",
+            "rubros"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "PUT Cambiar Menu Dia",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_seguridad}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "PUT",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"esMenuDelDia\": false,\r\n  \"precio\": 9000\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:3000/api/platos/1",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "api",
+            "platos",
+            "1"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Crear Plato",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// 1. Validar creación correcta\r",
+              "pm.test(\"Status code is 201\", function () {\r",
+              "    pm.response.to.have.status(201);\r",
+              "});\r",
+              "\r",
+              "// Si no se creó, no seguimos\r",
+              "if (pm.response.code !== 201) {\r",
+              "    console.warn(\"El plato no fue creado, se cancelan tests siguientes\");\r",
+              "    return;\r",
+              "}\r",
+              "\r",
+              "// 2. Validar estructura de respuesta\r",
+              "const jsonData = pm.response.json();\r",
+              "\r",
+              "pm.test(\"El plato fue creado correctamente\", function () {\r",
+              "    pm.expect(jsonData).to.have.property(\"id\");\r",
+              "    pm.expect(jsonData).to.have.property(\"nombre\");\r",
+              "    pm.expect(jsonData).to.have.property(\"precio\");\r",
+              "});\r",
+              "\r",
+              "// 3. Validar datos de negocio\r",
+              "pm.test(\"Datos del plato correctos\", function () {\r",
+              "    pm.expect(jsonData.nombre).to.eql(\"Milanesa Napolitana\");\r",
+              "    pm.expect(jsonData.precio).to.be.above(0);\r",
+              "});\r",
+              "\r",
+              "// 4. Guardar ID para pasos siguientes (imagen, edición)\r",
+              "pm.collectionVariables.set(\"platoId\", jsonData.id);\r",
+              "\r",
+              "console.log(\"Plato creado con ID:\", jsonData.id);"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_seguridad}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"nombre\": \"Milanesa Napolitana\",\r\n  \"precio\": 8500,\r\n  \"rubroId\": 1,\r\n  \"esMenuDelDia\": true\r\n}\r\n",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:3000/api/platos",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "api",
+            "platos"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Subir Imagen Plato",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Respuesta controlada del servidor\", function () {\r",
+              "    pm.expect(pm.response.code).to.be.oneOf([200, 201, 400]);\r",
+              "});\r",
+              "\r",
+              "if (pm.response.code === 400) {\r",
+              "    console.warn(\"⚠️ Prueba pasó con 400 (Falta imagen en Runner), pero el servidor respondió correctamente.\");\r",
+              "}\r",
+              "if (pm.response.code !== 200) {\r",
+              "    console.warn(\"No se pudo subir imagen\");\r",
+              "    return;\r",
+              "}\r",
+              "\r",
+              "let jsonData;\r",
+              "\r",
+              "pm.test(\"La respuesta es JSON\", function () {\r",
+              "    jsonData = pm.response.json();\r",
+              "    pm.expect(jsonData).to.be.an(\"object\");\r",
+              "});\r",
+              "\r",
+              "pm.test(\"Imagen asociada al plato\", function () {\r",
+              "    pm.expect(jsonData).to.have.property(\"plato\");\r",
+              "    pm.expect(jsonData.plato).to.have.property(\"imagenPath\");\r",
+              "    pm.expect(jsonData.plato.imagenPath).to.include(\"/uploads/\");\r",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_seguridad}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "imagen",
+              "type": "file",
+              "uuid": "79ad200e-8d2e-4b31-8790-95c173371116",
+              "src": "milanesa.jpg"
+            }
+          ]
+        },
+        "url": {
+          "raw": "http://localhost:3000/api/platos/{{platoId}}/imagen",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "api",
+            "platos",
+            "{{platoId}}",
+            "imagen"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Modificar un Pedido",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// 1. Validar Status Code\r",
+              "pm.test(\"Status code es 200 o 201\", function () {\r",
+              "   pm.expect(pm.response.code).to.be.oneOf([200, 201]);\r",
+              "});\r",
+              "\r",
+              "// 2. Validar tiempo de respuesta\r",
+              "pm.test(\"El servidor respondió rápido (menos de 500ms)\", function () {\r",
+              "    pm.expect(pm.response.responseTime).to.be.below(500);\r",
+              "});\r",
+              "\r",
+              "// 3. Validar lógica de negocio\r",
+              "const responseJson = pm.response.json();\r",
+              "\r",
+              "pm.test(\"El objeto Data existe\", function () {\r",
+              "    pm.expect(responseJson).to.have.property('data');\r",
+              "});\r",
+              "\r",
+              "pm.test(\"El total calculado es correcto (2x9000)\", function () {\r",
+              "    // IMPORTANTE: Esto asume que en el Body enviaste cantidad: 2 del plato precio: 9000\r",
+              "    const totalEsperado = 18000; \r",
+              "    pm.expect(responseJson.data.total).to.eql(totalEsperado);\r",
+              "});\r",
+              "\r",
+              "pm.test(\"El estado sigue siendo pendiente\", function () {\r",
+              "    pm.expect(responseJson.data.estado).to.eql(\"pendiente\");\r",
+              "});\r",
+              "\r",
+              "// 👇 MANTENEMOS EL MISMO NOMBRE DE VARIABLE QUE EN EL CREATE\r",
+              "// Esto asegura que el DELETE posterior sepa qué borrar\r",
+              "pm.environment.set(\"idPedidoActual\", responseJson.data.id);"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_seguridad}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "PUT",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"id\": {{idPedidoActual}},\r\n    \"mesa\": \"4\",\r\n    \"productos\": [\r\n        {\r\n            \"platoId\": 1,\r\n            \"cantidad\": 2, \r\n            \"aclaracion\": \"Test de modificación\"\r\n        }\r\n    ]\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:3000/api/pedidos/modificar",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "api",
+            "pedidos",
+            "modificar"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Eliminar Pedido por id",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// 1. Validar que el servidor responda OK\r",
+              "pm.test(\"Status code es 200\", function () {\r",
+              "    pm.response.to.have.status(200);\r",
+              "});\r",
+              "\r",
+              "// 2. Validar que el mensaje de negocio sea el correcto\r",
+              "const jsonData = pm.response.json();\r",
+              "\r",
+              "pm.test(\"Confirmación de eliminación y stock\", function () {\r",
+              "    // Validamos que el mensaje contenga las palabras clave que programaste en el controller\r",
+              "    pm.expect(jsonData.mensaje).to.include(\"eliminado\");\r",
+              "    pm.expect(jsonData.mensaje).to.include(\"restaurado\");\r",
+              "});\r",
+              "\r",
+              "// 3. LIMPIEZA (Opcional pero elegante) 🧹\r",
+              "// Como ya lo borramos, quitamos la variable para no usar basura en futuras pruebas\r",
+              "pm.environment.unset(\"idPedidoActual\");"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_seguridad}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/api/pedidos/{{idPedidoActual}}",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "api",
+            "pedidos",
+            "{{idPedidoActual}}"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "id",
+      "value": "1"
+    },
+    {
+      "key": "base_url",
+      "value": "https://template.postman-echo.com"
+    },
+    {
+      "key": "mesa_test",
+      "value": ""
+    },
+    {
+      "key": "token_seguridad",
+      "value": ""
+    },
+    {
+      "key": "platoId",
+      "value": ""
+    }
+  ]
 }

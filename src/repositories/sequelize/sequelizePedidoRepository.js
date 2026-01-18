@@ -85,5 +85,27 @@ class SequelizePedidoRepository extends PedidoRepository {
       );
   }
 
+  // 1. Necesario para saber qué stock devolver antes de borrar
+  async obtenerDetallesPedido(pedidoId) {
+    return await DetallePedido.findAll({
+      where: { PedidoId: pedidoId }
+    });
+  }
+
+  // 2. El "Borrón" de los items viejos
+  async eliminarDetallesPedido(pedidoId) {
+    return await DetallePedido.destroy({
+      where: { PedidoId: pedidoId }
+    });
+  }
+
+  // 3. Actualizar el precio final en la cabecera del pedido
+  async actualizarTotalPedido(pedidoId, nuevoTotal) {
+    return await Pedido.update(
+      { total: nuevoTotal },
+      { where: { id: pedidoId } }
+    );
+  }
+
 }
 module.exports = SequelizePedidoRepository;

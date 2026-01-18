@@ -6,7 +6,7 @@ class PedidoController {
   } // <--- ¡Faltaba cerrar esta llave!
 
   // ---------------------------------------------------------
-  // 1. CREAR (POST)
+  // CREAR (POST)
   // ---------------------------------------------------------
   crear = async (req, res) => {
     try {
@@ -25,6 +25,24 @@ class PedidoController {
     }
   }
 
+  // ---------------------------------------------------------
+  // MODIFICAR (PUT)
+  // ---------------------------------------------------------
+  modificar = async (req, res) => {
+    try {
+
+      const pedido = await this.pedidoService.modificarPedido(req.body);
+
+      res.status(201).json({
+        message: "Pedido modificado con éxito",
+        data: pedido
+      });
+    } catch (error) {
+      console.error("Error modificar:", error.message);
+      res.status(500).json({ error: error.message });
+    }
+
+  }
   // ---------------------------------------------------------
   // 2. LISTAR (GET)
   // ---------------------------------------------------------

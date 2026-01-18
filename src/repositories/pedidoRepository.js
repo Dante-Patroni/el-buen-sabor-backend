@@ -45,7 +45,19 @@ class PedidoRepository {
   async actualizarEstadoPedido(mesaId) {
     throw new Error("Not implemented");
   }
+async obtenerDetallesPedido(pedidoId) {
+    throw new Error("Not implemented");
+  }
 
+  // 2. El "Borrón" de los items viejos
+  async eliminarDetallesPedido(pedidoId) {
+    throw new Error("Not implemented");
+  }
+
+  // 3. Actualizar el precio final en la cabecera del pedido
+  async actualizarTotalPedido(pedidoId, nuevoTotal) {
+   throw new Error("Not implemented");
+  }
 }
 
 module.exports = PedidoRepository;

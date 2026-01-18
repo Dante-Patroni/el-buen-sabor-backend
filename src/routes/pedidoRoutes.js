@@ -5,22 +5,26 @@ const router = express.Router();
 const PedidoService = require("../services/pedidoService");
 const PedidoController = require("../controllers/pedidoController");
 const SequelizePedidoRepository = require("../repositories/sequelize/sequelizePedidoRepository");
-const StockAdapter = require("../adapters/MongoStockAdapter");
+const SequelizePlatoRepository = require("../repositories/sequelize/sequelizePlatoRepository");
 const pedidoEmitter = require("../events/pedidoEvents");
 
+// 2. Instanciamos las dependencias
 const pedidoRepository = new SequelizePedidoRepository();
-const stockAdapter = new StockAdapter();
-
+const platoRepository = new SequelizePlatoRepository();
 const pedidoService = new PedidoService(
   pedidoRepository,
-  stockAdapter,
+  platoRepository,
   pedidoEmitter
 );
-
 const pedidoController = new PedidoController(pedidoService);
+
+// 3. Middlewares
 const authMiddleware = require("../middlewares/authMiddleware");
 const { validarPedido } = require("../middlewares/pedidoValidator");
 
+// =========================================================================
+// DOCUMENTACIÓN SWAGGER Y RUTAS
+// =========================================================================
 
 /**
  * @swagger
@@ -29,7 +33,7 @@ const { validarPedido } = require("../middlewares/pedidoValidator");
  *     summary: Crea un nuevo pedido
  *     tags: [Pedidos]
  *     security:
- *       - bearerAuth: []  # Requiere token
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -64,70 +68,65 @@ const { validarPedido } = require("../middlewares/pedidoValidator");
  *       201:
  *         description: Pedido creado exitosamente
  *       400:
- *         description: Error de validación (Faltan datos o formato incorrecto)
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 errores:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       msg:
- *                         type: string
- *                         example: "El pedido debe tener al menos un producto"
+ *         description: Error de validación
  *       401:
- *         description: No autorizado (Falta token)
+ *         description: No autorizado
  *       500:
  *         description: Error interno del servidor
  */
-
-// 1. CREAR (POST) -> Llama a PedidoController.crear
 router.post("/", authMiddleware, validarPedido, pedidoController.crear);
 
-// 1.5 CERRAR MESA (POST)
+/**
+ * @swagger
+ * /api/pedidos/cerrar-mesa:
+ *   post:
+ *     summary: Cierra una mesa y calcula el total final
+ *     tags: [Pedidos]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - mesa
+ *             properties:
+ *               mesa:
+ *                 type: string
+ *                 example: "4"
+ *     responses:
+ *       200:
+ *         description: Mesa cerrada y total calculado
+ *       404:
+ *         description: No hay pedidos activos para esa mesa
+ *       500:
+ *         description: Error interno
+ */
 router.post("/cerrar-mesa", authMiddleware, pedidoController.cerrarMesa);
+
 /**
  * @swagger
  * /api/pedidos:
  *   get:
- *     summary: Obtiene el historial de pedidos
- *     tags:
- *       - Pedidos
- *     description: Retorna una lista de todos los pedidos ordenados por fecha.
+ *     summary: Obtiene el historial de todos los pedidos
+ *     tags: [Pedidos]
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Lista de pedidos recuperada con éxito
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   id:
- *                     type: integer
- *                   cliente:
- *                     type: string
- *                   estado:
- *                     type: string
- *                   fecha:
- *                     type: string
- *                     format: date-time
+ *         description: Lista de pedidos recuperada
  *       500:
  *         description: Error interno del servidor
  */
-// 3. LISTAR (GET) - Opcional: ¿Quieres que cualquiera vea la lista o solo el mozo?
-// Por ahora la dejaremos pública para facilitar pruebas, pero idealmente también lleva authMiddleware.
 router.get("/", authMiddleware, pedidoController.listar);
-/**
+
 /**
  * @swagger
  * /api/pedidos/mesa/{mesa}:
  *   get:
- *     summary: Obtiene el historial de pedidos activos de una mesa específica
+ *     summary: Obtiene los pedidos activos de una mesa
  *     tags: [Pedidos]
  *     parameters:
  *       - in: path
@@ -135,7 +134,7 @@ router.get("/", authMiddleware, pedidoController.listar);
  *         schema:
  *           type: string
  *         required: true
- *         description: Número o ID de la mesa
+ *         description: Número de la mesa
  *     responses:
  *       200:
  *         description: Lista de pedidos de la mesa
@@ -143,16 +142,67 @@ router.get("/", authMiddleware, pedidoController.listar);
  *         description: Error del servidor
  */
 router.get("/mesa/:mesa", authMiddleware, pedidoController.buscarPorMesa);
-// ---------------------------------------------------------
-// DELETE /api/pedidos/{id} (Eliminar) - ¡NUEVO! 🆕
-// ---------------------------------------------------------
+
+/**
+ * @swagger
+ * /api/pedidos/modificar:
+ *   put:
+ *     summary: Modifica un pedido existente (actualiza productos, stock y total)
+ *     tags: [Pedidos]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - id
+ *               - mesa
+ *               - productos
+ *             properties:
+ *               id:
+ *                 type: integer
+ *                 description: ID del pedido a modificar
+ *                 example: 69
+ *               mesa:
+ *                 type: string
+ *                 example: "4"
+ *               productos:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     platoId:
+ *                       type: integer
+ *                       example: 1
+ *                     cantidad:
+ *                       type: integer
+ *                       example: 3
+ *                     aclaracion:
+ *                       type: string
+ *                       example: "Modificado"
+ *     responses:
+ *       200:
+ *         description: Pedido modificado correctamente
+ *       201:
+ *         description: Pedido recreado con éxito
+ *       400:
+ *         description: Datos inválidos o stock insuficiente
+ *       404:
+ *         description: Pedido no encontrado
+ */
+router.put("/modificar", authMiddleware, pedidoController.modificar);
+
 /**
  * @swagger
  * /api/pedidos/{id}:
  *   delete:
- *     summary: Elimina un pedido y restaura el stock
- *     tags:
- *       - Pedidos
+ *     summary: Elimina un pedido y restaura el stock de los productos
+ *     tags: [Pedidos]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -168,9 +218,6 @@ router.get("/mesa/:mesa", authMiddleware, pedidoController.buscarPorMesa);
  *       500:
  *         description: Error interno del servidor
  */
-// 3. ELIMINAR (DELETE) -> Llama a PedidoController.eliminar
-// Fíjate en el ':id'. Eso es un Parámetro de Ruta.
 router.delete("/:id", authMiddleware, pedidoController.eliminar);
-
 
 module.exports = router;

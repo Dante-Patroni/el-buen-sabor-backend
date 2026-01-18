@@ -21,10 +21,9 @@ class SequelizePlatoRepository extends PlatoRepository {
     }
 
     //BUSCAR PRODUCTO POR ID
-    async buscarProductoPorId(id) {
-            return await Plato.findByPk(id);
-
-    }
+    async buscarPorId(id) {
+    return await Plato.findByPk(id);
+  }
 //MODIFICAR PRODUCTO ID
     async modificarProductoSeleccionado(id, datos) {
   return await Plato.update(datos, {
@@ -32,6 +31,12 @@ class SequelizePlatoRepository extends PlatoRepository {
   });
 }
 
+async actualizarStock(id, nuevoStock) {
+  return await Plato.update(
+    { stockActual: nuevoStock },
+    { where: { id: id } }
+  );
+}
 }
 
 module.exports = SequelizePlatoRepository;

@@ -85,6 +85,7 @@ app.use('/api/rubros', require('./src/routes/rubroRoutes'));
 const startServer = async () => {
   try {
     await dbConnection();
+ 
     await sequelize.sync({ force: false, alter: true });
     console.log("📦 Tablas MySQL sincronizadas");
     await seedDatabase();

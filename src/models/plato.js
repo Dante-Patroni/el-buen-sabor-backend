@@ -4,46 +4,78 @@ const { Model } = require("sequelize");
 module.exports = (sequelize, DataTypes) => {
   class Plato extends Model {
     static associate(models) {
-      Plato.hasMany(models.Pedido, { foreignKey: 'PlatoId' });
-      // Vinculamos con Rubro
-      Plato.belongsTo(models.Rubro, { foreignKey: 'rubroId', as: 'rubro' }); 
+      // Un plato puede aparecer en muchos pedidos (vía DetallePedido)
+      Plato.hasMany(models.DetallePedido, { foreignKey: "PlatoId" });
+
+      // Rubro
+      Plato.belongsTo(models.Rubro, {
+        foreignKey: "rubroId",
+        as: "rubro",
+      });
     }
   }
+
   Plato.init(
     {
-      nombre: DataTypes.STRING,
-      precio: DataTypes.FLOAT,
-      
-      // 👇 NUEVO: Agregamos esto para que el Backend lea el stock
-      stockActual: {
-        type: DataTypes.INTEGER,
-        defaultValue: 0,
-        allowNull: false
+      nombre: {
+        type: DataTypes.STRING,
+        allowNull: false,
       },
 
-      // 👇 Para mostrar "Medallón de carne con lechuga..." en la carta
-      descripcion: { 
-        type: DataTypes.STRING, 
-        allowNull: true 
+      descripcion: {
+        type: DataTypes.STRING,
+        allowNull: true,
       },
-      // 👇 El interruptor para el "Menú del Día"
+
+      precio: {
+        type: DataTypes.FLOAT,
+        allowNull: false,
+      },
+
+      // ===== STOCK OPERATIVO =====
+
+      stockInicial: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+      },
+
+      stockActual: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+      },
+
+      esIlimitado: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+      },
+
+      // ===== VISIBILIDAD / CARTA =====
+
       esMenuDelDia: {
         type: DataTypes.BOOLEAN,
-        defaultValue: false
+        defaultValue: false,
       },
+
       imagenPath: {
         type: DataTypes.STRING,
-        allowNull: true 
+        allowNull: true,
       },
+
       rubroId: {
         type: DataTypes.INTEGER,
-        allowNull: true
-      }
+        allowNull: true,
+      },
     },
     {
       sequelize,
       modelName: "Plato",
-    },
+      tableName: "platos",
+      timestamps: true, // te sirve para auditoría de stock
+    }
   );
+
   return Plato;
 };
