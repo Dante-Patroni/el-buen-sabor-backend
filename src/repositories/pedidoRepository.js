@@ -16,7 +16,7 @@ class PedidoRepository {
     throw new Error("Not implemented");
   }
 
-  async actualizarMesa(mesa) {
+  async cerrarMesa(mesa) {
     throw new Error("Not implemented");
   }
 
@@ -58,6 +58,14 @@ async obtenerDetallesPedido(pedidoId) {
   async actualizarTotalPedido(pedidoId, nuevoTotal) {
    throw new Error("Not implemented");
   }
+  async cerrarMesa(mesaId) {
+    throw new Error("Not implemented");
+  }
+
+  actualizarMesa(mesa) {
+    throw new Error("Not implemented");
+  }
 }
+
 
 module.exports = PedidoRepository;

@@ -242,9 +242,9 @@ class PedidoService {
     // Liberar mesa
     mesa.estado = "libre";
     mesa.totalActual = 0;
-    mesa.mozoAsignado = null;
+    mesa.mozo_id = null;
 
-    await this.pedidoRepository.actualizarMesa(mesa);
+    await this.pedidoRepository.cerrarMesa(mesa);
 
     return {
       mesaId: mesa.id,

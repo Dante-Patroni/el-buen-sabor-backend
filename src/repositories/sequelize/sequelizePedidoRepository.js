@@ -20,7 +20,14 @@ class SequelizePedidoRepository extends PedidoRepository {
     return await Mesa.findByPk(id);
   }
 
+  // ✅ ESTE ES EL QUE FALTABA PARA _actualizarMesa
   async actualizarMesa(mesa) {
+    // Como 'mesa' es una instancia de Sequelize (que trajimos con findByPk),
+    // al hacer .save() guarda los cambios que le hicimos en el service.
+    return await mesa.save();
+  }
+
+  async cerrarMesa(mesa) {
     return await mesa.save();
   }
 
@@ -32,6 +39,7 @@ class SequelizePedidoRepository extends PedidoRepository {
       include: [DetallePedido]
     });
   }
+  
   async buscarPedidosPorMesa(mesaNumero) {
     return await Pedido.findAll({
       where: { mesa: mesaNumero },
@@ -48,17 +56,18 @@ class SequelizePedidoRepository extends PedidoRepository {
     return true;
   }
 
-  async buscarPedidosAbiertosPorMesa(mesaId) {
-    return pedidosPendientes = await Pedido.findAll({
+  // 🔧 CORREGIDO: Quité la 's' en 'Pedidos' para coincidir con el Service
+  async buscarPedidoAbiertosPorMesa(mesaId) {
+    return await Pedido.findAll({
         where: { 
           mesa: mesaId, 
           estado: {
             [Op.or]: [
                "pendiente",
-                "en_preparacion",
-                "entregado",
-                null,
-                ""
+               "en_preparacion",
+               "entregado",
+               null,
+               ""
             ]
           } 
         }
@@ -85,27 +94,24 @@ class SequelizePedidoRepository extends PedidoRepository {
       );
   }
 
-  // 1. Necesario para saber qué stock devolver antes de borrar
   async obtenerDetallesPedido(pedidoId) {
     return await DetallePedido.findAll({
       where: { PedidoId: pedidoId }
     });
   }
 
-  // 2. El "Borrón" de los items viejos
   async eliminarDetallesPedido(pedidoId) {
     return await DetallePedido.destroy({
       where: { PedidoId: pedidoId }
     });
   }
 
-  // 3. Actualizar el precio final en la cabecera del pedido
   async actualizarTotalPedido(pedidoId, nuevoTotal) {
     return await Pedido.update(
       { total: nuevoTotal },
       { where: { id: pedidoId } }
     );
   }
-
 }
+
 module.exports = SequelizePedidoRepository;
