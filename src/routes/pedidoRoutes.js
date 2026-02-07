@@ -20,7 +20,13 @@ const pedidoController = new PedidoController(pedidoService);
 
 // 3. Middlewares
 const authMiddleware = require("../middlewares/authMiddleware");
-const { validarPedido } = require("../middlewares/pedidoValidator");
+const {
+  validarPedido,
+  validarMesaParam,
+  validarCerrarMesa
+} = require("../middlewares/pedidoValidator");
+
+
 
 // =========================================================================
 // DOCUMENTACIÓN SWAGGER Y RUTAS
@@ -104,7 +110,7 @@ router.post("/", authMiddleware, validarPedido, pedidoController.crear);
  *       500:
  *         description: Error interno
  */
-router.post("/cerrar-mesa", authMiddleware, pedidoController.cerrarMesa);
+router.post("/cerrar-mesa", authMiddleware, validarCerrarMesa, pedidoController.cerrarMesa);
 
 /**
  * @swagger
@@ -141,7 +147,7 @@ router.get("/", authMiddleware, pedidoController.listar);
  *       500:
  *         description: Error del servidor
  */
-router.get("/mesa/:mesa", authMiddleware, pedidoController.buscarPorMesa);
+router.get("/mesa/:mesa", authMiddleware, validarMesaParam, pedidoController.buscarPorMesa);
 
 /**
  * @swagger

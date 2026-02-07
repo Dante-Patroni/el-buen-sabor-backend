@@ -399,13 +399,6 @@ Para una explicación detallada del flujo de información y arquitectura del sis
 - **Documentación Técnica**: `docs/flujo_informacion_el_buen_sabor.md`
 - **Swagger API Docs**: `http://localhost:3000/api-docs`
 
-## 🤝 Contribuir
-
-1. Fork el proyecto
-2. Crea una rama para tu feature (`git checkout -b feature/nueva-funcionalidad`)
-3. Commit tus cambios (`git commit -m 'Agregar nueva funcionalidad'`)
-4. Push a la rama (`git push origin feature/nueva-funcionalidad`)
-5. Abre un Pull Request
 
 ## 📄 Licencia
 

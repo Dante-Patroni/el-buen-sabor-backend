@@ -49,9 +49,19 @@ class PedidoController {
   // 👇 Convertido a Arrow Function para asegurar el 'this'
   listar = async (req, res) => {
     try {
+      // Filtro opcional por query string ?estado=pendiente
+      //Me permite filtrar los pedidos por su estado si se proporciona en la consulta
+      const { estado } = req.query;
+
       // Usamos el método estandarizado 'obtenerTodos' del servicio
       const pedidos = await this.pedidoService.listarPedidos();
-      res.status(200).json(pedidos);
+
+      //Devuelve la cantidad total de pedidos y los datos en formato JSON
+      res.status(200).json({
+        cantidad: pedidos.length,
+        data: pedidos
+      });
+
     } catch (error) {
       console.error("Error Listar:", error.message);
       res.status(500).json({ error: "Error al obtener pedidos" });
@@ -61,20 +71,20 @@ class PedidoController {
   // ---------------------------------------------------------
   // 3. HISTORIAL DE MESA
   // ---------------------------------------------------------
+  //Devuelve los pedidos asociados a una mesa específica
+  //No crea ni modifica nada, solo consulta
+  //Es GET + lectura pura
+
   buscarPorMesa = async (req, res) => {
     try {
+      //Viene de GET /api/pedidos/mesa/:mesa
       const { mesa } = req.params;
 
-      if (!mesa) {
-        return res.status(400).json({ error: "Número de mesa es obligatorio" });
-      }
-
-      // ⚠️ Nota: Asegúrate de agregar 'buscarPedidosPorMesa' en tu Service si no existe aún.
-      // Si usas el findAll con filtro, sería algo como: this.pedidoService.listar({ where: { mesa } })
-      // Por ahora asumo que agregarás el método en el servicio:
+      // La validación se realiza en el middleware
       const pedidos = await this.pedidoService.buscarPedidosPorMesa(mesa);
-
+      // Siempre responde 200 con array (vacío o con datos)
       res.status(200).json(pedidos);
+
     } catch (error) {
       console.error(`Error buscando pedidos por mesa ${req.params.mesa}:`, error);
       res.status(500).json({ error: "Error al obtener el historial de la mesa" });
@@ -84,13 +94,10 @@ class PedidoController {
   // ---------------------------------------------------------
   // 3.5 CERRAR MESA (POST)
   // ---------------------------------------------------------
+
   cerrarMesa = async (req, res) => {
     try {
       const { mesaId } = req.body;
-
-      if (!mesaId) {
-        return res.status(400).json({ error: "Falta el ID de la mesa (mesaId)" });
-      }
 
       const resultado = await this.pedidoService.cerrarMesa(mesaId);
 
@@ -101,9 +108,13 @@ class PedidoController {
 
     } catch (error) {
       console.error("Error Cerrar Mesa:", error.message);
-      res.status(500).json({ error: "No se pudo cerrar la mesa" });
+
+      res.status(error.status || 500).json({
+        error: error.message
+      });
     }
   }
+
 
   // ---------------------------------------------------------
   // 4. ELIMINAR (DELETE)

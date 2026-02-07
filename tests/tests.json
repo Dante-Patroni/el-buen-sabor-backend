@@ -210,6 +210,94 @@
       "response": []
     },
     {
+      "name": "Modificar un Pedido",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// 1. Validar Status Code\r",
+              "pm.test(\"Status code es 200 o 201\", function () {\r",
+              "   pm.expect(pm.response.code).to.be.oneOf([200, 201]);\r",
+              "});\r",
+              "\r",
+              "// 2. Validar tiempo de respuesta\r",
+              "pm.test(\"El servidor respondió rápido (menos de 500ms)\", function () {\r",
+              "    pm.expect(pm.response.responseTime).to.be.below(500);\r",
+              "});\r",
+              "\r",
+              "// 3. Validar lógica de negocio\r",
+              "const responseJson = pm.response.json();\r",
+              "\r",
+              "pm.test(\"El objeto Data existe\", function () {\r",
+              "    pm.expect(responseJson).to.have.property('data');\r",
+              "});\r",
+              "\r",
+              "const body = pm.request.body.raw\r",
+              "  ? JSON.parse(pm.request.body.raw)\r",
+              "  : {};\r",
+              "\r",
+              "const cantidad = body.productos[0].cantidad;\r",
+              "const precioUnitario = 5000; // o guardarlo en env previamente\r",
+              "\r",
+              "pm.test(\"El total calculado es correcto\", function () {\r",
+              "    pm.expect(pm.response.json().data.total)\r",
+              "      .to.eql(cantidad * precioUnitario);\r",
+              "});\r",
+              "\r",
+              "pm.test(\"El estado sigue siendo pendiente\", function () {\r",
+              "    pm.expect(responseJson.data.estado).to.eql(\"pendiente\");\r",
+              "});\r",
+              "\r",
+              "// 👇 MANTENEMOS EL MISMO NOMBRE DE VARIABLE QUE EN EL CREATE\r",
+              "// Esto asegura que el DELETE posterior sepa qué borrar\r",
+              "pm.environment.set(\"idPedidoActual\", responseJson.data.id);"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_seguridad}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "PUT",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"id\": {{idPedidoActual}},\r\n    \"mesa\": \"4\",\r\n    \"productos\": [\r\n        {\r\n            \"platoId\": 1,\r\n            \"cantidad\": 2, \r\n            \"aclaracion\": \"Test de modificación\"\r\n        }\r\n    ]\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:3000/api/pedidos/modificar",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "api",
+            "pedidos",
+            "modificar"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
       "name": "Mesas",
       "event": [
         {
@@ -285,6 +373,91 @@
           "path": [
             "api",
             "mesas"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Cerrar Mesa",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Respuesta válida del servidor\", function () {\r",
+              "    pm.expect(pm.response.code).to.be.oneOf([200, 400, 500]);\r",
+              "});\r",
+              "\r",
+              "if (pm.response.code === 200) {\r",
+              "\r",
+              "    pm.test(\"Mesa cerrada correctamente\", function () {\r",
+              "        const json = pm.response.json();\r",
+              "\r",
+              "        pm.expect(json).to.have.property(\"mesaId\");\r",
+              "        pm.expect(json).to.have.property(\"totalCobrado\");\r",
+              "        pm.expect(json).to.have.property(\"pedidosCerrados\");\r",
+              "\r",
+              "        pm.expect(json.pedidosCerrados).to.be.a(\"number\");\r",
+              "        pm.expect(json.totalCobrado).to.be.a(\"number\");\r",
+              "    });\r",
+              "\r",
+              "    console.log(\"✅ Mesa cerrada:\", pm.response.json());\r",
+              "\r",
+              "}\r",
+              "\r",
+              "if (pm.response.code === 500) {\r",
+              "\r",
+              "    pm.test(\"Error de negocio controlado (NO_HAY_PEDIDOS_ABIERTOS)\", function () {\r",
+              "        const json = pm.response.json();\r",
+              "        pm.expect(json).to.have.property(\"error\");\r",
+              "        pm.expect(json.error).to.eql(\"NO_HAY_PEDIDOS_ABIERTOS\");\r",
+              "    });\r",
+              "\r",
+              "    console.warn(\"⚠️ No hay pedidos abiertos para cerrar\");\r",
+              "\r",
+              "}\r",
+              ""
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_seguridad}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"mesaId\": 4\r\n}\r\n",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:3000/api/pedidos/cerrar-mesa",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "api",
+            "pedidos",
+            "cerrar-mesa"
           ]
         }
       },
@@ -515,88 +688,6 @@
             "platos",
             "{{platoId}}",
             "imagen"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "Modificar un Pedido",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "// 1. Validar Status Code\r",
-              "pm.test(\"Status code es 200 o 201\", function () {\r",
-              "   pm.expect(pm.response.code).to.be.oneOf([200, 201]);\r",
-              "});\r",
-              "\r",
-              "// 2. Validar tiempo de respuesta\r",
-              "pm.test(\"El servidor respondió rápido (menos de 500ms)\", function () {\r",
-              "    pm.expect(pm.response.responseTime).to.be.below(500);\r",
-              "});\r",
-              "\r",
-              "// 3. Validar lógica de negocio\r",
-              "const responseJson = pm.response.json();\r",
-              "\r",
-              "pm.test(\"El objeto Data existe\", function () {\r",
-              "    pm.expect(responseJson).to.have.property('data');\r",
-              "});\r",
-              "\r",
-              "pm.test(\"El total calculado es correcto (2x9000)\", function () {\r",
-              "    // IMPORTANTE: Esto asume que en el Body enviaste cantidad: 2 del plato precio: 9000\r",
-              "    const totalEsperado = 18000; \r",
-              "    pm.expect(responseJson.data.total).to.eql(totalEsperado);\r",
-              "});\r",
-              "\r",
-              "pm.test(\"El estado sigue siendo pendiente\", function () {\r",
-              "    pm.expect(responseJson.data.estado).to.eql(\"pendiente\");\r",
-              "});\r",
-              "\r",
-              "// 👇 MANTENEMOS EL MISMO NOMBRE DE VARIABLE QUE EN EL CREATE\r",
-              "// Esto asegura que el DELETE posterior sepa qué borrar\r",
-              "pm.environment.set(\"idPedidoActual\", responseJson.data.id);"
-            ],
-            "type": "text/javascript",
-            "packages": {},
-            "requests": {}
-          }
-        }
-      ],
-      "request": {
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "{{token_seguridad}}",
-              "type": "string"
-            }
-          ]
-        },
-        "method": "PUT",
-        "header": [],
-        "body": {
-          "mode": "raw",
-          "raw": "{\r\n    \"id\": {{idPedidoActual}},\r\n    \"mesa\": \"4\",\r\n    \"productos\": [\r\n        {\r\n            \"platoId\": 1,\r\n            \"cantidad\": 2, \r\n            \"aclaracion\": \"Test de modificación\"\r\n        }\r\n    ]\r\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "http://localhost:3000/api/pedidos/modificar",
-          "protocol": "http",
-          "host": [
-            "localhost"
-          ],
-          "port": "3000",
-          "path": [
-            "api",
-            "pedidos",
-            "modificar"
           ]
         }
       },

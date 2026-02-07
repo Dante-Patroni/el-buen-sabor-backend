@@ -20,7 +20,7 @@ class SequelizePedidoRepository extends PedidoRepository {
     return await Mesa.findByPk(id);
   }
 
-  // ✅ ESTE ES EL QUE FALTABA PARA _actualizarMesa
+ 
   async actualizarMesa(mesa) {
     // Como 'mesa' es una instancia de Sequelize (que trajimos con findByPk),
     // al hacer .save() guarda los cambios que le hicimos en el service.
@@ -40,12 +40,19 @@ class SequelizePedidoRepository extends PedidoRepository {
     });
   }
   
-  async buscarPedidosPorMesa(mesaNumero) {
-    return await Pedido.findAll({
-      where: { mesa: mesaNumero },
-      include: [DetallePedido]
-    });
-  }
+ async buscarPedidosPorMesa(mesaNumero) {
+  //findAll NUNCA devuelve null, siempre un array.
+  return await Pedido.findAll({
+    where: { mesa: mesaNumero },
+    include: [
+      {
+        model: DetallePedido
+      }
+    ],
+    order: [["createdAt", "ASC"]]
+  });
+}
+
 
   async buscarPedidoPorId(id) {
      return await Pedido.findByPk(id);
