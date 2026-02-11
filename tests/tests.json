@@ -119,6 +119,47 @@
       "response": []
     },
     {
+      "name": "abrir Mesa",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_seguridad}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"idMozo\": 1\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:3000/api/mesas/4/abrir",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "api",
+            "mesas",
+            "4",
+            "abrir"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
       "name": "Crear Pedido",
       "event": [
         {
@@ -373,91 +414,6 @@
           "path": [
             "api",
             "mesas"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "Cerrar Mesa",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test(\"Respuesta válida del servidor\", function () {\r",
-              "    pm.expect(pm.response.code).to.be.oneOf([200, 400, 500]);\r",
-              "});\r",
-              "\r",
-              "if (pm.response.code === 200) {\r",
-              "\r",
-              "    pm.test(\"Mesa cerrada correctamente\", function () {\r",
-              "        const json = pm.response.json();\r",
-              "\r",
-              "        pm.expect(json).to.have.property(\"mesaId\");\r",
-              "        pm.expect(json).to.have.property(\"totalCobrado\");\r",
-              "        pm.expect(json).to.have.property(\"pedidosCerrados\");\r",
-              "\r",
-              "        pm.expect(json.pedidosCerrados).to.be.a(\"number\");\r",
-              "        pm.expect(json.totalCobrado).to.be.a(\"number\");\r",
-              "    });\r",
-              "\r",
-              "    console.log(\"✅ Mesa cerrada:\", pm.response.json());\r",
-              "\r",
-              "}\r",
-              "\r",
-              "if (pm.response.code === 500) {\r",
-              "\r",
-              "    pm.test(\"Error de negocio controlado (NO_HAY_PEDIDOS_ABIERTOS)\", function () {\r",
-              "        const json = pm.response.json();\r",
-              "        pm.expect(json).to.have.property(\"error\");\r",
-              "        pm.expect(json.error).to.eql(\"NO_HAY_PEDIDOS_ABIERTOS\");\r",
-              "    });\r",
-              "\r",
-              "    console.warn(\"⚠️ No hay pedidos abiertos para cerrar\");\r",
-              "\r",
-              "}\r",
-              ""
-            ],
-            "type": "text/javascript",
-            "packages": {},
-            "requests": {}
-          }
-        }
-      ],
-      "request": {
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "{{token_seguridad}}",
-              "type": "string"
-            }
-          ]
-        },
-        "method": "POST",
-        "header": [],
-        "body": {
-          "mode": "raw",
-          "raw": "{\r\n  \"mesaId\": 4\r\n}\r\n",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "http://localhost:3000/api/pedidos/cerrar-mesa",
-          "protocol": "http",
-          "host": [
-            "localhost"
-          ],
-          "port": "3000",
-          "path": [
-            "api",
-            "pedidos",
-            "cerrar-mesa"
           ]
         }
       },
@@ -748,6 +704,88 @@
             "api",
             "pedidos",
             "{{idPedidoActual}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Cerrar Mesa",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Respuesta válida del servidor\", function () {\r",
+              "    pm.expect(pm.response.code).to.be.oneOf([200, 400, 500]);\r",
+              "});\r",
+              "\r",
+              "if (pm.response.code === 200) {\r",
+              "\r",
+              "    pm.test(\"Mesa cerrada correctamente\", function () {\r",
+              "        const json = pm.response.json();\r",
+              "\r",
+              "        pm.expect(json).to.have.property(\"mesaId\");\r",
+              "        pm.expect(json).to.have.property(\"totalCobrado\");\r",
+              "\r",
+              "        pm.expect(json.mesaId).to.be.a(\"number\");\r",
+              "        pm.expect(json.totalCobrado).to.be.a(\"number\");\r",
+              "    });\r",
+              "\r",
+              "    console.log(\"✅ Mesa cerrada:\", pm.response.json());\r",
+              "}\r",
+              "\r",
+              "if (pm.response.code === 400) {\r",
+              "\r",
+              "    pm.test(\"Error de negocio: mesa ya libre\", function () {\r",
+              "        const json = pm.response.json();\r",
+              "        pm.expect(json).to.have.property(\"error\");\r",
+              "        pm.expect(json.error).to.eql(\"MESA_YA_LIBRE\");\r",
+              "    });\r",
+              "\r",
+              "    console.warn(\"⚠️ La mesa ya estaba libre\");\r",
+              "}"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_seguridad}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:3000/api/mesas/4/cerrar",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "api",
+            "mesas",
+            "4",
+            "cerrar"
           ]
         }
       },

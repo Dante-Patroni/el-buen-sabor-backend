@@ -135,6 +135,48 @@ router.get("/", authMiddleware, mesaController.listar);
  *         description: Error en el servidor
  */
 router.post("/:id/abrir", authMiddleware, mesaController.abrirMesa);
+/**
+ * @swagger
+ * /api/mesas/{id}/cerrar:
+ *   post:
+ *     summary: Cierra una mesa y libera su estado
+ *     description: Cambia el estado de la mesa a 'libre', borra el mozo asignado y devuelve el total cobrado.
+ *     tags: [Mesas]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID de la mesa a cerrar
+ *     responses:
+ *       200:
+ *         description: Mesa cerrada correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Mesa cerrada con éxito"
+ *                 mesaId:
+ *                   type: integer
+ *                   example: 4
+ *                 totalCobrado:
+ *                   type: number
+ *                   example: 2500.75
+ *       400:
+ *         description: La mesa ya está libre
+ *       404:
+ *         description: Mesa no encontrada
+ *       500:
+ *         description: Error en el servidor
+ */
+router.post("/:id/cerrar", authMiddleware, mesaController.cerrarMesa);
+
 
 
 module.exports = router;

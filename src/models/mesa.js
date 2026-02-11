@@ -10,13 +10,13 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
       // La Mesa pertenece a un Usuario (Mozo)
-      Mesa.belongsTo(models.Usuario, { 
-        foreignKey: 'mozo_id', 
+      Mesa.belongsTo(models.Usuario, {
+        foreignKey: 'mozoId',
         as: 'mozo' // Así podremos hacer mesa.mozo.nombre
       });
     }
   }
-  
+
   Mesa.init(
     {
       numero: {
@@ -36,7 +36,7 @@ module.exports = (sequelize, DataTypes) => {
       totalActual: {
         type: DataTypes.DECIMAL(10, 2),
         defaultValue: 0.00,
-        field: "total_actual", 
+        field: "total_actual",
       },
       // 👇 MAPEO: JS (mozoId) <--> DB (mozo_id)
       mozoId: {

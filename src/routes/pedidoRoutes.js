@@ -3,17 +3,22 @@ const router = express.Router();
 
 // 1. Importamos las CLASES (No instancias)
 const PedidoService = require("../services/pedidoService");
+const MesaService = require("../services/mesaService");
 const PedidoController = require("../controllers/pedidoController");
 const SequelizePedidoRepository = require("../repositories/sequelize/sequelizePedidoRepository");
+const SequelizeMesaRepository = require("../repositories/sequelize/sequelizeMesaRepository");
 const SequelizePlatoRepository = require("../repositories/sequelize/sequelizePlatoRepository");
 const pedidoEmitter = require("../events/pedidoEvents");
 
 // 2. Instanciamos las dependencias
 const pedidoRepository = new SequelizePedidoRepository();
 const platoRepository = new SequelizePlatoRepository();
+const mesaRepository = new SequelizeMesaRepository();
+const mesaService = new MesaService(mesaRepository);
 const pedidoService = new PedidoService(
   pedidoRepository,
   platoRepository,
+  mesaService,
   pedidoEmitter
 );
 const pedidoController = new PedidoController(pedidoService);
@@ -23,7 +28,6 @@ const authMiddleware = require("../middlewares/authMiddleware");
 const {
   validarPedido,
   validarMesaParam,
-  validarCerrarMesa
 } = require("../middlewares/pedidoValidator");
 
 
@@ -82,35 +86,6 @@ const {
  */
 router.post("/", authMiddleware, validarPedido, pedidoController.crear);
 
-/**
- * @swagger
- * /api/pedidos/cerrar-mesa:
- *   post:
- *     summary: Cierra una mesa y calcula el total final
- *     tags: [Pedidos]
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - mesa
- *             properties:
- *               mesa:
- *                 type: string
- *                 example: "4"
- *     responses:
- *       200:
- *         description: Mesa cerrada y total calculado
- *       404:
- *         description: No hay pedidos activos para esa mesa
- *       500:
- *         description: Error interno
- */
-router.post("/cerrar-mesa", authMiddleware, validarCerrarMesa, pedidoController.cerrarMesa);
 
 /**
  * @swagger

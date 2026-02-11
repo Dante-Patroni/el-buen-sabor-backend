@@ -1,11 +1,11 @@
 // NO importamos modelos directamente en el service
 // el service habla SOLO con repositories
-const pedidoEmitter = require("../events/pedidoEvents");
 
 class PedidoService {
-  constructor(pedidoRepository, platoRepository, pedidoEmitter) {
+  constructor(pedidoRepository, platoRepository, mesaService,pedidoEmitter) {
     this.pedidoRepository = pedidoRepository;
     this.platoRepository = platoRepository;
+    this.mesaService = mesaService;
     this.pedidoEmitter = pedidoEmitter;
   }
 
@@ -33,7 +33,7 @@ class PedidoService {
   );
 
   // 4️⃣ Actualizar mesa
-  await this._actualizarMesa(mesaNumero, total);
+ await this.mesaService.sumarTotal(mesaNumero, total);
 
   // 5️⃣ Emitir evento
   this.pedidoEmitter.emit("pedido-creado", {
@@ -77,7 +77,8 @@ class PedidoService {
   await this._restaurarStock(detalles);
 
   // 3️⃣ Actualizar mesa (resta el total)
-  await this._actualizarMesa(pedido.mesa, -pedido.total);
+  await this.mesaService.restarTotal(pedido.mesa, pedido.total);
+
 
   // 4️⃣ Eliminar pedido (detalles + cabecera)
   await this._eliminarPedidoFisico(pedidoId);
@@ -88,8 +89,9 @@ class PedidoService {
 
 
   //MODIFICAR  UN PEDIDO
+  //Durante la modificación, la mesa nunca debe pasar a "libre"
  async modificarPedido(datos) {
-  const { id: pedidoId, productos, mesa: mesaNumero } = datos;
+  const { id: pedidoId, productos, mesa: mesaId } = datos;
 
   const pedido = await this.pedidoRepository.buscarPedidoPorId(pedidoId);
   if (!pedido) throw new Error("PEDIDO_NO_ENCONTRADO");
@@ -97,26 +99,36 @@ class PedidoService {
     throw new Error("Solo se pueden modificar pedidos pendientes");
   }
 
-  // 1️⃣ Revertir impacto anterior
-  await this._actualizarMesa(mesaNumero, -pedido.total);
+  // 1️⃣ Stock vuelve
   await this._restaurarStock(
     await this.pedidoRepository.obtenerDetallesPedido(pedidoId)
   );
 
-  // 2️⃣ Limpiar
+  // 2️⃣ Limpiamos detalles
   await this.pedidoRepository.eliminarDetallesPedido(pedidoId);
 
-  // 3️⃣ Procesar nuevo pedido
-  const { total, detalles } = await this._procesarProductos(productos, pedidoId);
+  // 3️⃣ Nuevo cálculo
+  const { total, detalles } = await this._procesarProductos(productos);
 
-  await this.pedidoRepository.crearDetalles(detalles);
+  await this.pedidoRepository.crearDetalles(
+    detalles.map(det => ({
+      PedidoId: pedidoId,
+      ...det
+    }))
+  );
+
+  // 4️⃣ Ajuste por diferencia (CLAVE)
+  const diferencia = total - pedido.total;
+  await this.mesaService.ajustarTotal(mesaId, diferencia);
+
+  // 5️⃣ Actualizamos pedido
   await this.pedidoRepository.actualizarTotalPedido(pedidoId, total);
-  await this._actualizarMesa(mesaNumero, total);
 
-  const pedidoActualizado = await this.pedidoRepository.buscarPedidoPorId(pedidoId);
+  const pedidoActualizado =
+    await this.pedidoRepository.buscarPedidoPorId(pedidoId);
 
   this.pedidoEmitter?.emit("pedido-modificado", {
-    mesa: mesaNumero,
+    mesa: mesaId,
     pedido: pedidoActualizado
   });
 
@@ -126,43 +138,29 @@ class PedidoService {
 
   // 5. CERRAR MESA
  async cerrarMesa(mesaId) {
-  const mesa = await this.pedidoRepository.buscarMesaPorId(mesaId);
-
-  if (!mesa){
-    const error = new Error("MESA_NO_ENCONTRADA");
-    error.status = 404;
-    throw error;
-  }
-
   const pedidosAbiertos =
     await this.pedidoRepository.buscarPedidoAbiertosPorMesa(mesaId);
 
   if (pedidosAbiertos.length === 0) {
-  const error = new Error("NO_HAY_PEDIDOS_ABIERTOS");
-  error.status = 400; // o 409
-  throw error;
-}
-
-  const totalCierre = parseFloat(mesa.totalActual) || 0;
+    const error = new Error("NO_HAY_PEDIDOS_ABIERTOS");
+    error.status = 400;
+    throw error;
+  }
 
   await this.pedidoRepository.marcarPedidosComoPagados(mesaId);
 
-  mesa.estado = "libre";
-  mesa.totalActual = 0;
-  mesa.mozo_id = null;
-
-  await this.pedidoRepository.cerrarMesa(mesa);
+  // 🔑 MesaService se ocupa
+  const cierre = await this.mesaService.cerrarMesa(mesaId);
 
   this.pedidoEmitter?.emit("mesa-cerrada", {
-    mesaId: mesa.id,
-    totalCobrado: totalCierre,
+    mesaId,
+    totalCobrado: cierre.totalCobrado,
     pedidosCerrados: pedidosAbiertos.length
   });
 
   return {
-    mesaId: mesa.id,
-    totalCobrado: totalCierre,
-    pedidosCerrados: pedidosAbiertos.length,
+    ...cierre,
+    pedidosCerrados: pedidosAbiertos.length
   };
 }
 
@@ -175,30 +173,7 @@ class PedidoService {
     await this.pedidoRepository.eliminarDetallesPedido(pedidoId);
     await this.pedidoRepository.eliminarPedidoPorId(pedidoId);
   }
-  //=====================================================
- async _actualizarMesa(mesaNumero, monto) {
-  const mesa = await this.pedidoRepository.buscarMesaPorId(mesaNumero);
-  if (!mesa) return;
-
-  const totalAnterior = Number(mesa.totalActual) || 0;
-  const incremento = Number(monto) || 0;
-
-  let nuevoTotal = totalAnterior + incremento;
-
-  if (nuevoTotal < 0) {
-    nuevoTotal = 0;
-  }
-
-  mesa.totalActual = nuevoTotal;
-  mesa.estado = this._calcularEstadoMesa(nuevoTotal);
-
-  await this.pedidoRepository.actualizarMesa(mesa);
-}
-//=====================================================
-_calcularEstadoMesa(total) {
-  return total > 0 ? "ocupada" : "libre";
-}
-
+ 
 //==================================================================
   async _procesarProductos(productos) {
   let total = 0;
