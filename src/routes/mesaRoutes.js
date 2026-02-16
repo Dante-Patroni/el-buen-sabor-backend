@@ -7,9 +7,11 @@ const MesaController = require("../controllers/mesaController");
 const authMiddleware = require("../middlewares/authMiddleware");
 const SequelizeMesaRepository = require("../repositories/sequelize/sequelizeMesaRepository");
 
+
 // 1. Instanciamos Repositorio
 const mesaRepository = new SequelizeMesaRepository();
-const mesaService = new MesaService(mesaRepository);
+const pedidoRepository = new SequelizePedidoRepository();
+const mesaService = new MesaService(mesaRepository, pedidoRepository);
 const mesaController = new MesaController(mesaService);
 
 /**

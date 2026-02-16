@@ -95,6 +95,43 @@ router.put("/:id", authMiddleware, (req, res) => platoController.modificarProduc
 
 /**
  * @swagger
+ * /api/platos/{id}:
+ *   delete:
+ *     summary: Eliminar un plato por ID
+ *     tags: [Platos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: ID del plato a eliminar
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Plato eliminado correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 mensaje:
+ *                   type: string
+ *                   example: Plato eliminado correctamente
+ *       404:
+ *         description: Plato no encontrado
+ *       500:
+ *         description: Error interno del servidor
+ */
+router.delete("/:id", authMiddleware, (req, res) =>
+  platoController.eliminarProducto(req, res)
+);
+
+
+
+/**
+ * @swagger
  * /api/platos/{id}/imagen:
  *   post:
  *     summary: Sube una foto para un plato

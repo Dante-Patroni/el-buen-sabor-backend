@@ -1,71 +1,95 @@
-
 class PedidoRepository {
-  async crearPedido(data) {
+
+  /**
+   * Ejecuta una función dentro de una transacción.
+   */
+  async inTransaction(callback) {
     throw new Error("Not implemented");
   }
 
-  async crearDetalles(detalles) {
+  /**
+   * Crea un nuevo pedido.
+   */
+  async crearPedido(data, transaction = null) {
     throw new Error("Not implemented");
   }
 
-  async buscarPlatoPorId(id) {
+  /**
+   * Crea múltiples detalles de pedido.
+   */
+  async crearDetalles(detalles, transaction = null) {
     throw new Error("Not implemented");
   }
 
-  async buscarMesaPorId(id) {
-    throw new Error("Not implemented");
-  }
-
-  async cerrarMesa(mesa) {
-    throw new Error("Not implemented");
-  }
-
+  /**
+   * Lista pedidos filtrados por estado.
+   */
   async listarPedidosPorEstado(estado) {
     throw new Error("Not implemented");
   }
+
+  /**
+   * Busca pedidos asociados a una mesa.
+   */
   async buscarPedidosPorMesa(mesaNumero) {
     throw new Error("Not implemented");
   }
 
+  /**
+   * Busca un pedido por su ID.
+   */
   async buscarPedidoPorId(id) {
     throw new Error("Not implemented");
   }
 
+  /**
+   * Busca pedidos abiertos de una mesa.
+   */
   async buscarPedidoAbiertosPorMesa(mesaId) {
     throw new Error("Not implemented");
   }
-  async marcarPedidosComoPagados(mesaId) {
+
+  /**
+   * Marca como pagados los pedidos abiertos de una mesa.
+   */
+  async marcarPedidosComoPagados(mesaId, transaction = null) {
     throw new Error("Not implemented");
   }
 
-  async eliminarPedidoPorId(id) {
+  /**
+   * Elimina un pedido por ID.
+   */
+  async eliminarPedidoPorId(id, transaction = null) {
     throw new Error("Not implemented");
   }
 
-  async actualizarEstadoPedido(mesaId) {
-    throw new Error("Not implemented");
-  }
-async obtenerDetallesPedido(pedidoId) {
-    throw new Error("Not implemented");
-  }
-
-  // 2. El "Borrón" de los items viejos
-  async eliminarDetallesPedido(pedidoId) {
+  /**
+   * Actualiza el estado de un pedido.
+   */
+  async actualizarEstadoPedido(pedidoId, nuevoEstado, transaction = null) {
     throw new Error("Not implemented");
   }
 
-  // 3. Actualizar el precio final en la cabecera del pedido
-  async actualizarTotalPedido(pedidoId, nuevoTotal) {
-   throw new Error("Not implemented");
-  }
-  async cerrarMesa(mesaId) {
+  /**
+   * Obtiene los detalles de un pedido.
+   */
+  async obtenerDetallesPedido(pedidoId) {
     throw new Error("Not implemented");
   }
 
-  actualizarMesa(mesa) {
+  /**
+   * Elimina los detalles asociados a un pedido.
+   */
+  async eliminarDetallesPedido(pedidoId, transaction = null) {
+    throw new Error("Not implemented");
+  }
+
+  /**
+   * Actualiza el total del pedido.
+   */
+  async actualizarTotalPedido(pedidoId, nuevoTotal, transaction = null) {
     throw new Error("Not implemented");
   }
 }
-
 
 module.exports = PedidoRepository;

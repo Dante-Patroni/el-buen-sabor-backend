@@ -28,17 +28,14 @@ module.exports = (sequelize, DataTypes) => {
       },
 
       precio: {
-        type: DataTypes.FLOAT,
+        type: DataTypes.DECIMAL(10, 2),
         allowNull: false,
+        validate: {
+          min: 0
+        }
       },
 
       // ===== STOCK OPERATIVO =====
-
-      stockInicial: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        defaultValue: 0,
-      },
 
       stockActual: {
         type: DataTypes.INTEGER,

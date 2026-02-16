@@ -1,25 +1,59 @@
 class PlatoRepository {
-    //LISTAR MENU COMPLETO
-    async listarMenuCompleto() {
-        throw new Error("Método no implementado");
-    }
-    // CREAR NUEVO PRODUCTO
-    async crearNuevoProducto(datos) {
-        throw new Error("Método no implementado");
-    }
 
-    async actualizarStock(id, nuevoStock) {
-        throw new Error("Método no implementado");
-    }
-    
-    async buscarPorId(id) {
+  /**
+   * Ejecuta una función dentro de una transacción.
+   */
+  async inTransaction(callback) {
     throw new Error("Not implemented");
   }
 
-   //MODIFICAR PRODUCTO ID
-    async modificarProductoSeleccionado(id, datos) {
-        throw new Error("Método no implementado");
-    }
+  // ================================
+  // CONSULTAS
+  // ================================
+
+  async listarMenuCompleto() {
+    throw new Error("Not implemented");
+  }
+
+  async buscarPorId(id, transaction = null) {
+    throw new Error("Not implemented");
+  }
+
+  async buscarPorNombre(nombre, transaction = null) {
+    throw new Error("Not implemented");
+  }
+
+  // ================================
+  // ESCRITURAS
+  // ================================
+
+  async crearNuevoProducto(datos, transaction = null) {
+    throw new Error("Not implemented");
+  }
+
+  async modificarProductoSeleccionado(id, datos, transaction = null) {
+    throw new Error("Not implemented");
+  }
+
+  async eliminarPorId(id, transaction = null) {
+    throw new Error("Not implemented");
+  }
+
+  async actualizarStock(id, nuevoStock, transaction = null) {
+    throw new Error("Not implemented");
+  }
+
+  // ================================
+  // OPERACIONES ATÓMICAS (OPCIONAL PRO)
+  // ================================
+
+  async descontarStockAtomico(id, cantidad, transaction) {
+    throw new Error("Not implemented");
+  }
+
+  async restaurarStockAtomico(id, cantidad, transaction) {
+    throw new Error("Not implemented");
+  }
 
 }
 

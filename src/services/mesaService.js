@@ -1,6 +1,8 @@
+
 class MesaService {
-  constructor(mesaRepository) {
+  constructor(mesaRepository, pedidoRepository) {
     this.mesaRepository = mesaRepository;
+    this.pedidoRepository = pedidoRepository;
   }
 
   // --------------------------------------------------
@@ -53,8 +55,42 @@ class MesaService {
   // --------------------------------------------------
   // 4. CERRAR MESA
   // --------------------------------------------------
-  async cerrarMesa(mesaId) {
-    const mesa = await this.obtenerPorId(mesaId);
+ /**
+ * Cierra una mesa dentro de una transacción.
+ *
+ * Esta operación es atómica: si alguna parte falla
+ * (validación, actualización, pedidos), todo se revierte.
+ *
+ * El Service define la lógica de negocio.
+ * El Repository se encarga de ejecutar la transacción.
+ */
+async cerrarMesa(mesaId) {
+
+  // Se delega al repository la ejecución transaccional.
+  // Le pasamos una función (callback) que contiene
+  // toda la lógica que debe ejecutarse de forma atómica.
+  return await this.mesaRepository.inTransaction(async (transaction) => {
+
+    /**
+     * 🔹 ¿Qué es este "transaction"?
+     *
+     * Es el objeto de transacción que el Repository creó
+     * internamente usando Sequelize.
+     *
+     * El Service NO sabe cómo se creó.
+     * Solo lo recibe y lo pasa a los métodos que deben
+     * ejecutarse dentro de la misma unidad atómica.
+     */
+
+    // 1️⃣ Buscar la mesa dentro de la transacción
+    const mesa = await this.mesaRepository.buscarMesaPorId(mesaId, transaction);
+
+    // 2️⃣ Validaciones de negocio
+    if (!mesa) {
+      const error = new Error("MESA_NO_ENCONTRADA");
+      error.status = 404;
+      throw error; // Si lanzamos error → inTransaction hará rollback
+    }
 
     if (mesa.estado === "libre") {
       const error = new Error("MESA_YA_LIBRE");
@@ -62,19 +98,36 @@ class MesaService {
       throw error;
     }
 
+    // 3️⃣ Guardamos el total antes de resetear la mesa
     const totalCobrado = Number(mesa.totalActual) || 0;
 
+    // 4️⃣ Actualizamos los pedidos asociados a la mesa
+    // También dentro de la misma transacción
+    await this.pedidoRepository.marcarPedidosComoPagados(mesaId, transaction);
+
+    // 5️⃣ Modificamos el estado de la entidad en memoria
     mesa.estado = "libre";
     mesa.totalActual = 0;
     mesa.mozoId = null;
 
-    await this.mesaRepository.actualizarMesa(mesa);
+    /**
+     * 🔹 Punto clave:
+     * El Service decide QUÉ cambiar.
+     * El Repository solo persiste.
+     */
 
+    await this.mesaRepository.actualizarMesa(mesa, transaction);
+
+    // 6️⃣ Retornamos información relevante
+    // Este valor será el que devuelva inTransaction
     return {
       mesaId: mesa.id,
       totalCobrado
     };
-  }
+  });
+}
+
+
 
   // --------------------------------------------------
   // 5. SUMAR TOTAL A MESA
