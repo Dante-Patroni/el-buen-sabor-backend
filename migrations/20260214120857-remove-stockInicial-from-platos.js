@@ -2,13 +2,19 @@
 
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.removeColumn('Platos', 'stockInicial');
+    const tableInfo = await queryInterface.describeTable('Platos');
+    if (tableInfo.stockInicial) {
+      await queryInterface.removeColumn('Platos', 'stockInicial');
+    }
   },
 
   async down(queryInterface, Sequelize) {
-    await queryInterface.addColumn('Platos', 'stockInicial', {
-      type: Sequelize.INTEGER,
-      allowNull: true
-    });
+    const tableInfo = await queryInterface.describeTable('Platos');
+    if (!tableInfo.stockInicial) {
+      await queryInterface.addColumn('Platos', 'stockInicial', {
+        type: Sequelize.INTEGER,
+        allowNull: true
+      });
+    }
   }
 };
