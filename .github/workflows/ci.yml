@@ -1,60 +1,74 @@
-name: CI
+name: CI - El Buen Sabor Backend
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: ["main"]
   pull_request:
-    branches: [ main ]
+    branches: ["main"]
 
 jobs:
-  test:
+  build-and-test:
     runs-on: ubuntu-latest
 
+    # 🐳 SERVICIOS: Levantamos las bases de datos temporales
     services:
       mysql:
-        image: mysql:8
+        image: mysql:8.0
         env:
           MYSQL_ROOT_PASSWORD: root
           MYSQL_DATABASE: el_buen_sabor_test
         ports:
           - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+      # MongoDB para la conexión de stock/logs
+      mongo:
+        image: mongo:5.0
+        ports:
+          - 27017:27017
         options: >-
-          --health-cmd="mysqladmin ping --silent"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
+          --health-cmd mongo
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
-      - name: Checkout
+      - name: Checkout del código
         uses: actions/checkout@v3
 
-      - name: Use Node
+      - name: Instalar Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: 18
+          node-version: "18"
+          cache: "npm"
 
-      - name: Install dependencies
-        run: npm install
+      - name: Instalar dependencias
+        run: npm ci
 
-      - name: Wait for MySQL
+      # 🚀 EJECUCIÓN: Preparamos el terreno y corremos los tests
+      - name: Ejecutar Tests E2E
+        env:
+          PORT: 3000
+          MONGO_URI: mongodb://localhost:27017/el_buen_sabor_test
+          DB_USERNAME: root
+          DB_PASSWORD: root
+          DB_DATABASE: el_buen_sabor_test
+          DB_HOST: 127.0.0.1
+          NODE_ENV: test
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+
         run: |
-          until mysql -h 127.0.0.1 -u root -proot -e "SELECT 1"; do
-            echo "Waiting for MySQL..."
-            sleep 2
-          done
+          # 1. Crear tablas en MySQL
+          npx sequelize-cli db:migrate
 
-      - name: Run migrations
-        run: npx sequelize-cli db:migrate
-        env:
-          NODE_ENV: test
+          # 2. Cargar datos de prueba
+          npx sequelize-cli db:seed:all
 
-      - name: Start server
-        run: npm run start:test &
-        env:
-          NODE_ENV: test
+          # 3. Arrancar servidor en background
+          npm start &
 
-      - name: Wait for server
-        run: sleep 10
+          # 4. Esperar a que el puerto 3000 responda
+          npx wait-on http://127.0.0.1:3000/api-docs
 
-      - name: Run Newman tests
-        run: npx newman run tests/tests.json
+          # 5. Correr Newman
+          npm test
