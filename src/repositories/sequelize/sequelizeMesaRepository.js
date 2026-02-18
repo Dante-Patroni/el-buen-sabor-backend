@@ -55,6 +55,23 @@ class SequelizeMesaRepository extends MesaRepository {
     }
   }
 
+  async abrirMesaSiEstaLibre(mesaId, mozoId) {
+    const [affectedRows] = await Mesa.update(
+      {
+        estado: "ocupada",
+        mozoId: mozoId,
+        totalActual: 0
+      },
+      {
+        where: {
+          id: mesaId,
+          estado: "libre"
+        }
+      }
+    );
+
+    return affectedRows;
+  }
 
 
   /**
@@ -92,8 +109,6 @@ class SequelizeMesaRepository extends MesaRepository {
   async cerrarMesa(mesa, transaction = null) {
     return await mesa.save({ transaction });
   }
-
-
 }
 
 module.exports = SequelizeMesaRepository;

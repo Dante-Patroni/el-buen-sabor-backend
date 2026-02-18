@@ -26,7 +26,7 @@ class PedidoService {
       }
 
       // 1️⃣ Validar mesa a través de MesaService
-      const mesa = await this.mesaService.obtenerMesaPorNumero(mesaNumero);
+      const mesa = await this.mesaService.obtenerPorId(mesaNumero);
       if (!mesa) {
         throw new Error("MESA_NO_ENCONTRADA");
       }
@@ -220,52 +220,51 @@ class PedidoService {
 
   }
 
-  //MODIFICAR  UN PEDIDO
- async actualizarEstadoPedido(pedidoId, nuevoEstado) {
+  //ACTUALIZAR ESTADO PEDIDO PENDIENTE-->EN_PREPARACION-->ENTREGADO-->PAGADO
+  async actualizarEstadoPedido(pedidoId, nuevoEstado) {
+    return await this.pedidoRepository.inTransaction(async (transaction) => {
+      if (!pedidoId) {
+        throw new Error("PEDIDO_ID_INVALIDO");
+      }
 
-  if (!pedidoId) {
-    throw new Error("PEDIDO_ID_INVALIDO");
+      const pedido = await this.pedidoRepository.buscarPedidoPorId(pedidoId, transaction);
+
+      if (!pedido) {
+        throw new Error("PEDIDO_NO_ENCONTRADO");
+      }
+
+      if (pedido.estado === "pagado") {
+        throw new Error("NO_SE_PUEDE_MODIFICAR_PEDIDO_PAGADO");
+      }
+
+      if (nuevoEstado === "pagado") {
+        throw new Error("ESTADO_PAGADO_SOLO_DESDE_CIERRE_DE_MESA");
+      }
+
+      const transicionesValidas = {
+        pendiente: ["en_preparacion"],
+        en_preparacion: ["entregado"],
+        entregado: [],
+      };
+
+      const estadosPermitidos = transicionesValidas[pedido.estado] || [];
+
+      if (!estadosPermitidos.includes(nuevoEstado)) {
+        throw new Error("TRANSICION_ESTADO_INVALIDA");
+      }
+
+      await this.pedidoRepository.actualizarEstadoPedido(pedidoId, nuevoEstado, transaction);
+      return { pedidoId, nuevoEstado }; // ✅ Agregar esta línea
+    }).then(({ pedidoId, nuevoEstado }) => { // ✅ Desestructurar correctamente//Si hay un error no se emite el evento
+
+      // 🔔 Evento DESPUÉS de persistir
+      this.pedidoEmitter?.emit("pedido-estado-actualizado", {
+        pedidoId, estado: nuevoEstado
+      });
+
+      return true;
+    });
   }
-
-  const pedido = await this.pedidoRepository.buscarPedidoPorId(pedidoId);
-
-  if (!pedido) {
-    throw new Error("PEDIDO_NO_ENCONTRADO");
-  }
-
-  if (pedido.estado === "pagado") {
-    throw new Error("NO_SE_PUEDE_MODIFICAR_PEDIDO_PAGADO");
-  }
-
-  if (nuevoEstado === "pagado") {
-    throw new Error("ESTADO_PAGADO_SOLO_DESDE_CIERRE_DE_MESA");
-  }
-
-  const transicionesValidas = {
-    pendiente: ["en_preparacion"],
-    en_preparacion: ["entregado"],
-    entregado: [],
-  };
-
-  const estadosPermitidos = transicionesValidas[pedido.estado] || [];
-
-  if (!estadosPermitidos.includes(nuevoEstado)) {
-    throw new Error("TRANSICION_ESTADO_INVALIDA");
-  }
-
-  await this.pedidoRepository.actualizarEstadoPedido(
-    pedidoId,
-    nuevoEstado
-  );
-
-  // 🔔 Evento DESPUÉS de persistir
-  this.pedidoEmitter?.emit("pedido-estado-actualizado", {
-    pedidoId,
-    estado: nuevoEstado
-  });
-
-  return true;
-}
 
 
 

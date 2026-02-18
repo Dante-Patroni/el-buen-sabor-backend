@@ -64,7 +64,7 @@
       "response": []
     },
     {
-      "name": "0. SETUP - Reponer Stock",
+      "name": "2. SETUP - Reponer Stock",
       "event": [
         {
           "listen": "test",
@@ -490,46 +490,56 @@
       "response": []
     },
     {
-      "name": "Crear Plato",
+      "name": "Listar Menú",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/api/platos",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "api",
+            "platos"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Crear Prod. c/stock",
       "event": [
         {
           "listen": "test",
           "script": {
             "exec": [
-              "// 1. Validar creación correcta\r",
-              "pm.test(\"Status code is 201\", function () {\r",
+              "pm.test(\"Producto creado correctamente\", function () {\r",
               "    pm.response.to.have.status(201);\r",
+              "\r",
+              "    let jsonData = pm.response.json();\r",
+              "\r",
+              "    pm.expect(jsonData.stockActual).to.eql(15);\r",
+              "\r",
+              "    // Guardamos idPlato para tests siguientes\r",
+              "    pm.collectionVariables.set(\"idPlato\", jsonData.id);\r",
+              "\r",
+              "    console.log(\"ID GUARDADO:\", jsonData.id);\r",
               "});\r",
-              "\r",
-              "// Si no se creó, no seguimos\r",
-              "if (pm.response.code !== 201) {\r",
-              "    console.warn(\"El plato no fue creado, se cancelan tests siguientes\");\r",
-              "    return;\r",
-              "}\r",
-              "\r",
-              "// 2. Validar estructura de respuesta\r",
-              "const jsonData = pm.response.json();\r",
-              "\r",
-              "pm.test(\"El plato fue creado correctamente\", function () {\r",
-              "    pm.expect(jsonData).to.have.property(\"id\");\r",
-              "    pm.expect(jsonData).to.have.property(\"nombre\");\r",
-              "    pm.expect(jsonData).to.have.property(\"precio\");\r",
-              "});\r",
-              "\r",
-              "// 3. Validar datos de negocio\r",
-              "pm.test(\"Datos del plato correctos\", function () {\r",
-              "    pm.expect(jsonData.nombre).to.eql(\"Milanesa Napolitana\");\r",
-              "    pm.expect(jsonData.precio).to.be.above(0);\r",
-              "});\r",
-              "\r",
-              "// 4. Guardar ID para pasos siguientes (imagen, edición)\r",
-              "pm.collectionVariables.set(\"platoId\", jsonData.id);\r",
-              "\r",
-              "console.log(\"Plato creado con ID:\", jsonData.id);"
+              ""
             ],
             "type": "text/javascript",
             "packages": {},
             "requests": {}
+          }
+        },
+        {
+          "listen": "prerequest",
+          "script": {
+            "packages": {},
+            "type": "text/javascript"
           }
         }
       ],
@@ -548,7 +558,7 @@
         "header": [],
         "body": {
           "mode": "raw",
-          "raw": "{\r\n  \"nombre\": \"Milanesa Napolitana\",\r\n  \"precio\": 8500,\r\n  \"rubroId\": 1,\r\n  \"esMenuDelDia\": true\r\n}\r\n",
+          "raw": "{\r\n  \"nombre\": \"Hamburguesa Vegana Test {{$timestamp}}\",\r\n  \"descripcion\": \"Medallón de lentejas, rúcula y tomate.\",\r\n  \"precio\": 7200,\r\n  \"rubroId\": 1,\r\n  \"esMenuDelDia\": false,\r\n  \"esIlimitado\": false,\r\n  \"stockActual\": 15\r\n}\r\n\r\n",
           "options": {
             "raw": {
               "language": "json"
@@ -571,13 +581,145 @@
       "response": []
     },
     {
+      "name": "Crear Producto stock ilimitado",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Producto ilimitado creado correctamente\", function () {\r",
+              "    pm.response.to.have.status(201);\r",
+              "\r",
+              "    let jsonData = pm.response.json();\r",
+              "\r",
+              "    pm.expect(jsonData.esIlimitado).to.eql(true);\r",
+              "});\r",
+              "\r",
+              "\r",
+              ""
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_seguridad}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"nombre\": \"Coca Cola Test {{$timestamp}}\",\r\n  \"precio\": 4500,\r\n  \"rubroId\": 2,\r\n  \"esMenuDelDia\": false,\r\n  \"esIlimitado\": true\r\n}\r\n",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:3000/api/platos",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "api",
+            "platos"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Modificar producto/plato",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_seguridad}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "PUT",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"precio\": 9000,\r\n  \"stockInicial\": 50,\r\n  \"esMenuDelDia\": true\r\n}\r\n",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:3000/api/platos/55",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "api",
+            "platos",
+            "55"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Eliminar Producto/Plato",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_seguridad}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/api/platos/55",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "api",
+            "platos",
+            "55"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
       "name": "Subir Imagen Plato",
       "event": [
         {
           "listen": "test",
           "script": {
             "exec": [
-              "pm.test(\"Respuesta controlada del servidor\", function () {\r",
+              "pm.test(\"Imagen subida correctamente o controlada\", function () {\r",
               "    pm.expect(pm.response.code).to.be.oneOf([200, 201, 400]);\r",
               "});\r",
               "\r",
@@ -633,7 +775,7 @@
           ]
         },
         "url": {
-          "raw": "http://localhost:3000/api/platos/{{platoId}}/imagen",
+          "raw": "http://localhost:3000/api/platos/{{idPlato}}/imagen",
           "protocol": "http",
           "host": [
             "localhost"
@@ -642,7 +784,7 @@
           "path": [
             "api",
             "platos",
-            "{{platoId}}",
+            "{{idPlato}}",
             "imagen"
           ]
         }
@@ -831,6 +973,10 @@
     },
     {
       "key": "platoId",
+      "value": ""
+    },
+    {
+      "key": "idPlato",
       "value": ""
     }
   ]

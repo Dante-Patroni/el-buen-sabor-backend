@@ -1,5 +1,9 @@
 class MesaRepository {
 
+  async abrirMesaSiEstaLibre(mesaId, mozoId) {
+    throw new Error("Not implemented");
+  }
+
   /**
    * Devuelve todas las mesas con su mozo asociado
    */

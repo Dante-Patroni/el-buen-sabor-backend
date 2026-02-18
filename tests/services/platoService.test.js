@@ -10,12 +10,14 @@ describe("PlatoService - Test Suite", () => {
       listarMenuCompleto: jest.fn(),
       crearNuevoProducto: jest.fn(),
       buscarPorId: jest.fn(),            // ✅ Coincide con tu corrección
+      buscarPorNombre: jest.fn(),        // ✅ Usado en _validarProducto
       modificarProductoSeleccionado: jest.fn(),
       actualizarProducto: jest.fn(),
+      inTransaction: jest.fn((callback) => callback(null)), // ✅ Mock de transacción
     };
 
     platoService = new PlatoService(platoRepositoryMock);
-    jest.clearAllMocks(); 
+    jest.clearAllMocks();
   });
 
   // 🧪 1. LISTAR MENÚ
@@ -33,7 +35,8 @@ describe("PlatoService - Test Suite", () => {
 
   // 🧪 2. CREAR PLATO
   test("crearNuevoProducto crea un plato correctamente", async () => {
-    const datosPlato = { nombre: "Milanesa", precio: 1800, rubroId: 1 };
+    const datosPlato = { nombre: "Milanesa", precio: 1800, rubroId: 1, stockActual: 10 };
+    platoRepositoryMock.buscarPorNombre.mockResolvedValue(null); // No existe duplicado
     platoRepositoryMock.crearNuevoProducto.mockResolvedValue(datosPlato);
 
     const resultado = await platoService.crearNuevoProducto(datosPlato);
@@ -48,14 +51,15 @@ describe("PlatoService - Test Suite", () => {
 
     // Usamos buscarPorId
     platoRepositoryMock.buscarPorId.mockResolvedValue(platoExistente);
-    
+    platoRepositoryMock.buscarPorNombre.mockResolvedValue(null);
+
     platoRepositoryMock.modificarProductoSeleccionado.mockResolvedValue({
       ...platoExistente, ...datosActualizados,
     });
 
     const resultado = await platoService.modificarProducto(1, datosActualizados);
 
-    expect(platoRepositoryMock.buscarPorId).toHaveBeenCalledWith(1);
+    expect(platoRepositoryMock.buscarPorId).toHaveBeenCalledWith(1, null);
     expect(resultado.precio).toBe(1200);
   });
 
@@ -84,7 +88,7 @@ describe("PlatoService - Test Suite", () => {
     const resultado = await platoService.cargarImagenProducto(id, filename);
 
     expect(platoRepositoryMock.modificarProductoSeleccionado).toHaveBeenCalledWith(
-      id, { imagenPath: rutaFinal }
+      id, { imagenPath: rutaFinal }, null
     );
     expect(resultado.imagenPath).toBe(rutaFinal);
   });

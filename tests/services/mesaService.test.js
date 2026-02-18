@@ -3,6 +3,7 @@ const MesaService = require("../../src/services/mesaService");
 describe("MesaService", () => {
 
   let mesaRepositoryMock;
+  let pedidoRepositoryMock;
   let mesaService;
 
   beforeEach(() => {
@@ -10,9 +11,14 @@ describe("MesaService", () => {
       listarMesasConMozo: jest.fn(),
       buscarMesaPorId: jest.fn(),
       actualizarMesa: jest.fn(),
+      inTransaction: jest.fn((callback) => callback(null)), // Mock de transacción
     };
 
-    mesaService = new MesaService(mesaRepositoryMock);
+    pedidoRepositoryMock = {
+      marcarPedidosComoPagados: jest.fn(),
+    };
+
+    mesaService = new MesaService(mesaRepositoryMock, pedidoRepositoryMock);
   });
 
   test("listar delega la búsqueda al mesaRepository", async () => {
@@ -47,7 +53,7 @@ describe("MesaService", () => {
     const resultado = await mesaService.abrirMesa(1, 10);
 
     // Assert
-    expect(mesaRepositoryMock.buscarMesaPorId).toHaveBeenCalledWith(1);
+    expect(mesaRepositoryMock.buscarMesaPorId).toHaveBeenCalledWith(1, null);
     expect(mesaFake.estado).toBe("ocupada");
     expect(mesaFake.mozoId).toBe(10);
     expect(mesaRepositoryMock.actualizarMesa).toHaveBeenCalledWith(mesaFake);
@@ -75,7 +81,7 @@ describe("MesaService", () => {
     expect(mesaFake.mozoId).toBe(null);
 
     expect(mesaRepositoryMock.actualizarMesa)
-      .toHaveBeenCalledWith(mesaFake);
+      .toHaveBeenCalledWith(mesaFake, null);
 
     expect(resultado).toEqual({
       mesaId: 4,
@@ -99,7 +105,7 @@ describe("MesaService", () => {
 
     await expect(
       mesaService.cerrarMesa(1)
-    ).rejects.toThrow("MESA_YA_CERRADA");
+    ).rejects.toThrow("MESA_YA_LIBRE");
   });
 
 });

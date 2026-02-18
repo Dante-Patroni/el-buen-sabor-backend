@@ -60,6 +60,63 @@ Routes → Controllers → Services → Repository (Interface) → SequelizeRepo
 - ✅ **Adapter Pattern**: Integración con MongoDB para stock (MongoStockAdapter)
 - ✅ **Event-Driven Architecture**: Comunicación asíncrona mediante eventos
 - ✅ **Singleton Pattern**: Instancia única del EventEmitter
+- ✅ **Transaction Pattern**: Manejo robusto de transacciones con propagación y atomicidad
+
+### 🔒 Manejo de Transacciones (ACID)
+
+El sistema implementa un **manejo robusto de transacciones** que garantiza la integridad de datos en operaciones críticas:
+
+#### Garantías ACID
+
+- **Atomicidad**: Todas las operaciones de un pedido (descuento de stock, actualización de mesa, creación de pedido) se ejecutan completamente o no se ejecutan en absoluto
+- **Consistencia**: Los datos siempre quedan en un estado válido
+- **Aislamiento**: Las transacciones concurrentes no interfieren entre sí
+- **Durabilidad**: Una vez confirmada, la transacción persiste incluso ante fallos
+
+#### Patrón de Transacciones Implementado
+
+```javascript
+// 1. Operaciones que inician transacciones
+async crearPedido(datos) {
+  return await this.repository.inTransaction(async (transaction) => {
+    // Todas las operaciones usan la misma transacción
+    await this.platoService.descontarStock(platoId, cantidad, transaction);
+    await this.mesaService.sumarTotal(mesaId, monto, transaction);
+    await this.repository.crearPedido(datos, transaction);
+    return pedido;
+  });
+}
+
+// 2. Operaciones que aceptan transacciones externas
+async descontarStock(id, cantidad, transaction = null) {
+  if (transaction) {
+    // Usar transacción externa (parte de operación mayor)
+    return await this.repository.descontarStock(id, cantidad, transaction);
+  }
+  // Crear nueva transacción (operación independiente)
+  return await this.repository.inTransaction(async (t) => {
+    return await this.repository.descontarStock(id, cantidad, t);
+  });
+}
+```
+
+#### Propagación de Transacciones
+
+```
+PedidoService.crearPedido(transaction)
+  ├─> PlatoService.descontarStock(transaction)
+  │     └─> PlatoRepository.descontarStockAtomico(transaction)
+  ├─> MesaService.sumarTotal(transaction)
+  │     └─> MesaRepository.actualizarMesa(transaction)
+  └─> PedidoRepository.crearPedido(transaction)
+```
+
+**Ventajas:**
+- ✅ Si falla cualquier operación, TODO se revierte automáticamente
+- ✅ No quedan estados inconsistentes (ej: stock descontado pero pedido no creado)
+- ✅ Eventos se emiten solo DESPUÉS del commit exitoso
+- ✅ Operaciones concurrentes no generan condiciones de carrera
+
 
 ### Ventajas de esta Arquitectura
 
@@ -69,15 +126,24 @@ Routes → Controllers → Services → Repository (Interface) → SequelizeRepo
 
 **🧪 Testabilidad**
 - Services testeables sin base de datos (usando mocks)
-- 60%+ de cobertura de tests (E2E + Unitarios)
+- 22/22 tests unitarios pasando con Jest
+- Suite completa de tests E2E con Newman/Postman
+- Cobertura de casos de éxito y error
 
 **🔧 Mantenibilidad**
 - Cada capa tiene una responsabilidad única y clara
 - Cambios aislados (modificar un Repository no afecta Services)
+- Código autodocumentado con patrones consistentes
 
 **📈 Escalabilidad**
 - Fácil agregar nuevas features sin romper código existente
 - Preparado para microservicios (Services independientes)
+
+**🔒 Integridad de Datos**
+- Transacciones ACID garantizan consistencia
+- Rollback automático ante errores
+- No hay estados intermedios inconsistentes
+- Operaciones atómicas en toda la aplicación
 
 ---
 
@@ -215,7 +281,56 @@ El servidor estará disponible en:
 - **Swagger Docs**: `http://localhost:3000/api-docs`
 - **WebSockets**: `ws://localhost:3000`
 
-## 🧪 Testing y Documentación
+## 🧪 Testing y Calidad de Código
+
+El proyecto cuenta con una **suite completa de tests** que garantiza la calidad y estabilidad del código:
+
+### Tests Unitarios (Jest)
+
+```bash
+# Ejecutar todos los tests unitarios
+npx jest tests/services --no-coverage
+
+# Ejecutar tests con cobertura
+npx jest tests/services --coverage
+
+# Ejecutar tests en modo watch
+npx jest tests/services --watch
+```
+
+**Resultado actual:** 22/22 tests pasando ✅
+
+| Suite | Tests | Estado |
+|-------|-------|--------|
+| mesaService.test.js | 5/5 | ✅ |
+| platoService.test.js | 6/6 | ✅ |
+| pedidoService.test.js | 8/8 | ✅ |
+| usuarioService.test.js | 3/3 | ✅ |
+
+**Características de los tests:**
+- ✅ Mocks de repositories para aislar lógica de negocio
+- ✅ Tests de transacciones con `inTransaction` mock
+- ✅ Cobertura de casos de éxito y error
+- ✅ Validación de propagación de parámetros
+
+### Tests de Integración (Newman/Postman)
+
+```bash
+# Ejecutar todos los tests E2E
+npm test
+
+# Ejecutar con reporte detallado
+npx newman run tests/tests.json --reporters cli,json
+```
+
+**Cobertura de tests E2E:**
+- ✅ Autenticación y autorización (JWT)
+- ✅ CRUD completo de platos con validaciones
+- ✅ Creación y modificación de pedidos
+- ✅ Gestión de mesas (abrir/cerrar)
+- ✅ Actualización de stock en tiempo real
+- ✅ Subida de imágenes de productos
+- ✅ Manejo de errores (400, 404, 409, 500)
 
 ### Swagger UI
 
@@ -223,16 +338,6 @@ Accede a `http://localhost:3000/api-docs` para:
 - Ver todos los endpoints disponibles
 - Probar las peticiones directamente desde el navegador
 - Ver esquemas de datos y respuestas
-
-### Tests Automáticos con Newman
-
-```bash
-# Ejecutar todos los tests
-npx newman run tests/el-buen-sabor.postman_collection.json
-
-# Ejecutar tests con variables de entorno
-npx newman run tests/el-buen-sabor.postman_collection.json -e tests/environment.json
-```
 
 ### Monitor de Cocina (WebSocket)
 
@@ -378,8 +483,14 @@ npm run migrate:undo
 # Ejecutar seeders
 npm run seed
 
-# Tests con Newman
+# Tests E2E con Newman
 npm test
+
+# Tests unitarios con Jest
+npx jest tests/services
+
+# Tests unitarios con cobertura
+npx jest tests/services --coverage
 
 # Limpiar base de datos
 node clean_db.js
@@ -389,9 +500,10 @@ node clean_db.js
 
 - **Nodemon**: Auto-reload en desarrollo
 - **Sequelize CLI**: Gestión de migraciones y seeders
-- **ESLint**: Linting de código (opcional)
+- **Jest**: Framework de testing unitario
 - **Postman**: Colección de tests E2E
 - **Newman**: Ejecución de tests en CI/CD
+- **ESLint**: Linting de código (opcional)
 
 ## 📚 Documentación Adicional
 

@@ -6,6 +6,7 @@ const MesaService = require("../services/mesaService");
 const MesaController = require("../controllers/mesaController");
 const authMiddleware = require("../middlewares/authMiddleware");
 const SequelizeMesaRepository = require("../repositories/sequelize/sequelizeMesaRepository");
+const SequelizePedidoRepository = require("../repositories/sequelize/sequelizePedidoRepository");
 
 
 // 1. Instanciamos Repositorio
@@ -182,4 +183,3 @@ router.post("/:id/cerrar", authMiddleware, mesaController.cerrarMesa);
 
 
 module.exports = router;
- 

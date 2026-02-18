@@ -12,11 +12,14 @@ const mockPedidoRepository = {
   eliminarDetallesPedido: jest.fn(),
   eliminarPedidoPorId: jest.fn(),
   buscarPedidosPorMesa: jest.fn(),
+  actualizarTotalPedido: jest.fn(),
+  inTransaction: jest.fn((callback) => callback(null)), // ✅ Mock de transacción
 };
 
-const mockPlatoRepository = {
+const mockPlatoService = { // ✅ Cambio: ahora es Service, no Repository
   buscarPorId: jest.fn(),
-  actualizarStock: jest.fn(),
+  descontarStock: jest.fn(), // ✅ Usado en crear/modificar
+  restaurarStock: jest.fn(), // ✅ Usado en eliminar/modificar
 };
 
 const mockPedidoEmitter = {
@@ -24,8 +27,10 @@ const mockPedidoEmitter = {
 };
 
 const mockMesaService = {
+  obtenerMesaPorNumero: jest.fn(), // ✅ Usado en crearYValidarPedido
   sumarTotal: jest.fn(),
   restarTotal: jest.fn(),
+  ajustarTotal: jest.fn(), // ✅ Usado en modificarPedido
   cerrarMesa: jest.fn()
 };
 
@@ -35,9 +40,9 @@ const mockMesaService = {
 // ------------------------------------------------------
 const pedidoService = new PedidoService(
   mockPedidoRepository,
-  mockPlatoRepository,
-  mockMesaService,   // 👈 tercero
-  mockPedidoEmitter  // 👈 cuarto
+  mockPlatoService,   // 👈 segundo (ahora es Service)
+  mockMesaService,    // 👈 tercero
+  mockPedidoEmitter   // 👈 cuarto
 );
 
 
@@ -83,7 +88,7 @@ describe("PedidoService - Test Suite Completa", () => {
       productos: [{ platoId: 1, cantidad: 2 }]
     };
 
-    mockPlatoRepository.buscarPorId.mockResolvedValue({
+    mockPlatoService.buscarPorId.mockResolvedValue({
       id: 1,
       precio: 5000,
       stockActual: 10
@@ -94,6 +99,12 @@ describe("PedidoService - Test Suite Completa", () => {
       toJSON: () => ({ id: 1 })
     });
 
+    mockMesaService.obtenerMesaPorNumero.mockResolvedValue({
+      id: 4,
+      estado: "ocupada"
+    });
+
+    mockPlatoService.descontarStock.mockResolvedValue(true);
     mockMesaService.sumarTotal.mockResolvedValue({});
 
     await pedidoService.crearYValidarPedido(datosPedido);
@@ -102,13 +113,13 @@ describe("PedidoService - Test Suite Completa", () => {
     const pedidoCreado = mockPedidoRepository.crearPedido.mock.calls[0][0];
     expect(pedidoCreado.total).toBe(10000);
 
-    // Stock actualizado
-    expect(mockPlatoRepository.actualizarStock)
-      .toHaveBeenCalledWith(1, 8);
+    // Stock descontado vía PlatoService
+    expect(mockPlatoService.descontarStock)
+      .toHaveBeenCalledWith(1, 2, null);
 
     // Mesa actualizada vía MesaService
     expect(mockMesaService.sumarTotal)
-      .toHaveBeenCalledWith("4", 10000);
+      .toHaveBeenCalledWith("4", 10000, null);
   });
 
   test("eliminarPedido: restaura stock, resta total de mesa y elimina pedido", async () => {
@@ -117,30 +128,33 @@ describe("PedidoService - Test Suite Completa", () => {
     mockPedidoRepository.buscarPedidoPorId.mockResolvedValue({
       id: idPedido,
       mesa: "4",
-      total: 5000
+      total: 5000,
+      estado: "pendiente" // ✅ Necesario para pasar validación
     });
 
     mockPedidoRepository.obtenerDetallesPedido
       .mockResolvedValue([{ PlatoId: 1, cantidad: 1 }]);
 
-    mockPlatoRepository.buscarPorId
+    mockPlatoService.buscarPorId
       .mockResolvedValue({ id: 1, stockActual: 8 });
+
+    mockPlatoService.restaurarStock.mockResolvedValue(true);
 
     mockMesaService.restarTotal.mockResolvedValue({});
 
     await pedidoService.eliminarPedido(idPedido);
 
-    // Stock restaurado
-    expect(mockPlatoRepository.actualizarStock)
-      .toHaveBeenCalledWith(1, 9);
+    // Stock restaurado vía PlatoService
+    expect(mockPlatoService.restaurarStock)
+      .toHaveBeenCalledWith(1, 1, null);
 
     // Mesa actualizada vía MesaService
     expect(mockMesaService.restarTotal)
-      .toHaveBeenCalledWith("4", 5000);
+      .toHaveBeenCalledWith("4", 5000, null);
 
     // Pedido eliminado
     expect(mockPedidoRepository.eliminarPedidoPorId)
-      .toHaveBeenCalledWith(idPedido);
+      .toHaveBeenCalledWith(idPedido, null);
   });
 
   test("eliminarPedido: lanza error si el pedido no existe", async () => {
