@@ -2,11 +2,11 @@
 
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.removeColumn('platos', 'stockInicial');
+    await queryInterface.removeColumn('Platos', 'stockInicial');
   },
 
   async down(queryInterface, Sequelize) {
-    await queryInterface.addColumn('platos', 'stockInicial', {
+    await queryInterface.addColumn('Platos', 'stockInicial', {
       type: Sequelize.INTEGER,
       allowNull: true
     });
