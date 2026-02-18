@@ -57,4 +57,4 @@ jobs:
         run: sleep 10
 
       - name: Run Newman tests
-        run: npx newman run tests/postman_collection.json
+        run: npx newman run tests/tests.json
