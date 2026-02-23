@@ -26,7 +26,7 @@ class PedidoService {
       }
 
       // 1️⃣ Validar mesa a través de MesaService
-      const mesa = await this.mesaService.obtenerPorId(mesaNumero);
+      const mesa = await this.mesaService.obtenerPorId(mesaNumero, transaction);
       if (!mesa) {
         throw new Error("MESA_NO_ENCONTRADA");
       }

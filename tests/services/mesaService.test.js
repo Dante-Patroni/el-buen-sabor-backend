@@ -1,17 +1,21 @@
 const MesaService = require("../../src/services/mesaService");
 
 describe("MesaService", () => {
-
   let mesaRepositoryMock;
   let pedidoRepositoryMock;
   let mesaService;
 
   beforeEach(() => {
+    // Definimos una "transacción" ficticia para los tests
+    const transactionFake = { id: 'tx_123' };
+
     mesaRepositoryMock = {
       listarMesasConMozo: jest.fn(),
       buscarMesaPorId: jest.fn(),
       actualizarMesa: jest.fn(),
-      inTransaction: jest.fn((callback) => callback(null)), // Mock de transacción
+      abrirMesaSiEstaLibre: jest.fn(),
+      // El mock de inTransaction debe pasar la transacción fake al callback
+      inTransaction: jest.fn(async (callback) => await callback(transactionFake)),
     };
 
     pedidoRepositoryMock = {
@@ -21,67 +25,70 @@ describe("MesaService", () => {
     mesaService = new MesaService(mesaRepositoryMock, pedidoRepositoryMock);
   });
 
+  // --------------------------------------------------
+  // TEST: LISTAR
+  // --------------------------------------------------
   test("listar delega la búsqueda al mesaRepository", async () => {
-    // Arrange
-    const mesasFake = [
-      { id: 1, estado: "libre" },
-      { id: 2, estado: "ocupada" },
-    ];
-
+    const mesasFake = [{ id: 1, estado: "libre" }];
     mesaRepositoryMock.listarMesasConMozo.mockResolvedValue(mesasFake);
 
-    // Act
     const resultado = await mesaService.listar();
 
-    // Assert
     expect(mesaRepositoryMock.listarMesasConMozo).toHaveBeenCalledTimes(1);
     expect(resultado).toEqual(mesasFake);
   });
 
+  // --------------------------------------------------
+  // TEST: ABRIR MESA
+  // --------------------------------------------------
   test("abrirMesa abre una mesa libre", async () => {
-    // Arrange
-    const mesaFake = {
-      id: 1,
-      estado: "libre",
-      mozoId: null,
-    };
+    const mesaId = 1;
+    const mozoId = 10;
+    
+    mesaRepositoryMock.abrirMesaSiEstaLibre.mockResolvedValue(1);
 
-    mesaRepositoryMock.buscarMesaPorId.mockResolvedValue(mesaFake);
-    mesaRepositoryMock.actualizarMesa.mockResolvedValue(mesaFake);
+    const resultado = await mesaService.abrirMesa(mesaId, mozoId);
 
-    // Act
-    const resultado = await mesaService.abrirMesa(1, 10);
-
-    // Assert
-    expect(mesaRepositoryMock.buscarMesaPorId).toHaveBeenCalledWith(1, null);
-    expect(mesaFake.estado).toBe("ocupada");
-    expect(mesaFake.mozoId).toBe(10);
-    expect(mesaRepositoryMock.actualizarMesa).toHaveBeenCalledWith(mesaFake);
-    expect(resultado).toBe(mesaFake);
+    expect(mesaRepositoryMock.abrirMesaSiEstaLibre).toHaveBeenCalledWith(mesaId, mozoId);
+    // Según MesaService.js, el retorno es un objeto con 'mensaje'
+    expect(resultado).toEqual({ mensaje: "Mesa abierta correctamente" });
   });
 
+  test("abrirMesa lanza error si ya está ocupada", async () => {
+    mesaRepositoryMock.abrirMesaSiEstaLibre.mockResolvedValue(0);
+
+    await expect(mesaService.abrirMesa(1, 10)).rejects.toThrow("MESA_YA_OCUPADA");
+  });
+
+  // --------------------------------------------------
+  // TEST: CERRAR MESA
+  // --------------------------------------------------
   test("cerrarMesa cierra una mesa ocupada correctamente", async () => {
     // Arrange
+    const mesaId = 4;
     const mesaFake = {
-      id: 4,
+      id: mesaId,
       estado: "ocupada",
       totalActual: 15000,
       mozoId: 2
     };
 
     mesaRepositoryMock.buscarMesaPorId.mockResolvedValue(mesaFake);
-    mesaRepositoryMock.actualizarMesa.mockResolvedValue(mesaFake);
+    mesaRepositoryMock.actualizarMesa.mockResolvedValue(true);
+    pedidoRepositoryMock.marcarPedidosComoPagados.mockResolvedValue(true);
 
     // Act
-    const resultado = await mesaService.cerrarMesa(4);
+    const resultado = await mesaService.cerrarMesa(mesaId);
 
     // Assert
+    // Verificamos que los datos en memoria se resetearon
     expect(mesaFake.estado).toBe("libre");
     expect(mesaFake.totalActual).toBe(0);
     expect(mesaFake.mozoId).toBe(null);
 
-    expect(mesaRepositoryMock.actualizarMesa)
-      .toHaveBeenCalledWith(mesaFake, null);
+    // Verificamos la persistencia con la transacción
+    expect(pedidoRepositoryMock.marcarPedidosComoPagados).toHaveBeenCalledWith(mesaId, expect.anything());
+    expect(mesaRepositoryMock.actualizarMesa).toHaveBeenCalledWith(mesaFake, expect.anything());
 
     expect(resultado).toEqual({
       mesaId: 4,
@@ -92,9 +99,7 @@ describe("MesaService", () => {
   test("cerrarMesa lanza error si la mesa no existe", async () => {
     mesaRepositoryMock.buscarMesaPorId.mockResolvedValue(null);
 
-    await expect(
-      mesaService.cerrarMesa(99)
-    ).rejects.toThrow("MESA_NO_ENCONTRADA");
+    await expect(mesaService.cerrarMesa(99)).rejects.toThrow("MESA_NO_ENCONTRADA");
   });
 
   test("cerrarMesa lanza error si la mesa ya está libre", async () => {
@@ -103,9 +108,6 @@ describe("MesaService", () => {
       estado: "libre"
     });
 
-    await expect(
-      mesaService.cerrarMesa(1)
-    ).rejects.toThrow("MESA_YA_LIBRE");
+    await expect(mesaService.cerrarMesa(1)).rejects.toThrow("MESA_YA_LIBRE");
   });
-
 });

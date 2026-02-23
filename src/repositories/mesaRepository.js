@@ -24,10 +24,6 @@ class MesaRepository {
   async actualizarMesa(mesa, transaction = null) {
     throw new Error("Not implemented");
   }
-
-    async cerrarMesa(mesa) {
-    throw new Error("Not implemented");
-  }
   
   /// Ejecuta una función dentro de una transacción
   async inTransaction(callback) {

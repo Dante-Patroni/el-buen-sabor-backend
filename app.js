@@ -86,7 +86,7 @@ const startServer = async () => {
   try {
     await dbConnection();
  
-    await sequelize.sync({ force: false, alter: true });
+    await sequelize.sync({ force: false, alter: false });
     console.log("📦 Tablas MySQL sincronizadas");
     await seedDatabase();
 

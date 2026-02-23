@@ -10,7 +10,6 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
-    # 🐳 SERVICIOS: Levantamos las bases de datos temporales
     services:
       mysql:
         image: mysql:8.0
@@ -21,7 +20,6 @@ jobs:
           - 3306:3306
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
 
-      # MongoDB para la conexión de stock/logs
       mongo:
         image: mongo:5.0
         ports:
@@ -45,7 +43,15 @@ jobs:
       - name: Instalar dependencias
         run: npm ci
 
-      # 🚀 EJECUCIÓN: Preparamos el terreno y corremos los tests
+      # =========================
+      # 🧪 UNIT TESTS (JEST)
+      # =========================
+      - name: Ejecutar Unit Tests
+        run: npm run test:unit
+
+      # =========================
+      # 🌍 E2E TESTS (NEWMAN)
+      # =========================
       - name: Ejecutar Tests E2E
         env:
           PORT: 3000
@@ -58,17 +64,22 @@ jobs:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
         run: |
-          # 1. Crear tablas en MySQL
+          # 1. Migraciones
           npx sequelize-cli db:migrate
 
-          # 2. Cargar datos de prueba
+          # 2. Seeds
           npx sequelize-cli db:seed:all
 
-          # 3. Arrancar servidor en background
+          # 3. Levantar servidor
           npm start &
 
-          # 4. Esperar a que el puerto 3000 responda
+          # 4. Esperar servidor
           npx wait-on http://127.0.0.1:3000/api-docs
 
-          # 5. Correr Newman
-          npm test
+          # 5. Instalar Newman
+          npm install -g newman
+
+          # 6. Ejecutar colección
+          newman run postman/collection.json \
+            -e postman/environment.json \
+            --reporters cli
