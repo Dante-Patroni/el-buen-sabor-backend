@@ -80,6 +80,6 @@ jobs:
           npm install -g newman
 
           # 6. Ejecutar colección
-          newman run postman/collection.json \
-            -e postman/environment.json \
+          newman run tests/tests.json \
+            -e tests/entorno.json \
             --reporters cli
