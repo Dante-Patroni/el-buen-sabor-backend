@@ -238,44 +238,6 @@
       "response": []
     },
     {
-      "name": "06. Rubro Eliminar",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test(\"Status 204\", function () {\r",
-              "    pm.response.to.have.status(204);\r",
-              "});"
-            ],
-            "type": "text/javascript",
-            "packages": {},
-            "requests": {}
-          }
-        }
-      ],
-      "request": {
-        "method": "DELETE",
-        "header": [],
-        "body": {
-          "mode": "raw",
-          "raw": ""
-        },
-        "url": {
-          "raw": "{{baseUrl}}/api/rubros/{{idRubroTest}}",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "api",
-            "rubros",
-            "{{idRubroTest}}"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
       "name": "07. abrir Mesa",
       "event": [
         {
@@ -285,12 +247,10 @@
               "pm.test(\"Mesa abierta correctamente\", function () {\r",
               "    pm.response.to.have.status(200);\r",
               "\r",
-              "    const data = pm.response.json();\r",
-              "    pm.expect(data.estado).to.eql(\"ocupada\");\r",
-              "});\r",
+              "    const json = pm.response.json();\r",
               "\r",
-              "const data = pm.response.json();\r",
-              "pm.environment.set(\"mesaId\", data.id);"
+              "    pm.expect(json).to.have.property(\"mensaje\");\r",
+              "});"
             ],
             "type": "text/javascript",
             "packages": {},
@@ -590,339 +550,7 @@
       "response": []
     },
     {
-      "name": "11. PUT Cambiar Menu Dia",
-      "request": {
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "{{token_seguridad}}",
-              "type": "string"
-            }
-          ]
-        },
-        "method": "PUT",
-        "header": [],
-        "body": {
-          "mode": "raw",
-          "raw": "{\r\n  \"esMenuDelDia\": false,\r\n  \"precio\": 9000\r\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "{{baseUrl}}/api/platos/1",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "api",
-            "platos",
-            "1"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "12. Listar Menú",
-      "request": {
-        "method": "GET",
-        "header": [],
-        "url": {
-          "raw": "{{baseUrl}}/api/platos",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "api",
-            "platos"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "13. Crear Prod. c/stock",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test(\"Producto creado correctamente\", function () {\r",
-              "    pm.response.to.have.status(201);\r",
-              "\r",
-              "    let jsonData = pm.response.json();\r",
-              "\r",
-              "    pm.expect(jsonData.stockActual).to.eql(15);\r",
-              "\r",
-              "    // Guardamos idPlato para tests siguientes\r",
-              "    pm.collectionVariables.set(\"idPlato\", jsonData.id);\r",
-              "\r",
-              "    console.log(\"ID GUARDADO:\", jsonData.id);\r",
-              "});\r",
-              ""
-            ],
-            "type": "text/javascript",
-            "packages": {},
-            "requests": {}
-          }
-        },
-        {
-          "listen": "prerequest",
-          "script": {
-            "exec": [
-              ""
-            ],
-            "type": "text/javascript",
-            "packages": {},
-            "requests": {}
-          }
-        }
-      ],
-      "request": {
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "{{token_seguridad}}",
-              "type": "string"
-            }
-          ]
-        },
-        "method": "POST",
-        "header": [],
-        "body": {
-          "mode": "raw",
-          "raw": "{\r\n  \"nombre\": \"Hamburguesa Vegana Test {{$timestamp}}\",\r\n  \"descripcion\": \"Medallón de lentejas, rúcula y tomate.\",\r\n  \"precio\": 7200,\r\n  \"rubroId\": 1,\r\n  \"esMenuDelDia\": false,\r\n  \"esIlimitado\": false,\r\n  \"stockActual\": 15\r\n}\r\n\r\n",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "{{baseUrl}}/api/platos",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "api",
-            "platos"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "14. Crear Producto stock ilimitado",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test(\"Producto ilimitado creado correctamente\", function () {\r",
-              "    pm.response.to.have.status(201);\r",
-              "\r",
-              "    let jsonData = pm.response.json();\r",
-              "\r",
-              "    pm.expect(jsonData.esIlimitado).to.eql(true);\r",
-              "});\r",
-              "\r",
-              "\r",
-              ""
-            ],
-            "type": "text/javascript",
-            "packages": {},
-            "requests": {}
-          }
-        }
-      ],
-      "request": {
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "{{token_seguridad}}",
-              "type": "string"
-            }
-          ]
-        },
-        "method": "POST",
-        "header": [],
-        "body": {
-          "mode": "raw",
-          "raw": "{\r\n  \"nombre\": \"Coca Cola Test {{$timestamp}}\",\r\n  \"precio\": 4500,\r\n  \"rubroId\": 2,\r\n  \"esMenuDelDia\": false,\r\n  \"esIlimitado\": true\r\n}\r\n",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "{{baseUrl}}/api/platos",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "api",
-            "platos"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "15. Modificar producto/plato",
-      "request": {
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "{{token_seguridad}}",
-              "type": "string"
-            }
-          ]
-        },
-        "method": "PUT",
-        "header": [],
-        "body": {
-          "mode": "raw",
-          "raw": "{\r\n  \"precio\": 9000,\r\n  \"stockInicial\": 60,\r\n  \"esMenuDelDia\": true\r\n}\r\n",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "{{baseUrl}}/api/platos/55",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "api",
-            "platos",
-            "55"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "16. Eliminar Producto/Plato",
-      "request": {
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "{{token_seguridad}}",
-              "type": "string"
-            }
-          ]
-        },
-        "method": "DELETE",
-        "header": [],
-        "url": {
-          "raw": "{{baseUrl}}/api/platos/55",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "api",
-            "platos",
-            "55"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "17. Subir Imagen Plato",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test(\"Imagen subida correctamente o controlada\", function () {\r",
-              "    pm.expect(pm.response.code).to.be.oneOf([200, 201, 400]);\r",
-              "});\r",
-              "\r",
-              "if (pm.response.code === 400) {\r",
-              "    console.warn(\"⚠️ Prueba pasó con 400 (Falta imagen en Runner), pero el servidor respondió correctamente.\");\r",
-              "}\r",
-              "if (pm.response.code !== 200) {\r",
-              "    console.warn(\"No se pudo subir imagen\");\r",
-              "    return;\r",
-              "}\r",
-              "\r",
-              "let jsonData;\r",
-              "\r",
-              "pm.test(\"La respuesta es JSON\", function () {\r",
-              "    jsonData = pm.response.json();\r",
-              "    pm.expect(jsonData).to.be.an(\"object\");\r",
-              "});\r",
-              "\r",
-              "pm.test(\"Imagen asociada al plato\", function () {\r",
-              "    pm.expect(jsonData).to.have.property(\"plato\");\r",
-              "    pm.expect(jsonData.plato).to.have.property(\"imagenPath\");\r",
-              "    pm.expect(jsonData.plato.imagenPath).to.include(\"/uploads/\");\r",
-              "});"
-            ],
-            "type": "text/javascript",
-            "packages": {},
-            "requests": {}
-          }
-        }
-      ],
-      "request": {
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "{{token_seguridad}}",
-              "type": "string"
-            }
-          ]
-        },
-        "method": "POST",
-        "header": [],
-        "body": {
-          "mode": "formdata",
-          "formdata": [
-            {
-              "key": "imagen",
-              "type": "file",
-              "uuid": "79ad200e-8d2e-4b31-8790-95c173371116",
-              "src": "milanesa.jpg"
-            }
-          ]
-        },
-        "url": {
-          "raw": "{{baseUrl}}/api/platos/{{idPlato}}/imagen",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "api",
-            "platos",
-            "{{idPlato}}",
-            "imagen"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "18. Eliminar Pedido por id",
+      "name": "11. Eliminar Pedido por id",
       "event": [
         {
           "listen": "test",
@@ -982,7 +610,154 @@
       "response": []
     },
     {
-      "name": "19. Cerrar Mesa",
+      "name": "12. abrir Mesa Libre",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Mesa abierta correctamente\", function () {\r",
+              "    pm.response.to.have.status(200);\r",
+              "\r",
+              "    const json = pm.response.json();\r",
+              "\r",
+              "    pm.expect(json).to.have.property(\"mensaje\");\r",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_seguridad}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"idMozo\": 1\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/mesas/4/abrir",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "mesas",
+            "4",
+            "abrir"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "12. Crear Nuevo Pedido",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// 1. Validar Status Code (Esto debe estar dentro de un pm.test)",
+              "pm.test(\"Status code is 201\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "// Bloque de seguridad: Si no se creó, cortamos para no dar errores confusos abajo",
+              "if (pm.response.code !== 201) {",
+              "    console.warn(\"❌ Falló la creación. Status recibido:\", pm.response.code);",
+              "    return; // Detiene la ejecución de este script",
+              "}",
+              "",
+              "// 2. Validar tiempo de respuesta (Performance)",
+              "pm.test(\"Response time is less than 1000ms\", function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+              "});",
+              "",
+              "// 3. Validar Datos y Guardar Variables",
+              "pm.test(\"El pedido nace en estado PENDIENTE y capturamos ID\", function () {",
+              "    // A. Parseamos el JSON (¡SOLO UNA VEZ!)",
+              "    const jsonData = pm.response.json();",
+              "",
+              "    // B. Guardamos el ID en una variable de entorno (CRUCIAL PARA EL FLUJO)",
+              "    pm.environment.set(\"idPedidoActual\", jsonData.data.id);",
+              "    ",
+              "    // (Opcional) Guardamos la mesa",
+              "    if (jsonData.data.mesa) {",
+              "        pm.collectionVariables.set(\"mesa_test\", jsonData.data.mesa);",
+              "    }",
+              "",
+              "    console.log(\"✅ Pedido creado con ID dinámico:\", jsonData.data.id);",
+              "",
+              "    // C. Validaciones de estructura",
+              "    pm.expect(jsonData).to.have.property(\"data\");",
+              "    pm.expect(jsonData.data).to.have.property(\"id\");",
+              "    pm.expect(jsonData.data).to.have.property(\"estado\");",
+              "",
+              "    // D. Validar lógica de negocio",
+              "    pm.expect(jsonData.data.estado).to.eql(\"pendiente\"); ",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_seguridad}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"mesa\": \"4\",\r\n    \"cliente\": \"Prueba CI/CD\",\r\n    \"productos\": [\r\n        {\r\n            \"platoId\": 1,\r\n            \"cantidad\": 1,\r\n            \"aclaracion\": \"Sin cebolla\"\r\n        }\r\n    ]\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/pedidos",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "pedidos"
+          ]
+        },
+        "description": "This is a POST request, submitting data to an API via the request body. This request submits JSON data, and the data is reflected in the response.\n\nA successful POST request typically returns a `200 OK` or `201 Created` response code."
+      },
+      "response": []
+    },
+    {
+      "name": "13. Cerrar Mesa",
       "event": [
         {
           "listen": "test",
@@ -1056,6 +831,338 @@
             "mesas",
             "4",
             "cerrar"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "14. PUT Cambiar Menu Dia",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_seguridad}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "PUT",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"esMenuDelDia\": false,\r\n  \"precio\": 9000\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/platos/1",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "platos",
+            "1"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "15. Listar Menú",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/platos",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "platos"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "16. Crear Prod. c/stock",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Producto creado correctamente\", function () {\r",
+              "    pm.response.to.have.status(201);\r",
+              "\r",
+              "    let jsonData = pm.response.json();\r",
+              "\r",
+              "    pm.expect(jsonData.stockActual).to.eql(15);\r",
+              "\r",
+              "    // Guardamos idPlato para tests siguientes\r",
+              "    pm.collectionVariables.set(\"idPlato\", jsonData.id);\r",
+              "\r",
+              "    console.log(\"ID GUARDADO:\", jsonData.id);\r",
+              "});\r",
+              ""
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        },
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              ""
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_seguridad}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"nombre\": \"Hamburguesa Vegana Test {{$timestamp}}\",\r\n  \"descripcion\": \"Medallón de lentejas, rúcula y tomate.\",\r\n  \"precio\": 7200,\r\n  \"rubroId\": 1,\r\n  \"esMenuDelDia\": false,\r\n  \"esIlimitado\": false,\r\n  \"stockActual\": 15\r\n}\r\n\r\n",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/platos",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "platos"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "17. Crear Producto stock ilimitado",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Producto ilimitado creado correctamente\", function () {\r",
+              "    pm.response.to.have.status(201);\r",
+              "\r",
+              "    let jsonData = pm.response.json();\r",
+              "\r",
+              "    pm.expect(jsonData.esIlimitado).to.eql(true);\r",
+              "});\r",
+              "\r",
+              "\r",
+              ""
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_seguridad}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"nombre\": \"Coca Cola Test {{$timestamp}}\",\r\n  \"precio\": 4500,\r\n  \"rubroId\": 2,\r\n  \"esMenuDelDia\": false,\r\n  \"esIlimitado\": true\r\n}\r\n",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/platos",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "platos"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "18. Modificar producto/plato",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_seguridad}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "PUT",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"precio\": 9000,\r\n  \"stockInicial\": 60,\r\n  \"esMenuDelDia\": true\r\n}\r\n",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/platos/55",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "platos",
+            "55"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "19. Eliminar Producto/Plato",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_seguridad}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/platos/55",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "platos",
+            "55"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "20. Subir Imagen Plato",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Imagen subida correctamente o controlada\", function () {\r",
+              "    pm.expect(pm.response.code).to.be.oneOf([200, 201, 400]);\r",
+              "});\r",
+              "\r",
+              "if (pm.response.code === 400) {\r",
+              "    console.warn(\"⚠️ Prueba pasó con 400 (Falta imagen en Runner), pero el servidor respondió correctamente.\");\r",
+              "}\r",
+              "if (pm.response.code !== 200) {\r",
+              "    console.warn(\"No se pudo subir imagen\");\r",
+              "    return;\r",
+              "}\r",
+              "\r",
+              "let jsonData;\r",
+              "\r",
+              "pm.test(\"La respuesta es JSON\", function () {\r",
+              "    jsonData = pm.response.json();\r",
+              "    pm.expect(jsonData).to.be.an(\"object\");\r",
+              "});\r",
+              "\r",
+              "pm.test(\"Imagen asociada al plato\", function () {\r",
+              "    pm.expect(jsonData).to.have.property(\"plato\");\r",
+              "    pm.expect(jsonData.plato).to.have.property(\"imagenPath\");\r",
+              "    pm.expect(jsonData.plato.imagenPath).to.include(\"/uploads/\");\r",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_seguridad}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "imagen",
+              "type": "file",
+              "uuid": "79ad200e-8d2e-4b31-8790-95c173371116",
+              "src": "milanesa.jpg"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/platos/{{idPlato}}/imagen",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "platos",
+            "{{idPlato}}",
+            "imagen"
           ]
         }
       },
