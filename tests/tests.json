@@ -239,12 +239,27 @@
     },
     {
       "name": "06. Rubro Eliminar",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status 204\", function () {\r",
+              "    pm.response.to.have.status(204);\r",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
       "request": {
         "method": "DELETE",
         "header": [],
         "body": {
           "mode": "raw",
-          "raw": "pm.test(\"Status 204\", function () {\r\n    pm.response.to.have.status(204);\r\n});"
+          "raw": ""
         },
         "url": {
           "raw": "{{baseUrl}}/api/rubros/{{idRubroTest}}",
@@ -262,6 +277,27 @@
     },
     {
       "name": "07. abrir Mesa",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Mesa abierta correctamente\", function () {\r",
+              "    pm.response.to.have.status(200);\r",
+              "\r",
+              "    const data = pm.response.json();\r",
+              "    pm.expect(data.estado).to.eql(\"ocupada\");\r",
+              "});\r",
+              "\r",
+              "const data = pm.response.json();\r",
+              "pm.environment.set(\"mesaId\", data.id);"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
       "request": {
         "auth": {
           "type": "bearer",
@@ -389,7 +425,86 @@
       "response": []
     },
     {
-      "name": "09. Modificar un Pedido",
+      "name": "09. Mesas",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// 1. Validar que el código sea 200 (OK)\r",
+              "pm.test(\"Status code is 200\", function () {\r",
+              "    pm.response.to.have.status(200);\r",
+              "});\r",
+              "\r",
+              "// Si no es 200, no seguimos\r",
+              "if (pm.response.code !== 200) {\r",
+              "    console.warn(\"Respuesta no OK, se cancelan validaciones de negocio\");\r",
+              "    return;\r",
+              "}\r",
+              "\r",
+              "// 2. Validar lógica de Mesa Ocupada\r",
+              "pm.test(\"La Mesa 4 debe estar OCUPADA y tener PRECIO\", function () {\r",
+              "    const jsonData = pm.response.json();\r",
+              "\r",
+              "    // A. La respuesta debe ser un array\r",
+              "    pm.expect(jsonData).to.be.an(\"array\");\r",
+              "\r",
+              "    // B. Obtenemos la mesa desde variable o fallback\r",
+              "    const mesaId = pm.collectionVariables.get(\"mesa_test\") || 4;\r",
+              "\r",
+              "    const mesaTarget = jsonData.find(\r",
+              "        m => m.id == mesaId || m.nombre === `Mesa ${mesaId}`\r",
+              "    );\r",
+              "\r",
+              "    // C. Validar que la mesa exista\r",
+              "    pm.expect(mesaTarget, \"La mesa no existe en la respuesta\").to.not.be.undefined;\r",
+              "\r",
+              "    // D. Estado de negocio\r",
+              "    pm.expect(mesaTarget.estado).to.eql(\"ocupada\");\r",
+              "\r",
+              "    // E. Items pendientes\r",
+              "    pm.expect(mesaTarget.itemsPendientes).to.be.a(\"number\");\r",
+              "    pm.expect(mesaTarget.itemsPendientes).to.be.above(0);\r",
+              "\r",
+              "    // F. Total acumulado\r",
+              "    pm.expect(mesaTarget.totalActual).to.be.a(\"number\");\r",
+              "    pm.expect(mesaTarget.totalActual).to.be.above(0);\r",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_seguridad}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/mesas",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "mesas"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "10. Modificar un Pedido",
       "event": [
         {
           "listen": "test",
@@ -475,7 +590,7 @@
       "response": []
     },
     {
-      "name": "10. PUT Cambiar Menu Dia",
+      "name": "11. PUT Cambiar Menu Dia",
       "request": {
         "auth": {
           "type": "bearer",
@@ -513,7 +628,7 @@
       "response": []
     },
     {
-      "name": "11. Listar Menú",
+      "name": "12. Listar Menú",
       "request": {
         "method": "GET",
         "header": [],
@@ -531,7 +646,7 @@
       "response": []
     },
     {
-      "name": "12. Crear Prod. c/stock",
+      "name": "13. Crear Prod. c/stock",
       "event": [
         {
           "listen": "test",
@@ -604,7 +719,7 @@
       "response": []
     },
     {
-      "name": "13. Crear Producto stock ilimitado",
+      "name": "14. Crear Producto stock ilimitado",
       "event": [
         {
           "listen": "test",
@@ -663,7 +778,7 @@
       "response": []
     },
     {
-      "name": "14. Modificar producto/plato",
+      "name": "15. Modificar producto/plato",
       "request": {
         "auth": {
           "type": "bearer",
@@ -701,7 +816,7 @@
       "response": []
     },
     {
-      "name": "15. Eliminar Producto/Plato",
+      "name": "16. Eliminar Producto/Plato",
       "request": {
         "auth": {
           "type": "bearer",
@@ -730,7 +845,7 @@
       "response": []
     },
     {
-      "name": "16. Subir Imagen Plato",
+      "name": "17. Subir Imagen Plato",
       "event": [
         {
           "listen": "test",
@@ -807,7 +922,7 @@
       "response": []
     },
     {
-      "name": "17. Eliminar Pedido por id",
+      "name": "18. Eliminar Pedido por id",
       "event": [
         {
           "listen": "test",
@@ -861,85 +976,6 @@
             "api",
             "pedidos",
             "{{idPedidoActual}}"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "18. Mesas",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "// 1. Validar que el código sea 200 (OK)\r",
-              "pm.test(\"Status code is 200\", function () {\r",
-              "    pm.response.to.have.status(200);\r",
-              "});\r",
-              "\r",
-              "// Si no es 200, no seguimos\r",
-              "if (pm.response.code !== 200) {\r",
-              "    console.warn(\"Respuesta no OK, se cancelan validaciones de negocio\");\r",
-              "    return;\r",
-              "}\r",
-              "\r",
-              "// 2. Validar lógica de Mesa Ocupada\r",
-              "pm.test(\"La Mesa 4 debe estar OCUPADA y tener PRECIO\", function () {\r",
-              "    const jsonData = pm.response.json();\r",
-              "\r",
-              "    // A. La respuesta debe ser un array\r",
-              "    pm.expect(jsonData).to.be.an(\"array\");\r",
-              "\r",
-              "    // B. Obtenemos la mesa desde variable o fallback\r",
-              "    const mesaId = pm.collectionVariables.get(\"mesa_test\") || 4;\r",
-              "\r",
-              "    const mesaTarget = jsonData.find(\r",
-              "        m => m.id == mesaId || m.nombre === `Mesa ${mesaId}`\r",
-              "    );\r",
-              "\r",
-              "    // C. Validar que la mesa exista\r",
-              "    pm.expect(mesaTarget, \"La mesa no existe en la respuesta\").to.not.be.undefined;\r",
-              "\r",
-              "    // D. Estado de negocio\r",
-              "    pm.expect(mesaTarget.estado).to.eql(\"ocupada\");\r",
-              "\r",
-              "    // E. Items pendientes\r",
-              "    pm.expect(mesaTarget.itemsPendientes).to.be.a(\"number\");\r",
-              "    pm.expect(mesaTarget.itemsPendientes).to.be.above(0);\r",
-              "\r",
-              "    // F. Total acumulado\r",
-              "    pm.expect(mesaTarget.totalActual).to.be.a(\"number\");\r",
-              "    pm.expect(mesaTarget.totalActual).to.be.above(0);\r",
-              "});"
-            ],
-            "type": "text/javascript",
-            "packages": {},
-            "requests": {}
-          }
-        }
-      ],
-      "request": {
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "{{token_seguridad}}",
-              "type": "string"
-            }
-          ]
-        },
-        "method": "GET",
-        "header": [],
-        "url": {
-          "raw": "{{baseUrl}}/api/mesas",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "api",
-            "mesas"
           ]
         }
       },
@@ -1031,6 +1067,7 @@
       "listen": "prerequest",
       "script": {
         "type": "text/javascript",
+        "requests": {},
         "exec": [
           ""
         ]
@@ -1040,6 +1077,7 @@
       "listen": "test",
       "script": {
         "type": "text/javascript",
+        "requests": {},
         "exec": [
           ""
         ]
@@ -1052,7 +1090,7 @@
       "value": "1"
     },
     {
-      "key": "base_url",
+      "key": "baseUrl",
       "value": "https://template.postman-echo.com"
     },
     {
