@@ -17,7 +17,6 @@ const seedDatabase = async () => {
                 nombre: 'Dante',
                 apellido: 'Admin',
                 legajo: '1001',
-                email: 'admin@elbuensabor.com',
                 password: passwordHash,
                 rol: 'admin',
                 activo: true

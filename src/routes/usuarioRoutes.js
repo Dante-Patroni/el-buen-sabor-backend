@@ -4,7 +4,6 @@ const router = express.Router();
 const UsuarioController = require('../controllers/usuarioController');
 const SequelizeUsuarioRepository = require("../repositories/sequelize/sequelizeUsuarioRepository");
 const UsuarioService = require("../services/usuarioService");
-const authMiddleware = require("../middlewares/authMiddleware");
 
 // 👇 INYECCIÓN CORRECTA
 const usuarioRepository = new SequelizeUsuarioRepository();
@@ -70,14 +69,20 @@ const usuarioController = new UsuarioController(usuarioService);
  *                       type: string
  *                       enum: [admin, mozo, cocinero, cajero]
  *                       example: "mozo"
+ *       400:
+ *         description: Datos inválidos
  *       401:
- *         description: Usuario no encontrado (Legajo inexistente)
+ *         description: Password incorrecta
+ *       403:
+ *         description: Usuario inactivo
+ *       404:
+ *         description: Usuario no encontrado
  *       500:
  *         description: Error del servidor
  */
-
+1
 // Definimos la ruta POST para login
-router.post('/login', (req, res) => usuarioController.login(req, res));
+router.post('/login', usuarioController.login);
 
 module.exports = router;
  

@@ -74,8 +74,6 @@ class RubroController {
     }
   }
 }
-
-
 // =========================
 // MANEJO CENTRALIZADO DE ERRORES DE DOMINIO
 // =========================
@@ -105,5 +103,8 @@ function manejarError(error, res) {
     error: "ERROR_INTERNO"
   });
 }
+
+
+
 
 module.exports = RubroController;

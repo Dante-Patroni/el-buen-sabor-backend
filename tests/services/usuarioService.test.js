@@ -1,85 +1,108 @@
 const UsuarioService = require("../../src/services/usuarioService");
 
 describe("UsuarioService - login", () => {
+  let usuarioRepositoryMock;
+  let usuarioService;
 
-    let usuarioRepositoryMock;
-    let usuarioService;
+  beforeEach(() => {
+    usuarioRepositoryMock = {
+      buscarUsuarioPorId: jest.fn(),
+      compararPassword: jest.fn(),
+    };
 
-    beforeEach(() => {
-        // Mock del repositorio
-        usuarioRepositoryMock = {
-            buscarUsuarioPorId: jest.fn(),
-            compararPassword: jest.fn(),
-        };
+    usuarioService = new UsuarioService(usuarioRepositoryMock);
+  });
 
-        // Inyectamos el mock en el service
-        usuarioService = new UsuarioService(usuarioRepositoryMock);
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test("debe lanzar DATOS_INVALIDOS si falta legajo", async () => {
+    await expect(usuarioService.login(undefined, "1234")).rejects.toThrow(
+      "DATOS_INVALIDOS"
+    );
+
+    expect(usuarioRepositoryMock.buscarUsuarioPorId).not.toHaveBeenCalled();
+    expect(usuarioRepositoryMock.compararPassword).not.toHaveBeenCalled();
+  });
+
+  test("debe lanzar DATOS_INVALIDOS si falta password", async () => {
+    await expect(usuarioService.login("1001", "")).rejects.toThrow(
+      "DATOS_INVALIDOS"
+    );
+
+    expect(usuarioRepositoryMock.buscarUsuarioPorId).not.toHaveBeenCalled();
+    expect(usuarioRepositoryMock.compararPassword).not.toHaveBeenCalled();
+  });
+
+  test("debe lanzar USUARIO_NO_ENCONTRADO", async () => {
+    usuarioRepositoryMock.buscarUsuarioPorId.mockResolvedValue(null);
+
+    await expect(usuarioService.login("9999", "1234")).rejects.toThrow(
+      "USUARIO_NO_ENCONTRADO"
+    );
+  });
+
+  test("debe lanzar USUARIO_INACTIVO", async () => {
+    usuarioRepositoryMock.buscarUsuarioPorId.mockResolvedValue({
+      id: 1,
+      nombre: "Dante",
+      apellido: "Patroni",
+      rol: "admin",
+      password: "hash-password",
+      activo: false,
     });
 
-    afterEach(() => {
-        jest.clearAllMocks();
+    await expect(usuarioService.login("1001", "1234")).rejects.toThrow(
+      "USUARIO_INACTIVO"
+    );
+
+    expect(usuarioRepositoryMock.compararPassword).not.toHaveBeenCalled();
+  });
+
+  test("debe lanzar PASSWORD_INCORRECTA", async () => {
+    usuarioRepositoryMock.buscarUsuarioPorId.mockResolvedValue({
+      id: 1,
+      nombre: "Dante",
+      apellido: "Patroni",
+      rol: "admin",
+      password: "hash-password",
+      activo: true,
     });
+    usuarioRepositoryMock.compararPassword.mockResolvedValue(false);
 
-    test("❌ Usuario no encontrado", async () => {
-        // Arrange
-        usuarioRepositoryMock.buscarUsuarioPorId.mockResolvedValue(null);
+    await expect(
+      usuarioService.login("1001", "passwordIncorrecta")
+    ).rejects.toThrow("PASSWORD_INCORRECTA");
+  });
 
-        // Act
-        const resultado = await usuarioService.login("9999", "1234");
-
-        // Assert
-        expect(resultado.status).toBe(404);
-        expect(resultado.body.mensaje).toBe("Usuario no encontrado");
-
+  test("debe loguear correctamente", async () => {
+    usuarioRepositoryMock.buscarUsuarioPorId.mockResolvedValue({
+      id: 1,
+      nombre: "Dante",
+      apellido: "Patroni",
+      rol: "admin",
+      password: "hash-password",
+      activo: true,
     });
+    usuarioRepositoryMock.compararPassword.mockResolvedValue(true);
 
-    test("❌ Contraseña incorrecta", async () => {
-        // Arrange
-        const usuarioMock = {
-            id: 1,
-            nombre: "Dante",
-            apellido: "Patroni",
-            rol: "admin",
-            password: "hash-password",
-        };
+    const resultado = await usuarioService.login(" 1001 ", " 1234 ");
 
-        usuarioRepositoryMock.buscarUsuarioPorId.mockResolvedValue(usuarioMock);
-        usuarioRepositoryMock.compararPassword.mockResolvedValue(false);
-
-        // Act
-        const resultado = await usuarioService.login("1001", "passwordIncorrecta");
-
-        // Assert
-        expect(resultado.status).toBe(401);
-        expect(resultado.body.mensaje).toBe("Contraseña incorrecta");
+    expect(usuarioRepositoryMock.buscarUsuarioPorId).toHaveBeenCalledWith(
+      "1001"
+    );
+    expect(usuarioRepositoryMock.compararPassword).toHaveBeenCalledWith(
+      "1234",
+      "hash-password"
+    );
+    expect(resultado.status).toBe(200);
+    expect(resultado.body.token).toBeDefined();
+    expect(resultado.body.usuario).toEqual({
+      id: 1,
+      nombre: "Dante",
+      apellido: "Patroni",
+      rol: "admin",
     });
-
-    test("✅ Login exitoso", async () => {
-        // Arrange
-        const usuarioMock = {
-            id: 1,
-            nombre: "Dante",
-            apellido: "Patroni",
-            rol: "admin",
-            password: "hash-password",
-        };
-
-        usuarioRepositoryMock.buscarUsuarioPorId.mockResolvedValue(usuarioMock);
-        usuarioRepositoryMock.compararPassword.mockResolvedValue(true);
-
-        // Act
-        const resultado = await usuarioService.login("1001", "1234");
-
-        // Assert
-        expect(resultado.status).toBe(200);
-        expect(resultado.body.token).toBeDefined();
-        expect(resultado.body.usuario).toEqual({
-            id: 1,
-            nombre: "Dante",
-            apellido: "Patroni",
-            rol: "admin"
-        });
-
-    });
-
+  });
 });

@@ -1,9 +1,7 @@
-const { body } = require('express-validator');
-const { Usuario } = require('../models');
-const jwt = require('jsonwebtoken');
+const jwt = require("jsonwebtoken");
 
-// Clave secreta para firmar (En producción esto va en .env)
-const JWT_SECRET = process.env.JWT_SECRET || 'ClaveSecretaDante123';
+// Clave secreta para firmar (en produccion va en .env)
+const JWT_SECRET = process.env.JWT_SECRET || "ClaveSecretaDante123";
 
 class UsuarioService {
     constructor(usuarioRepository) {
@@ -11,58 +9,59 @@ class UsuarioService {
     }
 
     async login(legajo, passwordPlano) {
-        // 1. Buscamos al usuario por su legajo
-        const usuario = await this.usuarioRepository.buscarUsuarioPorId(legajo);
+        const legajoNormalizado =
+            typeof legajo === "string" ? legajo.trim() : "";
+        const passwordNormalizada =
+            typeof passwordPlano === "string" ? passwordPlano.trim() : "";
+
+        if (!legajoNormalizado || !passwordNormalizada) {
+            throw new Error("DATOS_INVALIDOS");
+        }
+
+        const usuario =
+            await this.usuarioRepository.buscarUsuarioPorId(legajoNormalizado);
 
         if (!usuario) {
-            return {
-                status: 404,
-                body: { mensaje: "Usuario no encontrado" }
-            }
-
+            throw new Error("USUARIO_NO_ENCONTRADO");
         }
 
-        // 👇 2. COMPARACIÓN SEGURA (EL CAMBIO CLAVE)
+        if (!usuario.activo) {
+            throw new Error("USUARIO_INACTIVO");
+        }
 
-        const passwordValido = await this.usuarioRepository.compararPassword(passwordPlano, usuario.password);
+        const passwordValido = await this.usuarioRepository.compararPassword(
+            passwordNormalizada,
+            usuario.password
+        );
 
         if (!passwordValido) {
-            return {
-                status: 401,
-                body: { mensaje: "Contraseña incorrecta" }
-            }
-
+            throw new Error("PASSWORD_INCORRECTA");
         }
-        // 👇 2. AQUÍ GENERAMOS EL TOKEN
-        // Guardamos datos útiles dentro del token (ID, Rol, Nombre)
+
         const token = jwt.sign(
             {
                 id: usuario.id,
                 rol: usuario.rol,
-                nombre: usuario.nombre
+                nombre: usuario.nombre,
             },
             JWT_SECRET,
-            { expiresIn: '24h' } // El token vence en 24 horas
+            { expiresIn: "24h" }
         );
 
-        // 3. Login Exitoso Devolvemos usuario y Token
         return {
             status: 200,
             body: {
-                mensaje: 'Login exitoso',
+                mensaje: "Login exitoso",
                 token,
                 usuario: {
                     id: usuario.id,
                     nombre: usuario.nombre,
                     apellido: usuario.apellido,
-                    rol: usuario.rol
-                }
-            }
+                    rol: usuario.rol,
+                },
+            },
         };
-
-
     }
 }
 
 module.exports = UsuarioService;
-
