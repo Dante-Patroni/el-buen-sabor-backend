@@ -1,74 +1,40 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
 
-const UsuarioController = require('../controllers/usuarioController');
+const UsuarioController = require("../controllers/usuarioController");
 const SequelizeUsuarioRepository = require("../repositories/sequelize/sequelizeUsuarioRepository");
 const UsuarioService = require("../services/usuarioService");
+const authMiddleware = require("../middlewares/authMiddleware");
 
-// 👇 INYECCIÓN CORRECTA
+// Composicion de dependencias (DI manual): Router -> Controller -> Service -> Repository.
 const usuarioRepository = new SequelizeUsuarioRepository();
 const usuarioService = new UsuarioService(usuarioRepository);
 const usuarioController = new UsuarioController(usuarioService);
+
+// Middleware de autorizacion por rol para endpoints ABM.
+const soloAdmin = (req, res, next) => {
+  if (req.usuario?.rol !== "admin") {
+    return res.status(403).json({ error: "SOLO_ADMIN" });
+  }
+  next();
+};
 
 /**
  * @swagger
  * tags:
  *   name: Usuarios
- *   description: Gestión de autentificación de usuarios del sistema
+ *   description: Gestión de usuarios del sistema
  */
 
 /**
  * @swagger
  * /api/usuarios/login:
  *   post:
- *     summary: Inicia sesión en el sistema (Mozo, Cocinero, Admin)
- *     description: Verifica credenciales (legajo y contraseña) y devuelve los datos del usuario.
+ *     summary: Inicia sesión en el sistema
  *     tags: [Usuarios]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - legajo
- *               - password
- *             properties:
- *               legajo:
- *                 type: string
- *                 description: Legajo del empleado
- *                 example: "1001"
- *               password:
- *                 type: string
- *                 description: Contraseña del usuario
- *                 example: "1234"
  *     responses:
  *       200:
  *         description: Login exitoso
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 mensaje:
- *                   type: string
- *                   example: "Login exitoso"
- *                 usuario:
- *                   type: object
- *                   properties:
- *                     id:
- *                       type: integer
- *                       example: 1
- *                     nombre:
- *                       type: string
- *                       example: "Dante"
- *                     apellido:
- *                       type: string
- *                       example: "Patroni"
- *                     rol:
- *                       type: string
- *                       enum: [admin, mozo, cocinero, cajero]
- *                       example: "mozo"
  *       400:
  *         description: Datos inválidos
  *       401:
@@ -77,12 +43,54 @@ const usuarioController = new UsuarioController(usuarioService);
  *         description: Usuario inactivo
  *       404:
  *         description: Usuario no encontrado
- *       500:
- *         description: Error del servidor
  */
-1
-// Definimos la ruta POST para login
-router.post('/login', usuarioController.login);
+// Login se mantiene publico para obtener JWT.
+router.post("/login", usuarioController.login);
+
+/**
+ * @swagger
+ * /api/usuarios:
+ *   get:
+ *     summary: Lista usuarios (solo admin)
+ *     tags: [Usuarios]
+ */
+// A partir de aca, todas son rutas protegidas y solo para admin.
+router.get("/", authMiddleware, soloAdmin, usuarioController.listar);
+
+/**
+ * @swagger
+ * /api/usuarios/{id}:
+ *   get:
+ *     summary: Obtiene un usuario por ID (solo admin)
+ *     tags: [Usuarios]
+ */
+router.get("/:id", authMiddleware, soloAdmin, usuarioController.obtenerPorId);
+
+/**
+ * @swagger
+ * /api/usuarios:
+ *   post:
+ *     summary: Crea un usuario (solo admin)
+ *     tags: [Usuarios]
+ */
+router.post("/", authMiddleware, soloAdmin, usuarioController.crear);
+
+/**
+ * @swagger
+ * /api/usuarios/{id}:
+ *   put:
+ *     summary: Actualiza un usuario (solo admin)
+ *     tags: [Usuarios]
+ */
+router.put("/:id", authMiddleware, soloAdmin, usuarioController.actualizar);
+
+/**
+ * @swagger
+ * /api/usuarios/{id}:
+ *   delete:
+ *     summary: Baja lógica de usuario (solo admin)
+ *     tags: [Usuarios]
+ */
+router.delete("/:id", authMiddleware, soloAdmin, usuarioController.eliminar);
 
 module.exports = router;
- 

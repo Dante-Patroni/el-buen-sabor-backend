@@ -385,7 +385,7 @@
       "response": []
     },
     {
-      "name": "09. Mesas",
+      "name": "09. Listar Mesas",
       "event": [
         {
           "listen": "test",
@@ -610,7 +610,7 @@
       "response": []
     },
     {
-      "name": "12. abrir Mesa Libre",
+      "name": "12. Abrir nueva Mesa Libre",
       "event": [
         {
           "listen": "test",
@@ -668,7 +668,7 @@
       "response": []
     },
     {
-      "name": "12. Crear Nuevo Pedido",
+      "name": "13. Crear Nuevo Pedido",
       "event": [
         {
           "listen": "test",
@@ -757,7 +757,7 @@
       "response": []
     },
     {
-      "name": "13. Cerrar Mesa",
+      "name": "14. Cerrar Mesa",
       "event": [
         {
           "listen": "test",
@@ -837,7 +837,7 @@
       "response": []
     },
     {
-      "name": "14. PUT Cambiar Menu Dia",
+      "name": "15. PUT Cambiar Menu Dia",
       "request": {
         "auth": {
           "type": "bearer",
@@ -875,7 +875,7 @@
       "response": []
     },
     {
-      "name": "15. Listar Menú",
+      "name": "16. Listar Menú",
       "request": {
         "method": "GET",
         "header": [],
@@ -893,7 +893,7 @@
       "response": []
     },
     {
-      "name": "16. Crear Prod. c/stock",
+      "name": "17. Crear Prod. c/stock",
       "event": [
         {
           "listen": "test",
@@ -966,7 +966,7 @@
       "response": []
     },
     {
-      "name": "17. Crear Producto stock ilimitado",
+      "name": "18. Crear Producto stock ilimitado",
       "event": [
         {
           "listen": "test",
@@ -1025,7 +1025,7 @@
       "response": []
     },
     {
-      "name": "18. Modificar producto/plato",
+      "name": "19. Modificar producto/plato",
       "request": {
         "auth": {
           "type": "bearer",
@@ -1063,36 +1063,7 @@
       "response": []
     },
     {
-      "name": "19. Eliminar Producto/Plato",
-      "request": {
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "{{token_seguridad}}",
-              "type": "string"
-            }
-          ]
-        },
-        "method": "DELETE",
-        "header": [],
-        "url": {
-          "raw": "{{baseUrl}}/api/platos/55",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "api",
-            "platos",
-            "55"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "20. Subir Imagen Plato",
+      "name": "21. Subir Imagen Plato",
       "event": [
         {
           "listen": "test",
@@ -1167,6 +1138,385 @@
         }
       },
       "response": []
+    },
+    {
+      "name": "22. Eliminar Producto/Plato",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_seguridad}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/platos/55",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "platos",
+            "55"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "23. Usuario Crear",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status 201\", function () {\r",
+              "  pm.response.to.have.status(201);\r",
+              "});\r",
+              "\r",
+              "const json = pm.response.json();\r",
+              "\r",
+              "pm.collectionVariables.set(\"idUsuarioTest\", json.id);\r",
+              "pm.collectionVariables.set(\"legajoUsuarioTest\", json.legajo);\r",
+              "\r",
+              "pm.test(\"Usuario creado activo\", function () {\r",
+              "  pm.expect(json.activo).to.eql(true);\r",
+              "});\r",
+              "\r",
+              "pm.test(\"No devuelve password\", function () {\r",
+              "  pm.expect(json.password).to.eql(undefined);\r",
+              "});\r",
+              ""
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_seguridad}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"nombre\": \"Usuario\",\r\n  \"apellido\": \"Prueba\",\r\n  \"legajo\": \"UT{{$timestamp}}\",\r\n  \"password\": \"1234\",\r\n  \"rol\": \"mozo\"\r\n}\r\n",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/usuarios",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "usuarios"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "24. Usuario Listar",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status 200\", function () {\r",
+              "  pm.response.to.have.status(200);\r",
+              "});\r",
+              "\r",
+              "const json = pm.response.json();\r",
+              "\r",
+              "pm.test(\"Respuesta es array\", function () {\r",
+              "  pm.expect(json).to.be.an(\"array\");\r",
+              "});\r",
+              "\r",
+              "pm.test(\"Existe el usuario creado\", function () {\r",
+              "  const idUsuario = Number(pm.collectionVariables.get(\"idUsuarioTest\"));\r",
+              "  const existe = json.some(u => Number(u.id) === idUsuario);\r",
+              "  pm.expect(existe).to.eql(true);\r",
+              "});\r",
+              ""
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_seguridad}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/usuarios",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "usuarios"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "25. Usuario Obtener por Id",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status 200\", function () {\r",
+              "  pm.response.to.have.status(200);\r",
+              "});\r",
+              "\r",
+              "const json = pm.response.json();\r",
+              "\r",
+              "pm.test(\"ID coincide\", function () {\r",
+              "  pm.expect(String(json.id)).to.eql(String(pm.collectionVariables.get(\"idUsuarioTest\")));\r",
+              "});\r",
+              "\r",
+              "pm.test(\"Legajo coincide\", function () {\r",
+              "  pm.expect(String(json.legajo)).to.eql(String(pm.collectionVariables.get(\"legajoUsuarioTest\")));\r",
+              "});\r",
+              "\r",
+              "pm.test(\"No devuelve password\", function () {\r",
+              "  pm.expect(json.password).to.eql(undefined);\r",
+              "});\r",
+              ""
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_seguridad}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/usuarios/{{idUsuarioTest}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "usuarios",
+            "{{idUsuarioTest}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "26. Usuario Actualizar",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status 200\", function () {\r",
+              "  pm.response.to.have.status(200);\r",
+              "});\r",
+              "\r",
+              "const json = pm.response.json();\r",
+              "\r",
+              "pm.test(\"Apellido actualizado\", function () {\r",
+              "  pm.expect(json.apellido).to.eql(\"PruebaEditado\");\r",
+              "});\r",
+              "\r",
+              "pm.test(\"Rol actualizado\", function () {\r",
+              "  pm.expect(json.rol).to.eql(\"cajero\");\r",
+              "});\r",
+              "\r",
+              "pm.test(\"Usuario sigue activo\", function () {\r",
+              "  pm.expect(json.activo).to.eql(true);\r",
+              "});\r",
+              ""
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_seguridad}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "PUT",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"apellido\": \"PruebaEditado\",\r\n  \"rol\": \"cajero\"\r\n}\r\n",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/usuarios/{{idUsuarioTest}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "usuarios",
+            "{{idUsuarioTest}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "27. Usuario Baja Lógica",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status 204\", function () {\r",
+              "  pm.response.to.have.status(204);\r",
+              "});\r",
+              ""
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_seguridad}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/usuarios/{{idUsuarioTest}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "usuarios",
+            "{{idUsuarioTest}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "27. Usuario Verificar Inactivo",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status 200\", function () {\r",
+              "  pm.response.to.have.status(200);\r",
+              "});\r",
+              "\r",
+              "const json = pm.response.json();\r",
+              "\r",
+              "pm.test(\"Usuario queda inactivo\", function () {\r",
+              "  pm.expect(json.activo).to.eql(false);\r",
+              "});\r",
+              "\r",
+              "pm.test(\"Conserva ID y legajo\", function () {\r",
+              "  pm.expect(String(json.id)).to.eql(String(pm.collectionVariables.get(\"idUsuarioTest\")));\r",
+              "  pm.expect(String(json.legajo)).to.eql(String(pm.collectionVariables.get(\"legajoUsuarioTest\")));\r",
+              "});\r",
+              ""
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_seguridad}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/usuarios/{{idUsuarioTest}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "usuarios",
+            "{{idUsuarioTest}}"
+          ]
+        }
+      },
+      "response": []
     }
   ],
   "event": [
@@ -1218,6 +1568,14 @@
     },
     {
       "key": "idRubroTest",
+      "value": ""
+    },
+    {
+      "key": "idUsuarioTest",
+      "value": ""
+    },
+    {
+      "key": "legajoUsuarioTest",
       "value": ""
     }
   ]
