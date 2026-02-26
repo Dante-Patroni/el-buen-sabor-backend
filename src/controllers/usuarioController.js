@@ -1,3 +1,5 @@
+const { manejarErrorHttp } = require("./errorMapper");
+
 class UsuarioController {
   constructor(usuarioService) {
     this.usuarioService = usuarioService;
@@ -11,8 +13,7 @@ class UsuarioController {
 
       return res.status(resultado.status).json(resultado.body);
     } catch (error) {
-      console.error("Error en controller login:", error);
-      return manejarError(error, res);
+      return manejarErrorHttp(error, res);
     }
   };
 
@@ -24,7 +25,7 @@ class UsuarioController {
 
       return res.status(200).json(usuarios);
     } catch (error) {
-      return manejarError(error, res);
+      return manejarErrorHttp(error, res);
     }
   };
 
@@ -36,7 +37,7 @@ class UsuarioController {
 
       return res.status(200).json(usuario);
     } catch (error) {
-      return manejarError(error, res);
+      return manejarErrorHttp(error, res);
     }
   };
 
@@ -46,7 +47,7 @@ class UsuarioController {
       const nuevoUsuario = await this.usuarioService.crear(req.body);
       return res.status(201).json(nuevoUsuario);
     } catch (error) {
-      return manejarError(error, res);
+      return manejarErrorHttp(error, res);
     }
   };
 
@@ -57,7 +58,7 @@ class UsuarioController {
       const usuario = await this.usuarioService.actualizar(id, req.body);
       return res.status(200).json(usuario);
     } catch (error) {
-      return manejarError(error, res);
+      return manejarErrorHttp(error, res);
     }
   };
 
@@ -68,49 +69,9 @@ class UsuarioController {
       await this.usuarioService.eliminar(id);
       return res.status(204).send();
     } catch (error) {
-      return manejarError(error, res);
+      return manejarErrorHttp(error, res);
     }
   };
-}
-
-// ==========================================
-// MANEJO CENTRALIZADO DE ERRORES DE DOMINIO
-// ==========================================
-function manejarError(error, res) {
-  // Errores de validacion o reglas de entrada.
-  const errores400 = [
-    "DATOS_INVALIDOS",
-    "NOMBRE_REQUERIDO",
-    "APELLIDO_REQUERIDO",
-    "LEGAJO_REQUERIDO",
-    "PASSWORD_REQUERIDA",
-    "ROL_INVALIDO",
-    "USUARIO_YA_INACTIVO",
-  ];
-
-  if (errores400.includes(error.message)) {
-    return res.status(400).json({ error: error.message });
-  }
-
-  if (error.message === "USUARIO_NO_ENCONTRADO") {
-    return res.status(404).json({ error: error.message });
-  }
-
-  if (error.message === "USUARIO_INACTIVO") {
-    return res.status(403).json({ error: error.message });
-  }
-
-  if (error.message === "PASSWORD_INCORRECTA") {
-    return res.status(401).json({ error: error.message });
-  }
-
-  if (error.message === "LEGAJO_YA_EXISTENTE") {
-    return res.status(409).json({ error: error.message });
-  }
-
-  // Fallback para errores no mapeados.
-  console.error(error);
-  return res.status(500).json({ error: "ERROR_INTERNO" });
 }
 
 module.exports = UsuarioController;

@@ -85,7 +85,7 @@ class PedidoService {
   async buscarPedidosPorMesa(mesaNumero) {
     // Defensa básica (por si alguien usa el service sin middleware)
     if (mesaNumero === undefined || mesaNumero === null) {
-      throw new Error("Número de mesa no proporcionado");
+      throw new Error("MESA_NO_PROPORCIONADA");
     }
     // El repository siempre devuelve un array (vacío o con datos)
     return await this.pedidoRepository.buscarPedidosPorMesa(mesaNumero);
@@ -98,7 +98,7 @@ class PedidoService {
 
     return await this.pedidoRepository.inTransaction(async (transaction) => {
 
-      const pedido = await this.pedidoRepository.buscarPedidoPorId(pedidoId);
+      const pedido = await this.pedidoRepository.buscarPedidoPorId(pedidoId, transaction);
 
       if (!pedido) {
         throw new Error("PEDIDO_NO_ENCONTRADO");
@@ -110,7 +110,7 @@ class PedidoService {
       }
 
       // 1️⃣ Obtener detalles
-      const detalles = await this.pedidoRepository.obtenerDetallesPedido(pedidoId);
+      const detalles = await this.pedidoRepository.obtenerDetallesPedido(pedidoId, transaction);
 
       // 2️⃣ Restaurar stock
       await this._restaurarStock(detalles, transaction);
@@ -148,7 +148,7 @@ class PedidoService {
         throw new Error("PRODUCTOS_INVALIDOS");
       }
 
-      const pedido = await this.pedidoRepository.buscarPedidoPorId(pedidoId);
+      const pedido = await this.pedidoRepository.buscarPedidoPorId(pedidoId, transaction);
 
       if (!pedido) {
         throw new Error("PEDIDO_NO_ENCONTRADO");
@@ -160,7 +160,7 @@ class PedidoService {
 
       // 1️⃣ Obtener detalles actuales
       const detallesActuales =
-        await this.pedidoRepository.obtenerDetallesPedido(pedidoId);
+        await this.pedidoRepository.obtenerDetallesPedido(pedidoId, transaction);
 
       // 2️⃣ Restaurar stock anterior
       await this._restaurarStock(detallesActuales, transaction);
@@ -204,11 +204,11 @@ class PedidoService {
 
       return pedidoId;
 
-    }).then(async (pedidoId) => {//Si hay un error no se emite el evento
+    }).then(async (pedidoId) => {//Fuera de la Transacción -Si hay un error no se emite el evento
 
       // 🔔 Evento fuera de la transacción
       const pedidoActualizado =
-        await this.pedidoRepository.buscarPedidoPorId(pedidoId);
+        await this.pedidoRepository.buscarPedidoPorId(pedidoId,);
 
       this.pedidoEmitter?.emit("pedido-modificado", {
         mesa: pedidoActualizado.mesa,
@@ -217,7 +217,7 @@ class PedidoService {
 
       return pedidoActualizado;
     });
-
+    
   }
 
   //ACTUALIZAR ESTADO PEDIDO PENDIENTE-->EN_PREPARACION-->ENTREGADO-->PAGADO
@@ -309,12 +309,12 @@ class PedidoService {
       const plato = await this.platoService.buscarPorId(platoId);
 
       if (!plato) {
-        throw new Error(`PLATO_NO_ENCONTRADO_${platoId}`);
+        throw new Error("PLATO_NO_ENCONTRADO");
       }
 
       // 2️⃣ Validar stock
       if (plato.stockActual < cantidad) {
-        throw new Error(`STOCK_INSUFICIENTE_${plato.nombre}`);
+        throw new Error("STOCK_INSUFICIENTE");
       }
 
       // 3️⃣ Delegar descuento de stock al PlatoService

@@ -7,13 +7,20 @@ const manejarErroresValidacion = (req, res, next) => {
   const errores = validationResult(req);
 
   if (!errores.isEmpty()) {
+    const details = errores.array().map((e) => ({
+      field: e.path || e.param || null,
+      message: e.msg,
+    }));
+
     return res.status(400).json({
-      errores: errores.array(),
+      error: "DATOS_INVALIDOS",
+      details,
     });
   }
 
   next();
 };
+
 
 // ======================================================
 // VALIDACIÓN: CREAR PEDIDO

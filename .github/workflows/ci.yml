@@ -82,4 +82,5 @@ jobs:
           # 6. Ejecutar colección
           newman run tests/tests.json \
             -e tests/entorno.json \
+            --working-dir . \
             --reporters cli

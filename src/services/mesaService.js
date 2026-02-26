@@ -18,9 +18,7 @@ class MesaService {
   async obtenerPorId(mesaId, transaction = null) {
     const mesa = await this.mesaRepository.buscarMesaPorId(mesaId, transaction);
     if (!mesa) {
-      const error = new Error("MESA_NO_ENCONTRADA");
-      error.status = 404;
-      throw error;
+      throw new Error("MESA_NO_ENCONTRADA");
     }
     return mesa;
   }
@@ -31,9 +29,8 @@ class MesaService {
 async abrirMesa(mesaId, mozoId) {
 
   if (!mozoId) {
-    const error = new Error("MOZO_REQUERIDO");
-    error.status = 400;
-    throw error;
+    throw new Error("MOZO_REQUERIDO");
+    
   }
 
   const affectedRows = await this.mesaRepository.abrirMesaSiEstaLibre(
@@ -42,9 +39,7 @@ async abrirMesa(mesaId, mozoId) {
   );
 
   if (affectedRows === 0) {
-    const error = new Error("MESA_YA_OCUPADA");
-    error.status = 400;
-    throw error;
+    throw new Error("MESA_YA_OCUPADA");
   }
 
   return { mensaje: "Mesa abierta correctamente" };
@@ -86,15 +81,11 @@ async abrirMesa(mesaId, mozoId) {
 
       // 2️⃣ Validaciones de negocio
       if (!mesa) {
-        const error = new Error("MESA_NO_ENCONTRADA");
-        error.status = 404;
-        throw error; // Si lanzamos error → inTransaction hará rollback
+        throw new Error("MESA_NO_ENCONTRADA");
       }
 
       if (mesa.estado === "libre") {
-        const error = new Error("MESA_YA_LIBRE");
-        error.status = 400;
-        throw error;
+        throw new Error("MESA_YA_LIBRE");
       }
 
       // 3️⃣ Guardamos el total antes de resetear la mesa
@@ -137,9 +128,7 @@ async abrirMesa(mesaId, mozoId) {
     const mesa = await this.obtenerPorId(mesaId, transaction);
 
     if (mesa.estado !== "ocupada") {
-      const error = new Error("MESA_NO_OCUPADA");
-      error.status = 400;
-      throw error;
+      throw new Error("MESA_NO_OCUPADA");
     }
 
     const incremento = Number(monto) || 0;
@@ -182,9 +171,7 @@ async abrirMesa(mesaId, mozoId) {
     const mesa = await this.obtenerPorId(mesaId, transaction);
     //Solo puedo modificar totales de mesas activas
     if (mesa.estado !== "ocupada") {
-      const error = new Error("MESA_NO_OCUPADA");
-      error.status = 400;
-      throw error;
+      throw new Error("MESA_NO_OCUPADA");
     }
     //No toco estado de mesa, solo ajusto total. Si queda en 0, la mesa sigue ocupada (no es mi responsabilidad liberarla)
     mesa.totalActual = Number(mesa.totalActual) + Number(diferencia);

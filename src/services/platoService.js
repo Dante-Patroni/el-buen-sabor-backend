@@ -78,12 +78,12 @@ class PlatoService {
   async crearNuevoProducto(datos, transaction = null) {
     // Si recibimos transacción externa, desde PedidoService la usamos
     if (transaction) {
-      const datosValidados = await this._validarProducto(datos);
+      const datosValidados = await this._validarProducto(datos, null, transaction);
       return await this.platoRepository.crearNuevoProducto(datosValidados, transaction);
     }
     // Si NO recibimos transacción, creamos una propia
     return await this.platoRepository.inTransaction(async (t) => {
-      const datosValidados = await this._validarProducto(datos);
+      const datosValidados = await this._validarProducto(datos, null, t);
       return await this.platoRepository.crearNuevoProducto(datosValidados, t);
     });
   }
@@ -92,8 +92,10 @@ class PlatoService {
     // Si recibimos transacción externa, desde PedidoServicela usamos
     if (transaction) {
       const producto = await this.platoRepository.buscarPorId(id, transaction);
-      if (!producto) return null;
-      const datosValidados = await this._validarProducto(datos, producto);
+      if (!producto) 
+        throw new Error("PLATO_NO_ENCONTRADO");
+
+      const datosValidados = await this._validarProducto(datos, producto, transaction);
 
       return await this.platoRepository.modificarProductoSeleccionado(
         id, datosValidados, transaction
@@ -102,8 +104,10 @@ class PlatoService {
     // Si NO recibimos transacción, creamos una propia
     return await this.platoRepository.inTransaction(async (t) => {
       const producto = await this.platoRepository.buscarPorId(id, t);
-      if (!producto) return null;
-      const datosValidados = await this._validarProducto(datos, producto);
+
+      if (!producto) throw new Error("PLATO_NO_ENCONTRADO");
+
+      const datosValidados = await this._validarProducto(datos, producto, t);
 
       return await this.platoRepository.modificarProductoSeleccionado(
         id, datosValidados, t
@@ -114,7 +118,7 @@ class PlatoService {
   async eliminarProducto(id, transaction = null) {
     if (transaction) {
       const producto = await this.platoRepository.buscarPorId(id, transaction);
-      if (!producto) return null;
+      if (!producto) throw new Error("PLATO_NO_ENCONTRADO");
 
       await this.platoRepository.eliminarPorId(id, transaction);
 
@@ -122,7 +126,7 @@ class PlatoService {
     }
     return await this.platoRepository.inTransaction(async (t) => {
       const producto = await this.platoRepository.buscarPorId(id, t);
-      if (!producto) return null;
+      if (!producto) throw new Error("PLATO_NO_ENCONTRADO");
       await this.platoRepository.eliminarPorId(id, t);
       return true;
     });
@@ -132,7 +136,7 @@ class PlatoService {
   async cargarImagenProducto(id, nombreArchivo, transaction = null) {
 
     const producto = await this.platoRepository.buscarPorId(id, transaction);
-    if (!producto) return null;
+    if (!producto) throw new Error("PLATO_NO_ENCONTRADO");
 
     const imagenPath = `/uploads/${nombreArchivo}`;
 
@@ -147,7 +151,7 @@ class PlatoService {
 
 
   // 5. VALIDAR DATOS DE PRODUCTO (Lógica Compleja de Validación)
-  async _validarProducto(datos, productoExistente = null) {
+  async _validarProducto(datos, productoExistente = null, transaction = null) {
 
     const esCreacion = !productoExistente;
 
@@ -168,7 +172,7 @@ class PlatoService {
 
       const nombreFinal = datos.nombre.trim().toLowerCase();
 
-      const existente = await this.platoRepository.buscarPorNombre(nombreFinal);
+      const existente = await this.platoRepository.buscarPorNombre(nombreFinal, transaction);
 
       if (existente && (!productoExistente || existente.id !== productoExistente.id)) {
         throw new Error("PRODUCTO_YA_EXISTE");

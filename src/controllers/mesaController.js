@@ -1,5 +1,6 @@
-class MesaController {
+const { manejarErrorHttp } = require("./errorMapper");
 
+class MesaController {
   constructor(mesaService) {
     this.mesaService = mesaService;
   }
@@ -11,11 +12,9 @@ class MesaController {
     try {
       const mesasRaw = await this.mesaService.listar();
 
-      const mesasFormateadas = mesasRaw.map(m => {
+      const mesasFormateadas = mesasRaw.map((m) => {
         const valorNumerico = parseFloat(m.totalActual) || 0;
-
-        const itemsCalc =
-          (valorNumerico > 0 || m.estado === 'ocupada') ? 1 : 0;
+        const itemsCalc = valorNumerico > 0 || m.estado === "ocupada" ? 1 : 0;
 
         return {
           id: m.id,
@@ -24,17 +23,16 @@ class MesaController {
           estado: m.estado,
           mozo: m.mozo,
           itemsPendientes: itemsCalc,
-          totalActual: valorNumerico
+          totalActual: valorNumerico,
         };
       });
 
-      res.status(200).json(mesasFormateadas);
-
+      return res.status(200).json(mesasFormateadas);
     } catch (error) {
-      console.error("❌ [MesaController] listar:", error.message);
-      res.status(500).json({ error: error.message });
+      console.error("[MesaController] listar:", error.message);
+      return manejarErrorHttp(error, res);
     }
-  }
+  };
 
   // ---------------------------------------------------------
   // 2. ABRIR MESA
@@ -45,21 +43,13 @@ class MesaController {
       const { idMozo } = req.body;
 
       if (!idMozo) {
-        return res.status(400).json({
-          error: "ID_MOZO_REQUERIDO"
-        });
+        throw new Error("MOZO_REQUERIDO");
       }
 
       const resultado = await this.mesaService.abrirMesa(id, idMozo);
-
-      res.status(200).json(resultado);
-
-
+      return res.status(200).json(resultado);
     } catch (error) {
-      console.error("❌ [MesaController] abrirMesa:", error.message);
-      return res.status(error.status || 500).json({
-      error: error.message
-    });
+      return manejarErrorHttp(error, res);
     }
   };
 
@@ -69,23 +59,17 @@ class MesaController {
   cerrarMesa = async (req, res) => {
     try {
       const { id } = req.params;
-
       const resultado = await this.mesaService.cerrarMesa(id);
 
-      res.status(200).json({
+      return res.status(200).json({
         mensaje: "Mesa cerrada y cobrada exitosamente",
-        ...resultado
+        ...resultado,
       });
-
     } catch (error) {
-      console.error("❌ [MesaController] cerrarMesa:", error.message);
-
-      res.status(error.status || 500).json({
-        error: error.message
-      });
+      console.error("[MesaController] cerrarMesa:", error.message);
+      return manejarErrorHttp(error, res);
     }
   };
-
 }
 
 module.exports = MesaController;

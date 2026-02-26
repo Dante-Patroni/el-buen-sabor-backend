@@ -1120,7 +1120,7 @@
               "key": "imagen",
               "type": "file",
               "uuid": "79ad200e-8d2e-4b31-8790-95c173371116",
-              "src": "milanesa.jpg"
+              "src": "tests/assets/milanesa.jpg"
             }
           ]
         },
@@ -1134,6 +1134,74 @@
             "platos",
             "{{idPlato}}",
             "imagen"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "21_1. No se envió Imagen",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status 400\", function () {\r",
+              "  pm.response.to.have.status(400);\r",
+              "});\r",
+              "\r",
+              "pm.test(\"Error code correcto\", function () {\r",
+              "  const json = pm.response.json();\r",
+              "  pm.expect(json).to.have.property(\"error\", \"NO_SE_ENVIO_IMAGEN\");\r",
+              "});\r",
+              ""
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_seguridad}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "imagen",
+              "value": "",
+              "type": "text",
+              "uuid": "7dc1189b-dbdf-41da-ba59-1ddc56957f24"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/platos/:id/imagen",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "platos",
+            ":id",
+            "imagen"
+          ],
+          "variable": [
+            {
+              "key": "id",
+              "value": ""
+            }
           ]
         }
       },

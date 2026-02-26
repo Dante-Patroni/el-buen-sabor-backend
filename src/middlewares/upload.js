@@ -1,5 +1,6 @@
 const multer = require("multer");
 const path = require("path");
+const { manejarErrorHttp } = require("../controllers/errorMapper");
 
 // Configuración de almacenamiento
 const storage = multer.diskStorage({
@@ -22,10 +23,33 @@ const fileFilter = (req, file, cb) => {
   if (file.mimetype.startsWith("image/")) {
     cb(null, true);
   } else {
-    cb(new Error("Solo se permiten archivos de imagen"), false);
+    cb(new Error("TIPO_ARCHIVO_INVALIDO"), false);
   }
 };
 
-const upload = multer({ storage: storage, fileFilter: fileFilter });
+const upload = multer({
+  storage: storage,
+  fileFilter: fileFilter,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB maximo
+});
 
-module.exports = upload;
+function manejarErroresUpload(error, req, res, next) {
+  if (!error) {
+    return next();
+  }
+
+  if (error instanceof multer.MulterError && error.code === "LIMIT_FILE_SIZE") {
+    return manejarErrorHttp(new Error("ARCHIVO_DEMASIADO_GRANDE"), res);
+  }
+
+  if (error.message === "TIPO_ARCHIVO_INVALIDO") {
+    return manejarErrorHttp(error, res);
+  }
+
+  return manejarErrorHttp(error, res);
+}
+
+module.exports = {
+  upload,
+  manejarErroresUpload,
+};

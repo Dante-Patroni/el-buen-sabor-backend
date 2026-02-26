@@ -5,7 +5,7 @@ const SequelizePlatoRepository = require("../repositories/sequelize/sequelizePla
 const PlatoService = require("../services/platoService");
 const PlatoController = require("../controllers/platoController");
 const authMiddleware = require("../middlewares/authMiddleware");
-const upload = require("../middlewares/upload");
+const { upload, manejarErroresUpload } = require("../middlewares/upload");
 
 // 👇 INYECCIÓN CORRECTA
 const platoRepository = new SequelizePlatoRepository();
@@ -158,6 +158,12 @@ router.delete("/:id", authMiddleware, (req, res) =>
  *         description: Imagen subida correctamente
  */
 // POST Imagen: Subir foto (Privado)
-router.post("/:id/imagen", authMiddleware, upload.single("imagen"), (req, res) => platoController.cargarImagenProducto(req, res));
+router.post(
+  "/:id/imagen",
+  authMiddleware,
+  upload.single("imagen"),
+  manejarErroresUpload,
+  (req, res) => platoController.cargarImagenProducto(req, res)
+);
 
 module.exports = router;

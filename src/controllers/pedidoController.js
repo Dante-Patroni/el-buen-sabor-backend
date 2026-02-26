@@ -1,3 +1,5 @@
+const { manejarErrorHttp } = require("./errorMapper");
+
 class PedidoController {
 
   constructor(pedidoService) {
@@ -16,10 +18,7 @@ class PedidoController {
         data: pedido
       });
     } catch (error) {
-      console.error("Error Crear:", error.message);
-      res.status(error.status || 500).json({
-    error: error.message
-  });
+      return manejarErrorHttp(error, res);
     }
   }
 
@@ -35,8 +34,7 @@ class PedidoController {
         data: pedido
       });
     } catch (error) {
-      console.error("Error modificar:", error.message);
-      res.status(500).json({ error: error.message });
+      return manejarErrorHttp(error, res);
     }
   }
 
@@ -52,8 +50,7 @@ class PedidoController {
         data: pedidos
       });
     } catch (error) {
-      console.error("Error Listar:", error.message);
-      res.status(500).json({ error: "Error al obtener pedidos" });
+      return manejarErrorHttp(error, res);
     }
   }
 
@@ -68,8 +65,7 @@ class PedidoController {
 
       res.status(200).json(pedidos);
     } catch (error) {
-      console.error("Error buscando pedidos por mesa:", error.message);
-      res.status(500).json({ error: "Error al obtener el historial de la mesa" });
+      return manejarErrorHttp(error, res);
     }
   }
 
@@ -77,24 +73,18 @@ class PedidoController {
   // ELIMINAR (DELETE)
   // ---------------------------------------------------------
   eliminar = async (req, res) => {
-    try {
-      const { id } = req.params;
+  try {
+    const { id } = req.params;
 
-      await this.pedidoService.eliminarPedido(id);
+    await this.pedidoService.eliminarPedido(id);
 
-      res.status(200).json({
-        mensaje: "Pedido eliminado y stock restaurado correctamente",
-      });
-    } catch (error) {
-      console.error("Error al eliminar:", error.message);
-
-      if (error.message === "PEDIDO_NO_ENCONTRADO") {
-        return res.status(404).json({ error: "El pedido no existe" });
-      }
-
-      res.status(500).json({ error: "Error interno del servidor" });
-    }
+    return res.status(200).json({
+      mensaje: "Pedido eliminado y stock restaurado correctamente",
+    });
+  } catch (error) {
+    return manejarErrorHttp(error, res);
   }
+};
 }
 
 module.exports = PedidoController;
