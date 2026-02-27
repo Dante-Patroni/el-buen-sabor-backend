@@ -294,8 +294,9 @@ class PedidoService {
 
     for (const item of productos) {
 
-      const platoId = parseInt(item.platoId);
-      const cantidad = parseInt(item.cantidad) || 1;
+      const platoId = parseInt(item.platoId, 10);
+      const cantidadParseada = parseInt(item.cantidad, 10);
+      const cantidad = Number.isNaN(cantidadParseada) ? 1 : cantidadParseada;
 
       if (!platoId || platoId < 1) {
         throw new Error("PLATO_ID_INVALIDO");

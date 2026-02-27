@@ -53,18 +53,19 @@ class PlatoController {
   // ELIMINAR PRODUCTO
   // ===============================
   eliminarProducto = async (req, res) => {
-    try {
-      const { id } = req.params;
+  try {
+    const { id } = req.params;
 
-      return res.status(200).json({
-        mensaje: "PLATO_ELIMINADO_CORRECTAMENTE",
-      });
+    await this.platoService.eliminarProducto(id);
 
-    } catch (error) {
-      return manejarErrorHttp(error, res);
+    return res.status(200).json({
+      mensaje: "PLATO_ELIMINADO_CORRECTAMENTE",
+    });
+  } catch (error) {
+    return manejarErrorHttp(error, res);
+  }
+};
 
-    }
-  };
 
   // 4. SUBIR IMAGEN
   cargarImagenProducto = async (req, res) => {

@@ -1,7 +1,6 @@
 const { manejarErrorHttp } = require("./errorMapper");
 
 class PedidoController {
-
   constructor(pedidoService) {
     this.pedidoService = pedidoService;
   }
@@ -13,14 +12,14 @@ class PedidoController {
     try {
       const pedido = await this.pedidoService.crearYValidarPedido(req.body);
 
-      res.status(201).json({
-        message: "Pedido creado con éxito",
-        data: pedido
+      return res.status(201).json({
+        mensaje: "Pedido creado con éxito",
+        data: pedido,
       });
     } catch (error) {
       return manejarErrorHttp(error, res);
     }
-  }
+  };
 
   // ---------------------------------------------------------
   // MODIFICAR (PUT)
@@ -29,14 +28,14 @@ class PedidoController {
     try {
       const pedido = await this.pedidoService.modificarPedido(req.body);
 
-      res.status(200).json({
-        message: "Pedido modificado con éxito",
-        data: pedido
+      return res.status(200).json({
+        mensaje: "Pedido modificado con éxito",
+        data: pedido,
       });
     } catch (error) {
       return manejarErrorHttp(error, res);
     }
-  }
+  };
 
   // ---------------------------------------------------------
   // LISTAR (GET)
@@ -45,14 +44,14 @@ class PedidoController {
     try {
       const pedidos = await this.pedidoService.listarPedidos();
 
-      res.status(200).json({
+      return res.status(200).json({
         cantidad: pedidos.length,
-        data: pedidos
+        data: pedidos,
       });
     } catch (error) {
       return manejarErrorHttp(error, res);
     }
-  }
+  };
 
   // ---------------------------------------------------------
   // HISTORIAL POR MESA (GET)
@@ -60,31 +59,29 @@ class PedidoController {
   buscarPorMesa = async (req, res) => {
     try {
       const { mesa } = req.params;
-
       const pedidos = await this.pedidoService.buscarPedidosPorMesa(mesa);
-
-      res.status(200).json(pedidos);
+      return res.status(200).json(pedidos);
     } catch (error) {
       return manejarErrorHttp(error, res);
     }
-  }
+  };
 
   // ---------------------------------------------------------
   // ELIMINAR (DELETE)
   // ---------------------------------------------------------
   eliminar = async (req, res) => {
-  try {
-    const { id } = req.params;
+    try {
+      const { id } = req.params;
+      await this.pedidoService.eliminarPedido(id);
 
-    await this.pedidoService.eliminarPedido(id);
-
-    return res.status(200).json({
-      mensaje: "Pedido eliminado y stock restaurado correctamente",
-    });
-  } catch (error) {
-    return manejarErrorHttp(error, res);
-  }
-};
+      return res.status(200).json({
+        mensaje: "Pedido eliminado y stock restaurado correctamente",
+      });
+    } catch (error) {
+      return manejarErrorHttp(error, res);
+    }
+  };
 }
 
 module.exports = PedidoController;
+
