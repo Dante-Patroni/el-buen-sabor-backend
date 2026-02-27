@@ -6,13 +6,21 @@ const JWT_SECRET = process.env.JWT_SECRET || "ClaveSecretaDante123";
 const ROLES_VALIDOS = ["admin", "mozo", "cocinero", "cajero"];
 
 class UsuarioService {
+  /**
+   * @description Crea una instancia del servicio de usuarios.
+   * @param {import("../repositories/usuarioRepository")} usuarioRepository - Repositorio de usuarios inyectado.
+   */
   constructor(usuarioRepository) {
     this.usuarioRepository = usuarioRepository;
   }
 
-  // --------------------------------------------------
-  // LOGIN
-  // --------------------------------------------------
+  /**
+   * @description Autentica un usuario por legajo/password y devuelve token JWT.
+   * @param {string} legajo - Legajo ingresado por el usuario.
+   * @param {string} passwordPlano - Password ingresada en texto plano.
+   * @returns {Promise<{status:number, body:{mensaje:string, token:string, usuario:object}}>} Resultado HTTP para controller.
+   * @throws {Error} `DATOS_INVALIDOS`, `USUARIO_NO_ENCONTRADO`, `USUARIO_INACTIVO`, `PASSWORD_INCORRECTA`.
+   */
   async login(legajo, passwordPlano) {
     // Normalizar entrada para evitar falsos negativos por espacios.
     const legajoNormalizado =
@@ -67,14 +75,22 @@ class UsuarioService {
     };
   }
 
-  // --------------------------------------------------
-  // ABM
-  // --------------------------------------------------
+  /**
+   * @description Lista usuarios activos o incluyendo inactivos segun bandera.
+   * @param {boolean} incluirInactivos - Cuando es `true`, incluye usuarios inactivos.
+   * @returns {Promise<Array<object>>} Usuarios en formato publico.
+   */
   async listar(incluirInactivos = false) {
     const usuarios = await this.usuarioRepository.listar(incluirInactivos);
     return usuarios.map((usuario) => this._toPublicUser(usuario));
   }
 
+  /**
+   * @description Obtiene un usuario por id y lo devuelve como DTO publico.
+   * @param {number|string} id - Identificador del usuario.
+   * @returns {Promise<object>} Usuario publico.
+   * @throws {Error} `DATOS_INVALIDOS` o `USUARIO_NO_ENCONTRADO`.
+   */
   async obtenerPorId(id) {
     const usuarioId = this._parseId(id);
     const usuario = await this.usuarioRepository.buscarPorId(usuarioId);
@@ -86,6 +102,12 @@ class UsuarioService {
     return this._toPublicUser(usuario);
   }
 
+  /**
+   * @description Crea un usuario aplicando validaciones y hash de password dentro de una transaccion.
+   * @param {object} datos - Payload de creacion.
+   * @returns {Promise<object>} Usuario creado en formato publico.
+   * @throws {Error} Codigos de validacion de dominio y unicidad de legajo.
+   */
   async crear(datos) {
     // Crear usuario afecta datos persistentes: siempre transaccional.
     return await this.usuarioRepository.inTransaction(async (transaction) => {
@@ -100,6 +122,13 @@ class UsuarioService {
     });
   }
 
+  /**
+   * @description Actualiza un usuario existente dentro de una transaccion.
+   * @param {number|string} id - Identificador del usuario.
+   * @param {object} datos - Campos a actualizar.
+   * @returns {Promise<object>} Usuario actualizado en formato publico.
+   * @throws {Error} `DATOS_INVALIDOS`, `USUARIO_NO_ENCONTRADO`, `LEGAJO_YA_EXISTENTE` y validaciones.
+   */
   async actualizar(id, datos) {
     const usuarioId = this._parseId(id);
 
@@ -138,6 +167,12 @@ class UsuarioService {
     });
   }
 
+  /**
+   * @description Realiza baja logica de un usuario (`activo=false`) de forma transaccional.
+   * @param {number|string} id - Identificador del usuario.
+   * @returns {Promise<boolean>} `true` cuando la baja logica se aplica correctamente.
+   * @throws {Error} `DATOS_INVALIDOS`, `USUARIO_NO_ENCONTRADO`, `USUARIO_YA_INACTIVO`.
+   */
   async eliminar(id) {
     const usuarioId = this._parseId(id);
 
@@ -161,9 +196,12 @@ class UsuarioService {
     });
   }
 
-  // --------------------------------------------------
-  // VALIDACIONES PRIVADAS
-  // --------------------------------------------------
+  /**
+   * @description Convierte y valida un id a entero positivo.
+   * @param {number|string} id - Identificador a validar.
+   * @returns {number} Id normalizado.
+   * @throws {Error} `DATOS_INVALIDOS` cuando no es entero positivo.
+   */
   _parseId(id) {
     const numero = Number(id);
     if (!Number.isInteger(numero) || numero <= 0) {
@@ -173,6 +211,13 @@ class UsuarioService {
     return numero;
   }
 
+  /**
+   * @description Valida y normaliza datos de alta de usuario.
+   * @param {object} datos - Payload recibido desde controller.
+   * @param {object|null} transaction - Transaccion activa de Sequelize.
+   * @returns {Promise<object>} Datos listos para persistir (incluye password hasheada).
+   * @throws {Error} Codigos de validacion y conflicto de legajo.
+   */
   async _validarCreacion(datos, transaction) {
     // Normalizacion centralizada para no repetir trim en cada if.
     const nombre = this._normalizarTexto(datos?.nombre);
@@ -210,6 +255,14 @@ class UsuarioService {
     };
   }
 
+  /**
+   * @description Valida y normaliza datos parciales para actualizacion de usuario.
+   * @param {number} id - Id del usuario que se esta actualizando.
+   * @param {object} datos - Campos de entrada a validar.
+   * @param {object|null} transaction - Transaccion activa de Sequelize.
+   * @returns {Promise<object>} Objeto parcial con solo campos validados.
+   * @throws {Error} Codigos de validacion de dominio y conflicto de legajo.
+   */
   async _validarActualizacion(id, datos, transaction) {
     if (!datos || typeof datos !== "object") {
       throw new Error("DATOS_INVALIDOS");
@@ -264,15 +317,31 @@ class UsuarioService {
     return datosActualizados;
   }
 
+  /**
+   * @description Normaliza un texto aplicando `trim`.
+   * @param {unknown} valor - Valor a normalizar.
+   * @returns {string} Texto sin espacios exteriores o cadena vacia si no es string.
+   */
   _normalizarTexto(valor) {
     return typeof valor === "string" ? valor.trim() : "";
   }
 
+  /**
+   * @description Normaliza y valida un rol contra el catalogo permitido.
+   * @param {string} rol - Rol de entrada.
+   * @returns {string|null} Rol normalizado en minuscula o `null` si es invalido.
+   */
   _normalizarRol(rol) {
     const valor = this._normalizarTexto(rol).toLowerCase();
     return ROLES_VALIDOS.includes(valor) ? valor : null;
   }
 
+  /**
+   * @description Valida que el flag `activo` sea booleano.
+   * @param {unknown} activo - Valor a validar.
+   * @returns {boolean} Valor booleano de activo.
+   * @throws {Error} `DATOS_INVALIDOS` cuando el tipo no es booleano.
+   */
   _normalizarActivo(activo) {
     if (typeof activo !== "boolean") {
       throw new Error("DATOS_INVALIDOS");
@@ -281,6 +350,11 @@ class UsuarioService {
     return activo;
   }
 
+  /**
+   * @description Proyecta una entidad usuario al DTO publico sin exponer password.
+   * @param {object} usuario - Entidad de usuario persistida.
+   * @returns {{id:number,nombre:string,apellido:string,legajo:string,rol:string,activo:boolean}} DTO publico.
+   */
   _toPublicUser(usuario) {
     // DTO publico: nunca exponer password hash.
     return {

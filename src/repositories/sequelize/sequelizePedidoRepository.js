@@ -5,24 +5,11 @@ const { Op } = require("sequelize");
 class SequelizePedidoRepository extends PedidoRepository {
 
   /**
-* Ejecuta una operación dentro de una transacción de base de datos.
-*
-* Este método encapsula la lógica de manejo transaccional
-* (begin, commit, rollback) para evitar que el Service tenga
-* que conocer detalles del ORM (Sequelize).
-*
-* @param {Function} callback - Función async que contiene la lógica
-* de negocio a ejecutar de forma atómica. Recibe el objeto transaction.
-*
-* @returns {*} Devuelve el resultado que retorne el callback.
-*
-* Funcionamiento:
-* 1. Abre una nueva transacción.
-* 2. Ejecuta la función recibida pasándole la transacción.
-* 3. Si todo sale bien → hace commit.
-* 4. Si ocurre un error → hace rollback.
-* 5. Propaga el error hacia capas superiores.
-*/
+   * @description Ejecuta una operacion atomica dentro de una transaccion Sequelize.
+   * @param {(transaction: import("sequelize").Transaction) => Promise<any>} callback - Logica atomica.
+   * @returns {Promise<any>} Resultado del callback.
+   * @throws {Error} Repropaga errores tras rollback.
+   */
   async inTransaction(callback) {
 
     // 1️⃣ Se inicia una nueva transacción en la base de datos.
@@ -55,16 +42,31 @@ class SequelizePedidoRepository extends PedidoRepository {
     }
   }
 
+  /**
+   * @description Crea la cabecera de un pedido.
+   * @param {object} data - Datos del pedido.
+   * @param {import("sequelize").Transaction|null} transaction - Transaccion opcional.
+   * @returns {Promise<object>} Pedido creado.
+   */
   async crearPedido(data, transaction = null) {
     return await Pedido.create(data, { transaction });
   }
 
-
+  /**
+   * @description Crea en lote los detalles de pedido.
+   * @param {Array<object>} detalles - Detalles a persistir.
+   * @param {import("sequelize").Transaction|null} transaction - Transaccion opcional.
+   * @returns {Promise<Array<object>>} Detalles creados.
+   */
   async crearDetalles(detalles, transaction = null) {
     return await DetallePedido.bulkCreate(detalles, { transaction });
   }
 
-
+  /**
+   * @description Lista pedidos, opcionalmente filtrados por estado.
+   * @param {string|undefined} estado - Estado opcional.
+   * @returns {Promise<Array<object>>} Pedidos con detalles incluidos.
+   */
   async listarPedidosPorEstado(estado) {
     const filtro = estado ? { where: { estado } } : {};
 
@@ -74,6 +76,11 @@ class SequelizePedidoRepository extends PedidoRepository {
     });
   }
 
+  /**
+   * @description Busca pedidos por mesa ordenados por fecha de creacion.
+   * @param {number|string} mesaNumero - Numero de mesa.
+   * @returns {Promise<Array<object>>} Pedidos de la mesa.
+   */
   async buscarPedidosPorMesa(mesaNumero) {
     //findAll NUNCA devuelve null, siempre un array.
     return await Pedido.findAll({
@@ -87,18 +94,31 @@ class SequelizePedidoRepository extends PedidoRepository {
     });
   }
 
-
+  /**
+   * @description Busca un pedido por clave primaria.
+   * @param {number|string} id - Id del pedido.
+   * @returns {Promise<object|null>} Pedido encontrado o `null`.
+   */
   async buscarPedidoPorId(id) {
     return await Pedido.findByPk(id);
   }
 
+  /**
+   * @description Elimina un pedido por id.
+   * @param {number|string} id - Id del pedido.
+   * @param {import("sequelize").Transaction|null} transaction - Transaccion opcional.
+   * @returns {Promise<boolean>} `true` cuando finaliza.
+   */
   async eliminarPedidoPorId(id, transaction = null) {
     await Pedido.destroy({ where: { id }, transaction });
     return true;
   }
 
-
-
+  /**
+   * @description Busca pedidos no pagados/abiertos de una mesa.
+   * @param {number|string} mesaId - Id de mesa.
+   * @returns {Promise<Array<object>>} Pedidos abiertos.
+   */
   async buscarPedidoAbiertosPorMesa(mesaId) {
     return await Pedido.findAll({
       where: {
@@ -120,6 +140,12 @@ class SequelizePedidoRepository extends PedidoRepository {
     });
   }
 
+  /**
+   * @description Marca como pagados los pedidos abiertos de una mesa.
+   * @param {number|string} mesaId - Id de mesa.
+   * @param {import("sequelize").Transaction|null} transaction - Transaccion opcional.
+   * @returns {Promise<void>} Resolucion sin valor.
+   */
   async marcarPedidosComoPagados(mesaId, transaction = null) {
     await Pedido.update(
       { estado: 'pagado' },
@@ -140,14 +166,23 @@ class SequelizePedidoRepository extends PedidoRepository {
       }
     );
   }
-
-
+  /**
+   * @description Obtiene los detalles de un pedido.
+   * @param {number|string} pedidoId - Id del pedido.
+   * @returns {Promise<Array<object>>} Detalles encontrados.
+   */
   async obtenerDetallesPedido(pedidoId) {
     return await DetallePedido.findAll({
       where: { PedidoId: pedidoId }
     });
   }
 
+  /**
+   * @description Elimina los detalles asociados a un pedido.
+   * @param {number|string} pedidoId - Id del pedido.
+   * @param {import("sequelize").Transaction|null} transaction - Transaccion opcional.
+   * @returns {Promise<number>} Cantidad de filas eliminadas.
+   */
   async eliminarDetallesPedido(pedidoId, transaction = null) {
     return await DetallePedido.destroy({
       where: { PedidoId: pedidoId },
@@ -155,7 +190,13 @@ class SequelizePedidoRepository extends PedidoRepository {
     });
   }
 
-
+  /**
+   * @description Actualiza el total monetario de un pedido.
+   * @param {number|string} pedidoId - Id del pedido.
+   * @param {number} nuevoTotal - Nuevo total calculado.
+   * @param {import("sequelize").Transaction|null} transaction - Transaccion opcional.
+   * @returns {Promise<Array<number>>} Resultado de `update` de Sequelize.
+   */
   async actualizarTotalPedido(pedidoId, nuevoTotal, transaction = null) {
     return await Pedido.update(
       { total: nuevoTotal },

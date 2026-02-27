@@ -3,6 +3,13 @@ const { check, validationResult, param, body } = require("express-validator");
 // ======================================================
 // Middleware genérico para manejar errores de validación
 // ======================================================
+/**
+ * @description Centraliza el manejo de errores de `express-validator` y responde contrato uniforme.
+ * @param {import("express").Request} req - Request validada previamente por reglas.
+ * @param {import("express").Response} res - Response HTTP.
+ * @param {import("express").NextFunction} next - Continuacion del flujo cuando no hay errores.
+ * @returns {import("express").Response|void} Responde `DATOS_INVALIDOS` o continua.
+ */
 const manejarErroresValidacion = (req, res, next) => {
   const errores = validationResult(req);
 

@@ -1,20 +1,30 @@
 
 class PlatoService {
-
+  /**
+   * @description Crea una instancia del servicio de platos.
+   * @param {import("../repositories/platoRepository")} platoRepository - Repositorio de platos inyectado.
+   */
   constructor(platoRepository) {
     this.platoRepository = platoRepository;
   }
 
-  // ================================
-  // 🔎 BUSCAR POR ID (Necesario para Pedido)
-  // ================================
+  /**
+   * @description Busca un plato por id.
+   * @param {number|string} id - Id del plato.
+   * @returns {Promise<object|null>} Plato encontrado o `null`.
+   */
   async buscarPorId(id) {
     return await this.platoRepository.buscarPorId(id);
   }
 
-  // ================================
-  // ➖ DESCONTAR STOCK (ATÓMICO)
-  // ================================
+  /**
+   * @description Descuenta stock de un plato de forma atomica.
+   * @param {number} platoId - Id del plato.
+   * @param {number} cantidadADescontar - Cantidad a descontar.
+   * @param {object|null} transaction - Transaccion activa opcional.
+   * @returns {Promise<boolean>} `true` si la operacion se concreta.
+   * @throws {Error} `PLATO_NO_ENCONTRADO` o `STOCK_INSUFICIENTE`.
+   */
   async descontarStock(platoId, cantidadADescontar, transaction = null) {
 
     const plato = await this.platoRepository.buscarPorId(platoId, transaction);
@@ -41,10 +51,14 @@ class PlatoService {
     return true;
   }
 
-
-  // ================================
-  // ➕ RESTAURAR STOCK (ATÓMICO)
-  // ================================
+  /**
+   * @description Restaura stock de un plato de forma atomica.
+   * @param {number} platoId - Id del plato.
+   * @param {number} cantidadARestaurar - Cantidad a reponer.
+   * @param {object|null} transaction - Transaccion activa opcional.
+   * @returns {Promise<boolean>} `true` cuando finaliza correctamente.
+   * @throws {Error} `PLATO_NO_ENCONTRADO`.
+   */
   async restaurarStock(platoId, cantidadARestaurar, transaction = null) {
 
     const plato = await this.platoRepository.buscarPorId(platoId, transaction);
@@ -66,15 +80,21 @@ class PlatoService {
     return true;
   }
 
-
-  // ================================
-  // CRUD NORMAL (sin cambios fuertes)
-  // ================================
-
+  /**
+   * @description Lista el menu completo con relaciones necesarias.
+   * @returns {Promise<Array<object>>} Lista de platos.
+   */
   async listarMenuCompleto() {
     return await this.platoRepository.listarMenuCompleto();
   }
 
+  /**
+   * @description Crea un plato validando datos y manejando transaccion propia o externa.
+   * @param {object} datos - Payload del plato.
+   * @param {object|null} transaction - Transaccion opcional inyectada por otro servicio.
+   * @returns {Promise<object>} Plato creado.
+   * @throws {Error} Codigos de validacion de dominio y conflicto de nombre.
+   */
   async crearNuevoProducto(datos, transaction = null) {
     // Si recibimos transacción externa, desde PedidoService la usamos
     if (transaction) {
@@ -88,6 +108,14 @@ class PlatoService {
     });
   }
 
+  /**
+   * @description Modifica un plato existente validando negocio y unicidad.
+   * @param {number|string} id - Id del plato.
+   * @param {object} datos - Campos a modificar.
+   * @param {object|null} transaction - Transaccion opcional.
+   * @returns {Promise<object>} Plato actualizado.
+   * @throws {Error} `PLATO_NO_ENCONTRADO` y codigos de validacion.
+   */
   async modificarProducto(id, datos, transaction = null) {
     // Si recibimos transacción externa, desde PedidoServicela usamos
     if (transaction) {
@@ -115,6 +143,13 @@ class PlatoService {
     });
   }
 
+  /**
+   * @description Elimina un plato por id con soporte transaccional.
+   * @param {number|string} id - Id del plato.
+   * @param {object|null} transaction - Transaccion opcional.
+   * @returns {Promise<boolean>} `true` si se elimina.
+   * @throws {Error} `PLATO_NO_ENCONTRADO`.
+   */
   async eliminarProducto(id, transaction = null) {
     if (transaction) {
       const producto = await this.platoRepository.buscarPorId(id, transaction);
@@ -132,7 +167,14 @@ class PlatoService {
     });
   }
 
-
+  /**
+   * @description Asigna una imagen a un plato existente.
+   * @param {number|string} id - Id del plato.
+   * @param {string} nombreArchivo - Nombre de archivo persistido por multer.
+   * @param {object|null} transaction - Transaccion opcional.
+   * @returns {Promise<object>} Plato actualizado con imagen.
+   * @throws {Error} `PLATO_NO_ENCONTRADO`.
+   */
   async cargarImagenProducto(id, nombreArchivo, transaction = null) {
 
     const producto = await this.platoRepository.buscarPorId(id, transaction);
@@ -149,8 +191,14 @@ class PlatoService {
     return await this.platoRepository.buscarPorId(id, transaction);
   }
 
-
-  // 5. VALIDAR DATOS DE PRODUCTO (Lógica Compleja de Validación)
+  /**
+   * @description Valida y normaliza datos de plato para alta o modificacion.
+   * @param {object} datos - Payload recibido.
+   * @param {object|null} productoExistente - Entidad actual para contexto de update.
+   * @param {object|null} transaction - Transaccion opcional para validaciones de unicidad.
+   * @returns {Promise<object>} Datos listos para persistir.
+   * @throws {Error} Codigos de validacion de dominio.
+   */
   async _validarProducto(datos, productoExistente = null, transaction = null) {
 
     const esCreacion = !productoExistente;

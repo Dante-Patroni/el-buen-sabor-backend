@@ -8,6 +8,12 @@ class SequelizeRubroRepository extends RubroRepository {
     // ================================
     // TRANSACCIONES
     // ================================
+    /**
+     * @description Ejecuta una operacion atomica dentro de una transaccion Sequelize.
+     * @param {(transaction: import("sequelize").Transaction) => Promise<any>} callback - Logica transaccional.
+     * @returns {Promise<any>} Resultado del callback.
+     * @throws {Error} Repropaga errores tras rollback.
+     */
     async inTransaction(callback) {
         const transaction = await sequelize.transaction();
 
@@ -26,9 +32,8 @@ class SequelizeRubroRepository extends RubroRepository {
     // ================================
 
     /**
-     * Trae rubros padres (padreId = null) con sus subrubros anidados.
-     * Solo activos.
-     * Esta query estaba antes directamente en rubroService.js
+     * @description Trae rubros padre activos con subrubros activos anidados.
+     * @returns {Promise<Array<object>>} Jerarquia de rubros.
      */
     async listarJerarquia() {
         return await Rubro.findAll({
@@ -51,12 +56,21 @@ class SequelizeRubroRepository extends RubroRepository {
     }
 
     /**
-     * Busca un rubro por ID (sin importar si es padre o hijo)
+     * @description Busca un rubro por id.
+     * @param {number|string} id - Id del rubro.
+     * @param {import("sequelize").Transaction|null} transaction - Transaccion opcional.
+     * @returns {Promise<object|null>} Rubro encontrado o `null`.
      */
     async buscarPorId(id, transaction = null) {
         return await Rubro.findByPk(id, { transaction });
     }
 
+    /**
+     * @description Indica si existe un rubro activo con el id provisto.
+     * @param {number|string} id - Id del rubro.
+     * @param {import("sequelize").Transaction|null} transaction - Transaccion opcional.
+     * @returns {Promise<boolean>} `true` si existe activo.
+     */
     async existeActivo(id, transaction = null) {
         const rubro = await Rubro.findOne({//solo queremos saber si existe uno
             where: {
@@ -68,6 +82,13 @@ class SequelizeRubroRepository extends RubroRepository {
 
         return !!rubro;//devuelve true si encontró uno, false si no
     }
+    /**
+     * @description Busca un rubro por denominacion y padre.
+     * @param {string} denominacion - Denominacion normalizada.
+     * @param {number|null} padreId - Id de padre o `null`.
+     * @param {import("sequelize").Transaction|null} transaction - Transaccion opcional.
+     * @returns {Promise<object|null>} Rubro encontrado o `null`.
+     */
     async buscarPorDenominacionYPadre(denominacion, padreId, transaction = null) {
 
         return await Rubro.findOne({
@@ -79,6 +100,14 @@ class SequelizeRubroRepository extends RubroRepository {
         });
     }
 
+    /**
+     * @description Busca rubro por denominacion/padre excluyendo un id especifico.
+     * @param {string} denominacion - Denominacion normalizada.
+     * @param {number|null} padreId - Id de padre o `null`.
+     * @param {number} excluirId - Id a excluir.
+     * @param {import("sequelize").Transaction|null} transaction - Transaccion opcional.
+     * @returns {Promise<object|null>} Rubro duplicado o `null`.
+     */
     async buscarPorDenominacionYPadreExcluyendoId(denominacion, padreId, excluirId, transaction = null) {
         return await Rubro.findOne({
             where: {
@@ -90,6 +119,12 @@ class SequelizeRubroRepository extends RubroRepository {
         });
     }
 
+    /**
+     * @description Verifica si un rubro posee subrubros activos.
+     * @param {number|string} id - Id de rubro padre.
+     * @param {import("sequelize").Transaction|null} transaction - Transaccion opcional.
+     * @returns {Promise<boolean>} `true` si hay subrubros activos.
+     */
     async tieneSubrubrosActivos(id, transaction = null) {
         const cantidad = await Rubro.count({
             where: {
@@ -102,6 +137,12 @@ class SequelizeRubroRepository extends RubroRepository {
         return cantidad > 0;
     }
 
+    /**
+     * @description Verifica si existen platos activos asociados a un rubro.
+     * @param {number|string} id - Id del rubro.
+     * @param {import("sequelize").Transaction|null} transaction - Transaccion opcional.
+     * @returns {Promise<boolean>} `true` si hay platos activos.
+     */
     async tienePlatosAsociados(id, transaction = null) {
         const cantidad = await Plato.count({
             where: {
@@ -120,16 +161,21 @@ class SequelizeRubroRepository extends RubroRepository {
     // ================================
 
     /**
-     * Crea un rubro nuevo.
-     * Si datos.padreId viene definido → es un subrubro.
-     * Si datos.padreId es null → es un rubro padre.
+     * @description Crea un rubro nuevo.
+     * @param {object} datos - Datos del rubro.
+     * @param {import("sequelize").Transaction|null} transaction - Transaccion opcional.
+     * @returns {Promise<object>} Rubro creado.
      */
     async crear(datos, transaction = null) {
         return await Rubro.create(datos, { transaction });
     }
 
     /**
-     * Actualiza los campos de un rubro existente.
+     * @description Actualiza los campos de un rubro existente.
+     * @param {number|string} id - Id del rubro.
+     * @param {object} datos - Campos a actualizar.
+     * @param {import("sequelize").Transaction|null} transaction - Transaccion opcional.
+     * @returns {Promise<number>} Cantidad de filas afectadas.
      */
     async actualizar(id, datos, transaction = null) {
         const [filasAfectadas] = await Rubro.update(datos, {
@@ -140,8 +186,10 @@ class SequelizeRubroRepository extends RubroRepository {
     }
 
     /**
-     * Soft delete: pone activo = false.
-     * NO borra de la BD, así se puede reactivar en el futuro.
+     * @description Realiza baja logica de rubro (`activo=false`).
+     * @param {number|string} id - Id del rubro.
+     * @param {import("sequelize").Transaction|null} transaction - Transaccion opcional.
+     * @returns {Promise<number>} Cantidad de filas afectadas.
      */
     async eliminar(id, transaction = null) {
         const [filasAfectadas] = await Rubro.update(

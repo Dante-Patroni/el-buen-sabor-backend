@@ -1,12 +1,21 @@
 const { manejarErrorHttp } = require("./errorMapper");
 
 class PlatoController {
-
+  /**
+   * @description Crea una instancia del controller de platos.
+   * @param {import("../services/platoService")} platoService - Servicio de platos inyectado.
+   */
   constructor(platoService) {
     this.platoService = platoService;
   }
 
-  // 1. LISTAR
+  /**
+   * @description Devuelve el menu completo de platos.
+   * @param {import("express").Request} req - Request HTTP.
+   * @param {import("express").Response} res - Response HTTP.
+   * @returns {Promise<import("express").Response>} Menu listado.
+   * @throws {Error} Errores de service/repository.
+   */
   listarMenuCompleto = async (req, res) => {
     try {
       const menu = await this.platoService.listarMenuCompleto();
@@ -17,7 +26,13 @@ class PlatoController {
     }
   }
 
-  // 👇 2. NUEVO: CREAR (Esto arregla el error "is not a function")
+  /**
+   * @description Crea un nuevo plato aplicando validaciones de negocio.
+   * @param {import("express").Request} req - Request con datos del plato.
+   * @param {import("express").Response} res - Response HTTP.
+   * @returns {Promise<import("express").Response>} Plato creado.
+   * @throws {Error} Codigos de dominio como `PRODUCTO_YA_EXISTE` o validaciones.
+   */
   crearNuevoProducto = async (req, res) => {
     try {
 
@@ -31,8 +46,13 @@ class PlatoController {
     }
   };
 
-
-  // 👇 3. NUEVO: EDITAR (PUT)
+  /**
+   * @description Modifica un plato existente por id.
+   * @param {import("express").Request} req - Request con `params.id` y campos a actualizar.
+   * @param {import("express").Response} res - Response HTTP.
+   * @returns {Promise<import("express").Response>} Plato actualizado.
+   * @throws {Error} Errores de dominio de validacion o inexistencia.
+   */
   modificarProducto = async (req, res) => {
     try {
       const { id } = req.params;
@@ -47,11 +67,15 @@ class PlatoController {
       return manejarErrorHttp(error, res);
 
     }
-  };  // 🔥 ESTA LLAVE CIERRA EL MÉTODO
+  };
 
-  // =============================
-  // ELIMINAR PRODUCTO
-  // ===============================
+  /**
+   * @description Elimina un plato por id.
+   * @param {import("express").Request} req - Request con `params.id`.
+   * @param {import("express").Response} res - Response HTTP.
+   * @returns {Promise<import("express").Response>} Confirmacion de eliminacion.
+   * @throws {Error} `PLATO_NO_ENCONTRADO` u otros codigos de dominio.
+   */
   eliminarProducto = async (req, res) => {
   try {
     const { id } = req.params;
@@ -66,8 +90,13 @@ class PlatoController {
   }
 };
 
-
-  // 4. SUBIR IMAGEN
+  /**
+   * @description Asocia una imagen subida a un plato existente.
+   * @param {import("express").Request} req - Request con `params.id` y `file`.
+   * @param {import("express").Response} res - Response HTTP.
+   * @returns {Promise<import("express").Response>} Plato con imagen actualizada.
+   * @throws {Error} `NO_SE_ENVIO_IMAGEN`, `PLATO_NO_ENCONTRADO` y errores de infraestructura.
+   */
   cargarImagenProducto = async (req, res) => {
     try {
       const { id } = req.params;

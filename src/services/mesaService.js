@@ -1,20 +1,30 @@
 
 class MesaService {
+  /**
+   * @description Crea una instancia del servicio de mesas.
+   * @param {import("../repositories/mesaRepository")} mesaRepository - Repositorio de mesas.
+   * @param {import("../repositories/pedidoRepository")} pedidoRepository - Repositorio de pedidos.
+   */
   constructor(mesaRepository, pedidoRepository) {
     this.mesaRepository = mesaRepository;
     this.pedidoRepository = pedidoRepository;
   }
 
-  // --------------------------------------------------
-  // 1. LISTAR MESAS
-  // --------------------------------------------------
+  /**
+   * @description Lista todas las mesas con informacion de mozo asociada.
+   * @returns {Promise<Array<object>>} Lista de mesas.
+   */
   async listar() {
     return await this.mesaRepository.listarMesasConMozo();
   }
 
-  // --------------------------------------------------
-  // 2. OBTENER MESA POR ID
-  // --------------------------------------------------
+  /**
+   * @description Obtiene una mesa por id dentro o fuera de una transaccion.
+   * @param {number|string} mesaId - Id de la mesa.
+   * @param {object|null} transaction - Transaccion opcional.
+   * @returns {Promise<object>} Mesa encontrada.
+   * @throws {Error} `MESA_NO_ENCONTRADA`.
+   */
   async obtenerPorId(mesaId, transaction = null) {
     const mesa = await this.mesaRepository.buscarMesaPorId(mesaId, transaction);
     if (!mesa) {
@@ -23,10 +33,14 @@ class MesaService {
     return mesa;
   }
 
-  // --------------------------------------------------
-// 3. ABRIR MESA (SEGURA)
-// --------------------------------------------------
-async abrirMesa(mesaId, mozoId) {
+  /**
+   * @description Abre una mesa libre y asigna mozo.
+   * @param {number|string} mesaId - Id de mesa.
+   * @param {number|string} mozoId - Id del mozo.
+   * @returns {Promise<{mensaje:string}>} Confirmacion de apertura.
+   * @throws {Error} `MOZO_REQUERIDO` o `MESA_YA_OCUPADA`.
+   */
+  async abrirMesa(mesaId, mozoId) {
 
   if (!mozoId) {
     throw new Error("MOZO_REQUERIDO");
@@ -43,21 +57,15 @@ async abrirMesa(mesaId, mozoId) {
   }
 
   return { mensaje: "Mesa abierta correctamente" };
-}
+  }
 
 
-  // --------------------------------------------------
-  // 4. CERRAR MESA
-  // --------------------------------------------------
   /**
-  * Cierra una mesa dentro de una transacción.
-  *
-  * Esta operación es atómica: si alguna parte falla
-  * (validación, actualización, pedidos), todo se revierte.
-  *
-  * El Service define la lógica de negocio.
-  * El Repository se encarga de ejecutar la transacción.
-  */
+   * @description Cierra una mesa en forma atomica, marca pedidos como pagados y libera la mesa.
+   * @param {number|string} mesaId - Id de la mesa a cerrar.
+   * @returns {Promise<{mesaId:number,totalCobrado:number}>} Datos de cierre para respuesta HTTP.
+   * @throws {Error} `MESA_NO_ENCONTRADA` o `MESA_YA_LIBRE`.
+   */
   async cerrarMesa(mesaId) {
 
     // Se delega al repository la ejecución transaccional.
@@ -117,13 +125,14 @@ async abrirMesa(mesaId, mozoId) {
     });
   }
 
-
-
-  // --------------------------------------------------
-  // 5. SUMAR TOTAL A MESA
-  // --------------------------------------------------
-  //Este método es llamado desde PedidoService.crearYValidarPedido()
-  //Recibe transaction como parámetro para poder ejecutar la operación dentro de la misma transacción
+  /**
+   * @description Suma un monto al total actual de una mesa ocupada.
+   * @param {number|string} mesaId - Id de mesa.
+   * @param {number|string} monto - Monto a sumar.
+   * @param {object|null} transaction - Transaccion opcional.
+   * @returns {Promise<object>} Mesa actualizada.
+   * @throws {Error} `MESA_NO_ENCONTRADA` o `MESA_NO_OCUPADA`.
+   */
   async sumarTotal(mesaId, monto, transaction = null) {
     const mesa = await this.obtenerPorId(mesaId, transaction);
 
@@ -139,9 +148,14 @@ async abrirMesa(mesaId, mozoId) {
     return mesa;
   }
 
-  // --------------------------------------------------
-  // 6. RESTAR TOTAL A MESA
-  // --------------------------------------------------
+  /**
+   * @description Resta un monto al total de una mesa y la libera si queda en cero.
+   * @param {number|string} mesaId - Id de mesa.
+   * @param {number|string} monto - Monto a restar.
+   * @param {object|null} transaction - Transaccion opcional.
+   * @returns {Promise<object>} Mesa actualizada.
+   * @throws {Error} `MESA_NO_ENCONTRADA`.
+   */
   async restarTotal(mesaId, monto, transaction = null) {
     const mesa = await this.obtenerPorId(mesaId, transaction);
 
@@ -164,9 +178,14 @@ async abrirMesa(mesaId, mozoId) {
 
     return mesa;
   }
-  // --------------------------------------------------
-  // 6. AJUSTAR TOTAL A MESA
-  // --------------------------------------------------
+  /**
+   * @description Ajusta el total de una mesa ocupada segun una diferencia positiva o negativa.
+   * @param {number|string} mesaId - Id de mesa.
+   * @param {number} diferencia - Delta a aplicar sobre total actual.
+   * @param {object|null} transaction - Transaccion opcional.
+   * @returns {Promise<object>} Mesa actualizada.
+   * @throws {Error} `MESA_NO_ENCONTRADA` o `MESA_NO_OCUPADA`.
+   */
   async ajustarTotal(mesaId, diferencia, transaction = null) {
     const mesa = await this.obtenerPorId(mesaId, transaction);
     //Solo puedo modificar totales de mesas activas

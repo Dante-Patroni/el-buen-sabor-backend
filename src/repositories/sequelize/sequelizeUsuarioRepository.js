@@ -3,7 +3,12 @@ const { Usuario, sequelize } = require("../../models");
 const UsuarioRepository = require("../usuarioRepository");
 
 class SequelizeUsuarioRepository extends UsuarioRepository {
-  // Ejecuta un bloque atomico. Si algo falla, todo vuelve atras.
+  /**
+   * @description Ejecuta una operacion atomica usando transaccion de Sequelize.
+   * @param {(transaction: import("sequelize").Transaction) => Promise<any>} callback - Logica atomica.
+   * @returns {Promise<any>} Resultado del callback.
+   * @throws {Error} Repropaga cualquier error tras rollback.
+   */
   async inTransaction(callback) {
     const transaction = await sequelize.transaction();
 
@@ -17,7 +22,12 @@ class SequelizeUsuarioRepository extends UsuarioRepository {
     }
   }
 
-  // Por defecto lista solo usuarios activos.
+  /**
+   * @description Lista usuarios con filtro opcional por activo.
+   * @param {boolean} incluirInactivos - Si es `true`, no filtra por activo.
+   * @param {import("sequelize").Transaction|null} transaction - Transaccion opcional.
+   * @returns {Promise<Array<object>>} Usuarios encontrados.
+   */
   async listar(incluirInactivos = false, transaction = null) {
     const where = incluirInactivos ? {} : { activo: true };
 
@@ -28,11 +38,22 @@ class SequelizeUsuarioRepository extends UsuarioRepository {
     });
   }
 
+  /**
+   * @description Busca un usuario por clave primaria.
+   * @param {number|string} id - Id del usuario.
+   * @param {import("sequelize").Transaction|null} transaction - Transaccion opcional.
+   * @returns {Promise<object|null>} Usuario encontrado o `null`.
+   */
   async buscarPorId(id, transaction = null) {
     return await Usuario.findByPk(id, { transaction });
   }
 
-  // Se usa tanto para login como para validar legajo duplicado.
+  /**
+   * @description Busca un usuario por legajo.
+   * @param {string} legajo - Legajo a consultar.
+   * @param {import("sequelize").Transaction|null} transaction - Transaccion opcional.
+   * @returns {Promise<object|null>} Usuario encontrado o `null`.
+   */
   async buscarPorLegajo(legajo, transaction = null) {
     return await Usuario.findOne({
       where: { legajo },
@@ -40,11 +61,23 @@ class SequelizeUsuarioRepository extends UsuarioRepository {
     });
   }
 
+  /**
+   * @description Crea un usuario.
+   * @param {object} datos - Datos validados del usuario.
+   * @param {import("sequelize").Transaction|null} transaction - Transaccion opcional.
+   * @returns {Promise<object>} Usuario creado.
+   */
   async crear(datos, transaction = null) {
     return await Usuario.create(datos, { transaction });
   }
 
-  // Devuelve cantidad de filas afectadas (estilo Sequelize).
+  /**
+   * @description Actualiza un usuario por id.
+   * @param {number|string} id - Id del usuario.
+   * @param {object} datos - Campos a actualizar.
+   * @param {import("sequelize").Transaction|null} transaction - Transaccion opcional.
+   * @returns {Promise<number>} Cantidad de filas afectadas.
+   */
   async actualizar(id, datos, transaction = null) {
     const [filasAfectadas] = await Usuario.update(datos, {
       where: { id },
@@ -54,7 +87,12 @@ class SequelizeUsuarioRepository extends UsuarioRepository {
     return filasAfectadas;
   }
 
-  // "Delete" de usuario = baja logica (activo=false).
+  /**
+   * @description Realiza baja logica de usuario estableciendo `activo=false`.
+   * @param {number|string} id - Id del usuario.
+   * @param {import("sequelize").Transaction|null} transaction - Transaccion opcional.
+   * @returns {Promise<number>} Cantidad de filas afectadas.
+   */
   async eliminarLogico(id, transaction = null) {
     const [filasAfectadas] = await Usuario.update(
       { activo: false },
@@ -67,7 +105,12 @@ class SequelizeUsuarioRepository extends UsuarioRepository {
     return filasAfectadas;
   }
 
-  // Nunca comparar passwords manualmente: siempre bcrypt.compare.
+  /**
+   * @description Compara password plana contra hash usando bcrypt.
+   * @param {string} passwordPlano - Password sin hash.
+   * @param {string} passwordHash - Hash almacenado.
+   * @returns {Promise<boolean>} `true` cuando coincide.
+   */
   async compararPassword(passwordPlano, passwordHash) {
     return await bcrypt.compare(passwordPlano, passwordHash);
   }

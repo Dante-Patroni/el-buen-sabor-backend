@@ -65,6 +65,11 @@ const ERROR_HTTP_MAP = {
 
 };
 
+/**
+ * @description Obtiene un codigo de dominio estable a partir de un error recibido.
+ * @param {Error|undefined|null} error - Error original lanzado por service/repository/middleware.
+ * @returns {string} Codigo de dominio normalizado.
+ */
 function obtenerCodigoError(error) {
   if (!error) return "ERROR_INTERNO";
 
@@ -80,6 +85,12 @@ function obtenerCodigoError(error) {
   return "ERROR_INTERNO";
 }
 
+/**
+ * @description Mapea un error de dominio al status HTTP y responde el JSON estandar del proyecto.
+ * @param {Error|{message?: string, details?: Array}|undefined|null} error - Error a traducir.
+ * @param {import("express").Response} res - Response de Express.
+ * @returns {import("express").Response} Respuesta HTTP con el formato `{ error }` o `{ error, details }`.
+ */
 function manejarErrorHttp(error, res) {
   const codigo = obtenerCodigoError(error);
   const status = ERROR_HTTP_MAP[codigo] || 500;

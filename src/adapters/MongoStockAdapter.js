@@ -1,7 +1,12 @@
 const Stock = require("../models/mongo/Stock");
 
 class StockAdapter {
-  // 1. OBTENER STOCK (Lectura Blindada)
+  /**
+   * @description Obtiene stock disponible combinando modelo legacy y stock diario.
+   * @param {number|string} platoId - Id del plato.
+   * @returns {Promise<number>} Cantidad disponible (9999 para ilimitado o modo CI).
+   * @throws {Error} No relanza; ante falla retorna 0 para no romper flujo de negocio.
+   */
   async obtenerStock(platoId) {
     // Si estamos en GitHub Actions, stock infinito
     if (process.env.CI === "true") {
@@ -49,7 +54,13 @@ class StockAdapter {
     }
   }
 
-  // 2. DESCONTAR STOCK (Resta)
+  /**
+   * @description Descuenta stock en Mongo respetando compatibilidad entre esquemas legacy y nuevo.
+   * @param {number|string} platoId - Id del plato.
+   * @param {number} cantidadADescontar - Cantidad a descontar.
+   * @returns {Promise<void>} Resolucion sin valor.
+   * @throws {Error} No relanza; registra error en logs.
+   */
   async descontarStock(platoId, cantidadADescontar) {
     try {
       const idBusqueda = parseInt(platoId);
@@ -77,7 +88,13 @@ class StockAdapter {
     }
   }
 
-  // 👇 3. REPONER STOCK (Suma) - ¡ESTE ES EL MÉTODO QUE FALTABA!
+  /**
+   * @description Repone stock en Mongo respetando compatibilidad entre esquemas legacy y nuevo.
+   * @param {number|string} platoId - Id del plato.
+   * @param {number} cantidadAReponer - Cantidad a reponer.
+   * @returns {Promise<void>} Resolucion sin valor.
+   * @throws {Error} No relanza; registra error en logs.
+   */
   async reponerStock(platoId, cantidadAReponer) {
     try {
       console.log(`🔄 [StockAdapter] Reponiendo ${cantidadAReponer} items al plato ${platoId}`);

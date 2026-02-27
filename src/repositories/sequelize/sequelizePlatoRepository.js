@@ -7,24 +7,11 @@ const { Op, Sequelize } = require("sequelize");
 
 class SequelizePlatoRepository extends PlatoRepository {
   /**
-* Ejecuta una operación dentro de una transacción de base de datos.
-*
-* Este método encapsula la lógica de manejo transaccional
-* (begin, commit, rollback) para evitar que el Service tenga
-* que conocer detalles del ORM (Sequelize).
-*
-* @param {Function} callback - Función async que contiene la lógica
-* de negocio a ejecutar de forma atómica. Recibe el objeto transaction.
-*
-* @returns {*} Devuelve el resultado que retorne el callback.
-*
-* Funcionamiento:
-* 1. Abre una nueva transacción.
-* 2. Ejecuta la función recibida pasándole la transacción.
-* 3. Si todo sale bien → hace commit.
-* 4. Si ocurre un error → hace rollback.
-* 5. Propaga el error hacia capas superiores.
-*/
+   * @description Ejecuta una operacion dentro de una transaccion de Sequelize.
+   * @param {(transaction: import("sequelize").Transaction) => Promise<any>} callback - Logica atomica.
+   * @returns {Promise<any>} Resultado del callback.
+   * @throws {Error} Repropaga cualquier error tras rollback.
+   */
   async inTransaction(callback) {
 
     const transaction = await sequelize.transaction();
@@ -51,7 +38,10 @@ class SequelizePlatoRepository extends PlatoRepository {
     }
   }
 
-  //LISTAR MENU COMPLETO
+  /**
+   * @description Lista el menu completo incluyendo rubro asociado.
+   * @returns {Promise<Array<object>>} Platos con rubro.
+   */
   async listarMenuCompleto() {
     // A. MySQL: Traemos platos e incluimos el nombre del Rubro
     return await Plato.findAll({
@@ -60,17 +50,32 @@ class SequelizePlatoRepository extends PlatoRepository {
 
   }
 
-  // CREAR NUEVO PRODUCTO
+  /**
+   * @description Crea un plato nuevo.
+   * @param {object} datos - Datos del plato.
+   * @param {import("sequelize").Transaction|null} transaction - Transaccion opcional.
+   * @returns {Promise<object>} Plato creado.
+   */
   async crearNuevoProducto(datos, transaction = null) {
     // datos trae: nombre, precio, rubroId, esMenuDelDia, etc.
     return await Plato.create(datos, { transaction });
   }
 
-  //BUSCAR PRODUCTO POR ID
+  /**
+   * @description Busca un plato por id.
+   * @param {number|string} id - Id del plato.
+   * @param {import("sequelize").Transaction|null} transaction - Transaccion opcional.
+   * @returns {Promise<object|null>} Plato encontrado o `null`.
+   */
   async buscarPorId(id, transaction = null) {
     return await Plato.findByPk(id, { transaction });
   }
-  //BUSCAR PRODUCTO POR NOMBRE
+  /**
+   * @description Busca un plato por nombre.
+   * @param {string} nombre - Nombre del plato.
+   * @param {import("sequelize").Transaction|null} transaction - Transaccion opcional.
+   * @returns {Promise<object|null>} Plato encontrado o `null`.
+   */
   async buscarPorNombre(nombre, transaction = null) {
     return await Plato.findOne({
       where: { nombre },
@@ -78,12 +83,23 @@ class SequelizePlatoRepository extends PlatoRepository {
     });
   }
 
-  //MODIFICAR PRODUCTO ID
+  /**
+   * @description Actualiza un plato por id y devuelve la entidad actualizada.
+   * @param {number|string} id - Id del plato.
+   * @param {object} datos - Campos a actualizar.
+   * @param {import("sequelize").Transaction|null} transaction - Transaccion opcional.
+   * @returns {Promise<object|null>} Plato actualizado o `null`.
+   */
   async modificarProductoSeleccionado(id, datos, transaction = null) {
     await Plato.update(datos, { where: { id }, transaction });
     return await Plato.findByPk(id, { transaction });
   }
-  //ELIMINAR PRODUCTO POR ID
+  /**
+   * @description Elimina un plato por id.
+   * @param {number|string} id - Id del plato.
+   * @param {import("sequelize").Transaction|null} transaction - Transaccion opcional.
+   * @returns {Promise<number>} Cantidad de filas eliminadas.
+   */
   async eliminarPorId(id, transaction = null) {
     const filasEliminadas = await Plato.destroy({
       where: { id },
@@ -93,7 +109,13 @@ class SequelizePlatoRepository extends PlatoRepository {
     return filasEliminadas; // devuelve 0 o 1
   }
 
-
+  /**
+   * @description Actualiza el stock absoluto y devuelve el plato resultante.
+   * @param {number|string} id - Id del plato.
+   * @param {number} nuevoStock - Nuevo stock.
+   * @param {import("sequelize").Transaction|null} transaction - Transaccion opcional.
+   * @returns {Promise<object|null>} Plato actualizado o `null`.
+   */
   async actualizarStock(id, nuevoStock, transaction = null) {
     await Plato.update(
       { stockActual: nuevoStock },
@@ -102,6 +124,13 @@ class SequelizePlatoRepository extends PlatoRepository {
     return await Plato.findByPk(id, { transaction });
   }
 
+  /**
+   * @description Descuenta stock de forma atomica usando condicion `stockActual >= cantidad`.
+   * @param {number|string} id - Id del plato.
+   * @param {number} cantidad - Cantidad a descontar.
+   * @param {import("sequelize").Transaction} transaction - Transaccion activa.
+   * @returns {Promise<number>} Filas afectadas.
+   */
   async descontarStockAtomico(id, cantidad, transaction) {
     const [filasAfectadas] = await Plato.update(
       {
@@ -120,6 +149,13 @@ class SequelizePlatoRepository extends PlatoRepository {
     return filasAfectadas; // 0 si no pudo descontar
   }
 
+  /**
+   * @description Restaura stock de forma atomica para platos no ilimitados.
+   * @param {number|string} id - Id del plato.
+   * @param {number} cantidad - Cantidad a sumar.
+   * @param {import("sequelize").Transaction} transaction - Transaccion activa.
+   * @returns {Promise<void>} Resolucion sin valor.
+   */
   async restaurarStockAtomico(id, cantidad, transaction) {
     await Plato.update(
       {
@@ -135,6 +171,13 @@ class SequelizePlatoRepository extends PlatoRepository {
     );
   }
 
+  /**
+   * @description Actualiza el estado de un pedido relacionado.
+   * @param {number|string} pedidoId - Id del pedido.
+   * @param {string} nuevoEstado - Nuevo estado.
+   * @param {import("sequelize").Transaction|null} transaction - Transaccion opcional.
+   * @returns {Promise<Array<number>>} Resultado de `update` de Sequelize.
+   */
   async actualizarEstadoPedido(pedidoId, nuevoEstado, transaction = null) {
     return await Pedido.update(
       { estado: nuevoEstado },

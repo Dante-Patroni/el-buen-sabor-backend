@@ -1,17 +1,27 @@
 
 class RubroService {
+  /**
+   * @description Crea una instancia del servicio de rubros.
+   * @param {import("../repositories/rubroRepository")} rubroRepository - Repositorio inyectado.
+   */
   constructor(rubroRepository) {
     this.rubroRepository = rubroRepository;
   }
 
-
+  /**
+   * @description Obtiene el arbol jerarquico completo de rubros activos.
+   * @returns {Promise<Array<object>>} Lista jerarquica de rubros.
+   */
   async obtenerJerarquiaCompleta() {
     return await this.rubroRepository.listarJerarquia();
   }
 
-  // ============================
-  // CREAR O REACTIVAR RUBRO
-  // ============================
+  /**
+   * @description Crea un rubro o reactiva uno inactivo si coincide denominacion/padre.
+   * @param {{denominacion:string,padreId:number|null}} payload - Datos de alta.
+   * @returns {Promise<object|number>} Rubro creado/actualizado segun implementacion del repositorio.
+   * @throws {Error} Codigos de validacion y conflicto de rubros.
+   */
   async crear({ denominacion, padreId = null }) {
 
     return await this.rubroRepository.inTransaction(async (transaction) => {
@@ -77,9 +87,13 @@ class RubroService {
     });
   }
 
-  // ============================
-  // ACTUALIZAR RUBRO
-  // ============================
+  /**
+   * @description Actualiza denominacion y/o padre de un rubro activo.
+   * @param {number} id - Id del rubro a actualizar.
+   * @param {{denominacion:string,padreId:number|null}} payload - Datos de actualizacion.
+   * @returns {Promise<object|number>} Resultado de actualizacion del repositorio.
+   * @throws {Error} Codigos de validacion, inexistencia o conflicto.
+   */
   async actualizar(id, { denominacion, padreId = null }) {
 
     return await this.rubroRepository.inTransaction(async (transaction) => {
@@ -151,9 +165,12 @@ class RubroService {
     });
   }
 
-  // ============================
-  // ELIMINAR RUBRO (LÓGICO)
-  // ============================
+  /**
+   * @description Realiza baja logica de un rubro si no tiene dependencias activas.
+   * @param {number} id - Id del rubro a eliminar logicamente.
+   * @returns {Promise<object|number>} Resultado de eliminacion logica.
+   * @throws {Error} `RUBRO_NO_EXISTE`, `RUBRO_YA_INACTIVO`, `RUBRO_TIENE_SUBRUBROS`, `RUBRO_TIENE_PLATOS`.
+   */
   async eliminar(id) {
 
     return await this.rubroRepository.inTransaction(async (transaction) => {
@@ -192,9 +209,11 @@ class RubroService {
   }
 
 
-  // ---------------------------------
-  // MÉTODOS PRIVADOS
-  // ---------------------------------
+  /**
+   * @description Normaliza denominaciones con mayusculas/minusculas consistentes por palabra.
+   * @param {string} texto - Denominacion original.
+   * @returns {string} Denominacion normalizada.
+   */
   _normalizarDenominacion(texto) {
 
     const palabrasMinusculas = [

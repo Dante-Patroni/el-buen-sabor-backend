@@ -3,6 +3,13 @@
 // el service habla SOLO con repositories
 
 class PedidoService {
+  /**
+   * @description Crea una instancia del servicio de pedidos.
+   * @param {import("../repositories/pedidoRepository")} pedidoRepository - Repositorio de pedidos.
+   * @param {import("./platoService")} platoService - Servicio de platos.
+   * @param {import("./mesaService")} mesaService - Servicio de mesas.
+   * @param {import("events").EventEmitter} pedidoEmitter - Emisor de eventos de pedidos.
+   */
   constructor(pedidoRepository, platoService, mesaService, pedidoEmitter) {
     this.pedidoRepository = pedidoRepository;
     this.platoService = platoService;
@@ -10,8 +17,12 @@ class PedidoService {
     this.pedidoEmitter = pedidoEmitter;
   }
 
-  // 1. CREAR PEDIDO (Soporta múltiples productos)
-
+  /**
+   * @description Crea un pedido, descuenta stock, genera detalles y actualiza total de mesa en una transaccion.
+   * @param {{mesa:number|string, productos:Array<object>, cliente?:string}} datosPedido - Datos del pedido.
+   * @returns {Promise<object>} Pedido creado.
+   * @throws {Error} Codigos de validacion de mesa/productos/stock.
+   */
   async crearYValidarPedido(datosPedido) {
     return await this.pedidoRepository.inTransaction(async (transaction) => {
 
@@ -70,18 +81,21 @@ class PedidoService {
         return pedido;
       });
   }
-
-
-
-
-  // 2. LISTAR PEDIDOS
+  /**
+   * @description Lista pedidos opcionalmente filtrados por estado.
+   * @param {string|undefined} estado - Estado opcional para filtrar.
+   * @returns {Promise<Array<object>>} Lista de pedidos.
+   */
   async listarPedidos(estado) {
     return this.pedidoRepository.listarPedidosPorEstado(estado);
   }
 
-  // 3. BUSCAR POR MESA
-  //Recibe mesa ya validada por el middleware y devuelve los pedidos asociados a esa mesa
-  //Nunca accede a req.params ni a nada de Express, solo recibe el dato limpio y validado
+  /**
+   * @description Busca pedidos asociados a una mesa.
+   * @param {number|string} mesaNumero - Numero/id de mesa ya validado por middleware.
+   * @returns {Promise<Array<object>>} Pedidos de la mesa.
+   * @throws {Error} `MESA_NO_PROPORCIONADA`.
+   */
   async buscarPedidosPorMesa(mesaNumero) {
     // Defensa básica (por si alguien usa el service sin middleware)
     if (mesaNumero === undefined || mesaNumero === null) {
@@ -91,9 +105,12 @@ class PedidoService {
     return await this.pedidoRepository.buscarPedidosPorMesa(mesaNumero);
 
   }
-
-
-  // 4. ELIMINAR PEDIDO
+  /**
+   * @description Elimina un pedido pendiente restaurando stock y ajustando total de mesa de forma atomica.
+   * @param {number|string} pedidoId - Id del pedido a eliminar.
+   * @returns {Promise<boolean>} `true` si se elimina correctamente.
+   * @throws {Error} `PEDIDO_NO_ENCONTRADO` y reglas de estado.
+   */
   async eliminarPedido(pedidoId) {
 
     return await this.pedidoRepository.inTransaction(async (transaction) => {
@@ -130,10 +147,12 @@ class PedidoService {
 
   }
 
-  //MODIFICAR  UN PEDIDO
-  //Durante la modificación, la mesa nunca debe pasar a "libre"
-  //Uso transacción para asegurar que si algo falla, no quede el pedido en un estado inconsistente 
-  // (ej: detalles sin cabecera, o stock descontado sin crear el pedido)
+  /**
+   * @description Modifica un pedido pendiente recalculando detalles, stock y total de mesa en una transaccion.
+   * @param {{id:number|string, productos:Array<object>, mesa:number|string}} datos - Datos de modificacion.
+   * @returns {Promise<object>} Pedido actualizado.
+   * @throws {Error} Codigos de validacion de pedido/productos/estado.
+   */
   async modificarPedido(datos) {
 
     return await this.pedidoRepository.inTransaction(async (transaction) => {
@@ -220,7 +239,13 @@ class PedidoService {
     
   }
 
-  //ACTUALIZAR ESTADO PEDIDO PENDIENTE-->EN_PREPARACION-->ENTREGADO-->PAGADO
+  /**
+   * @description Actualiza el estado de un pedido respetando transiciones permitidas.
+   * @param {number|string} pedidoId - Id del pedido.
+   * @param {string} nuevoEstado - Estado destino.
+   * @returns {Promise<boolean>} `true` cuando la transicion se concreta.
+   * @throws {Error} Codigos de validacion de estado o existencia.
+   */
   async actualizarEstadoPedido(pedidoId, nuevoEstado) {
     return await this.pedidoRepository.inTransaction(async (transaction) => {
       if (!pedidoId) {
@@ -266,12 +291,12 @@ class PedidoService {
     });
   }
 
-
-
-  // ---------------------------------
-  // MÉTODOS PRIVADOS
-  // ---------------------------------
-
+  /**
+   * @description Elimina fisicamente cabecera y detalles de un pedido dentro de una transaccion existente.
+   * @param {number|string} pedidoId - Id del pedido.
+   * @param {object} transaction - Transaccion activa.
+   * @returns {Promise<void>} Resolucion sin valor.
+   */
   async _eliminarPedidoFisico(pedidoId, transaction) {
 
     await this.pedidoRepository.eliminarDetallesPedido(
@@ -285,8 +310,13 @@ class PedidoService {
     );
   }
 
-
-  //==================================================================
+  /**
+   * @description Valida items, descuenta stock y construye detalles/total para persistencia.
+   * @param {Array<{platoId:number|string,cantidad:number|string,aclaracion?:string}>} productos - Items solicitados.
+   * @param {object} transaction - Transaccion activa.
+   * @returns {Promise<{total:number, detalles:Array<object>}>} Total calculado y detalles listos.
+   * @throws {Error} `PLATO_ID_INVALIDO`, `CANTIDAD_INVALIDA`, `PLATO_NO_ENCONTRADO`, `STOCK_INSUFICIENTE`.
+   */
   async _procesarProductos(productos, transaction) {
 
     let total = 0;
@@ -334,8 +364,13 @@ class PedidoService {
 
     return { total, detalles };
   }
-
-  //==================================================================
+  /**
+   * @description Restaura stock para cada detalle de pedido provisto.
+   * @param {Array<{PlatoId:number,cantidad:number}>} detalles - Detalles del pedido.
+   * @param {object} transaction - Transaccion activa.
+   * @returns {Promise<void>} Resolucion sin valor.
+   * @throws {Error} `PLATO_ID_INVALIDO`.
+   */
   async _restaurarStock(detalles, transaction) {
 
     for (const detalle of detalles) {

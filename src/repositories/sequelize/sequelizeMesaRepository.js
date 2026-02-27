@@ -3,7 +3,12 @@ const MesaRepository = require("../mesaRepository");
 
 class SequelizeMesaRepository extends MesaRepository {
 
-
+  /**
+   * @description Ejecuta una operacion atomica dentro de una transaccion Sequelize.
+   * @param {(transaction: import("sequelize").Transaction) => Promise<any>} callback - Logica atomica.
+   * @returns {Promise<any>} Resultado del callback.
+   * @throws {Error} Repropaga errores tras rollback.
+   */
   async inTransaction(callback) {
     const transaction = await sequelize.transaction();
 
@@ -17,6 +22,12 @@ class SequelizeMesaRepository extends MesaRepository {
     }
   }
 
+  /**
+   * @description Abre una mesa si se encuentra en estado libre.
+   * @param {number|string} mesaId - Id de la mesa.
+   * @param {number|string} mozoId - Id del mozo asignado.
+   * @returns {Promise<number>} Cantidad de filas afectadas.
+   */
   async abrirMesaSiEstaLibre(mesaId, mozoId) {
     const [affectedRows] = await Mesa.update(
       {
@@ -37,8 +48,8 @@ class SequelizeMesaRepository extends MesaRepository {
 
 
   /**
-   * Trae todas las mesas con su mozo asociado
-   * Infraestructura pura (ORM)
+   * @description Trae todas las mesas con su mozo asociado.
+   * @returns {Promise<Array<object>>} Mesas ordenadas por id.
    */
   async listarMesasConMozo() {
     return await Mesa.findAll({
@@ -52,8 +63,10 @@ class SequelizeMesaRepository extends MesaRepository {
   }
 
   /**
-   * Busca una mesa por su ID
-   * No valida negocio, solo devuelve datos
+   * @description Busca una mesa por su ID.
+   * @param {number|string} id - Id de la mesa.
+   * @param {import("sequelize").Transaction|null} transaction - Transaccion opcional.
+   * @returns {Promise<object|null>} Mesa encontrada o `null`.
    */
   async buscarMesaPorId(id, transaction = null) {
     return await Mesa.findByPk(id, { transaction });
@@ -61,8 +74,10 @@ class SequelizeMesaRepository extends MesaRepository {
 
 
   /**
-   * Persiste una mesa ya modificada
-   * El Service decide QUÉ cambiar
+   * @description Persiste los cambios de una entidad mesa existente.
+   * @param {object} mesa - Instancia de mesa modificada.
+   * @param {import("sequelize").Transaction|null} transaction - Transaccion opcional.
+   * @returns {Promise<object>} Mesa persistida.
    */
   async actualizarMesa(mesa, transaction = null) {
     return await mesa.save({ transaction });

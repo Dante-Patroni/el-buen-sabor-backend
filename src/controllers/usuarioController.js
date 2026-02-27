@@ -1,11 +1,21 @@
 const { manejarErrorHttp } = require("./errorMapper");
 
 class UsuarioController {
+  /**
+   * @description Crea una instancia del controller de usuarios.
+   * @param {import("../services/usuarioService")} usuarioService - Servicio de usuarios inyectado.
+   */
   constructor(usuarioService) {
     this.usuarioService = usuarioService;
   }
 
-  // Login mantiene contrato especial: el Service devuelve {status, body}.
+  /**
+   * @description Ejecuta login y devuelve el contrato especial `{ status, body }` provisto por el service.
+   * @param {import("express").Request} req - Request con `legajo` y `password`.
+   * @param {import("express").Response} res - Response HTTP.
+   * @returns {Promise<import("express").Response>} Resultado de autenticacion con token JWT.
+   * @throws {Error} `DATOS_INVALIDOS`, `USUARIO_NO_ENCONTRADO`, `USUARIO_INACTIVO`, `PASSWORD_INCORRECTA`.
+   */
   login = async (req, res) => {
     try {
       const { legajo, password } = req.body;
@@ -17,7 +27,13 @@ class UsuarioController {
     }
   };
 
-  // GET /usuarios?incluirInactivos=true
+  /**
+   * @description Lista usuarios activos o todos segun query param.
+   * @param {import("express").Request} req - Request con query `incluirInactivos`.
+   * @param {import("express").Response} res - Response HTTP.
+   * @returns {Promise<import("express").Response>} Lista de usuarios.
+   * @throws {Error} Errores de capa service/repository.
+   */
   listar = async (req, res) => {
     try {
       const incluirInactivos = req.query.incluirInactivos === "true";
@@ -29,7 +45,13 @@ class UsuarioController {
     }
   };
 
-  // GET /usuarios/:id
+  /**
+   * @description Obtiene un usuario por id.
+   * @param {import("express").Request} req - Request con `params.id`.
+   * @param {import("express").Response} res - Response HTTP.
+   * @returns {Promise<import("express").Response>} Usuario encontrado.
+   * @throws {Error} `USUARIO_NO_ENCONTRADO` o `DATOS_INVALIDOS`.
+   */
   obtenerPorId = async (req, res) => {
     try {
       const { id } = req.params;
@@ -41,7 +63,13 @@ class UsuarioController {
     }
   };
 
-  // POST /usuarios
+  /**
+   * @description Crea un usuario nuevo.
+   * @param {import("express").Request} req - Request con payload del usuario.
+   * @param {import("express").Response} res - Response HTTP.
+   * @returns {Promise<import("express").Response>} Usuario creado.
+   * @throws {Error} Codigos de validacion de datos y unicidad.
+   */
   crear = async (req, res) => {
     try {
       const nuevoUsuario = await this.usuarioService.crear(req.body);
@@ -51,7 +79,13 @@ class UsuarioController {
     }
   };
 
-  // PUT /usuarios/:id
+  /**
+   * @description Actualiza un usuario existente por id.
+   * @param {import("express").Request} req - Request con `params.id` y campos a actualizar.
+   * @param {import("express").Response} res - Response HTTP.
+   * @returns {Promise<import("express").Response>} Usuario actualizado.
+   * @throws {Error} Codigos de dominio de validacion/existencia.
+   */
   actualizar = async (req, res) => {
     try {
       const { id } = req.params;
@@ -62,7 +96,13 @@ class UsuarioController {
     }
   };
 
-  // DELETE /usuarios/:id (baja logica)
+  /**
+   * @description Realiza baja logica de un usuario por id.
+   * @param {import("express").Request} req - Request con `params.id`.
+   * @param {import("express").Response} res - Response HTTP.
+   * @returns {Promise<import("express").Response>} Respuesta 204 sin contenido.
+   * @throws {Error} `USUARIO_NO_ENCONTRADO`, `USUARIO_YA_INACTIVO` o `DATOS_INVALIDOS`.
+   */
   eliminar = async (req, res) => {
     try {
       const { id } = req.params;

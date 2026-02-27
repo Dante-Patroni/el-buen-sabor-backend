@@ -1,9 +1,19 @@
 const pedidoEmitter = require("../events/pedidoEvents");
 
 // 👇 1. CAMBIO AQUÍ: Agregamos (io) para recibir el megáfono
+/**
+ * @description Registra listeners de eventos de pedido y notifica por consola/WebSocket.
+ * @param {import("socket.io").Server|undefined} io - Instancia opcional de Socket.IO.
+ * @returns {void} Inicializa listeners globales sobre `pedidoEmitter`.
+ */
 const setupListeners = (io) => {
   
   // 👂 OÍDO 1: LA COCINA (Simulación de impresión + Pantalla Web)
+  /**
+   * @description Procesa evento de pedido creado para cocina y monitor en tiempo real.
+   * @param {{pedido: object}} payload - Evento emitido con pedido serializado.
+   * @returns {void} Solo efectos laterales.
+   */
   pedidoEmitter.on("pedido-creado", ({ pedido }) => {
     console.log("----------------------------------------------------");
     console.log(`👨‍🍳 COCINA: ¡Nuevo pedido recibido! (#${pedido.id})`);
@@ -22,12 +32,21 @@ const setupListeners = (io) => {
   });
 
   // 👂 OÍDO 2: FACTURACIÓN ELECTRÓNICA (Simulación de proceso externo lento)
+  /**
+   * @description Simula integracion asincronica de facturacion para un pedido creado.
+   * @param {{pedido: object}} payload - Evento emitido con pedido serializado.
+   * @returns {void} Solo efectos laterales.
+   */
   pedidoEmitter.on("pedido-creado", ({ pedido }) => {
     console.log(
       `🧾 FACTURACIÓN: Iniciando conexión con servidor de Impuestos (AFIP)...`,
     );
 
     // Simulamos que el servicio de impuestos es lento (3 segundos)
+    /**
+     * @description Simula respuesta diferida de servicio externo de facturacion.
+     * @returns {void} Solo logging.
+     */
     setTimeout(() => {
       // Aquí iría la llamada real a la API externa
       const cae = "732647236472"; // Código de Autorización Electrónico simulado
