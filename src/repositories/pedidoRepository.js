@@ -72,6 +72,17 @@ class PedidoRepository {
   }
 
   /**
+   * @description Obtiene pedidos facturables de una mesa con sus detalles y datos de plato.
+   * @param {number|string} mesaId - Id o numero de mesa.
+   * @param {object|null} transaction - Transaccion opcional.
+   * @returns {Promise<Array<object>>} Pedidos con detalles listos para armar ticket.
+   * @throws {Error} Implementacion pendiente en clase concreta.
+   */
+  async buscarPedidosFacturablesPorMesa(mesaId, transaction = null) {
+    throw new Error("Not implemented");
+  }
+
+  /**
    * @description Marca como pagados los pedidos abiertos de una mesa.
    * @param {number|string} mesaId - Id de mesa.
    * @param {object|null} transaction - Transaccion opcional.

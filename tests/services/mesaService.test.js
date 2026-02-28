@@ -3,6 +3,8 @@ const MesaService = require("../../src/services/mesaService");
 describe("MesaService", () => {
   let mesaRepositoryMock;
   let pedidoRepositoryMock;
+  let facturacionServiceMock;
+  let pedidoEmitterMock;
   let mesaService;
 
   beforeEach(() => {
@@ -22,7 +24,20 @@ describe("MesaService", () => {
       marcarPedidosComoPagados: jest.fn(),
     };
 
-    mesaService = new MesaService(mesaRepositoryMock, pedidoRepositoryMock);
+    facturacionServiceMock = {
+      generarResumenCierre: jest.fn(),
+    };
+
+    pedidoEmitterMock = {
+      emit: jest.fn(),
+    };
+
+    mesaService = new MesaService(
+      mesaRepositoryMock,
+      pedidoRepositoryMock,
+      facturacionServiceMock,
+      pedidoEmitterMock
+    );
   });
 
   // --------------------------------------------------
@@ -76,6 +91,14 @@ describe("MesaService", () => {
     mesaRepositoryMock.buscarMesaPorId.mockResolvedValue(mesaFake);
     mesaRepositoryMock.actualizarMesa.mockResolvedValue(true);
     pedidoRepositoryMock.marcarPedidosComoPagados.mockResolvedValue(true);
+    facturacionServiceMock.generarResumenCierre.mockResolvedValue({
+      mesaId,
+      pedidos: [],
+      subtotal: 15000,
+      recargo: 0,
+      descuento: 0,
+      totalFinal: 15000,
+    });
 
     // Act
     const resultado = await mesaService.cerrarMesa(mesaId);
@@ -89,10 +112,13 @@ describe("MesaService", () => {
     // Verificamos la persistencia con la transacción
     expect(pedidoRepositoryMock.marcarPedidosComoPagados).toHaveBeenCalledWith(mesaId, expect.anything());
     expect(mesaRepositoryMock.actualizarMesa).toHaveBeenCalledWith(mesaFake, expect.anything());
+    expect(facturacionServiceMock.generarResumenCierre).toHaveBeenCalledWith(mesaId, expect.anything());
+    expect(pedidoEmitterMock.emit).toHaveBeenCalledWith("ticket-generado", expect.any(Object));
 
     expect(resultado).toEqual({
       mesaId: 4,
-      totalCobrado: 15000
+      totalCobrado: 15000,
+      facturacion: expect.any(Object),
     });
   });
 

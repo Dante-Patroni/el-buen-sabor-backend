@@ -141,6 +141,37 @@ class SequelizePedidoRepository extends PedidoRepository {
   }
 
   /**
+   * @description Obtiene pedidos abiertos de una mesa incluyendo sus detalles y datos de plato.
+   * @param {number|string} mesaId - Id de mesa.
+   * @param {import("sequelize").Transaction|null} transaction - Transaccion opcional.
+   * @returns {Promise<Array<object>>} Pedidos facturables listos para construir ticket.
+   */
+  async buscarPedidosFacturablesPorMesa(mesaId, transaction = null) {
+    return await Pedido.findAll({
+      where: {
+        mesa: mesaId,
+        [Op.or]: [
+          { estado: { [Op.in]: ["pendiente", "en_preparacion", "entregado", ""] } },
+          { estado: { [Op.is]: null } }
+        ]
+      },
+      include: [
+        {
+          model: DetallePedido,
+          include: [
+            {
+              model: Plato,
+              attributes: ["id", "nombre", "precio"],
+            },
+          ],
+        },
+      ],
+      order: [["id", "ASC"]],
+      transaction,
+    });
+  }
+
+  /**
    * @description Marca como pagados los pedidos abiertos de una mesa.
    * @param {number|string} mesaId - Id de mesa.
    * @param {import("sequelize").Transaction|null} transaction - Transaccion opcional.

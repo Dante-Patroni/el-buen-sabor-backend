@@ -3,16 +3,24 @@ const router = express.Router();
 
 // 1. Importamos Clases
 const MesaService = require("../services/mesaService");
+const FacturacionService = require("../services/facturacionService");
 const MesaController = require("../controllers/mesaController");
 const authMiddleware = require("../middlewares/authMiddleware");
 const SequelizeMesaRepository = require("../repositories/sequelize/sequelizeMesaRepository");
 const SequelizePedidoRepository = require("../repositories/sequelize/sequelizePedidoRepository");
+const pedidoEmitter = require("../events/pedidoEvents");
 
 
 // 1. Instanciamos Repositorio
 const mesaRepository = new SequelizeMesaRepository();
 const pedidoRepository = new SequelizePedidoRepository();
-const mesaService = new MesaService(mesaRepository, pedidoRepository);
+const facturacionService = new FacturacionService(pedidoRepository);
+const mesaService = new MesaService(
+  mesaRepository,
+  pedidoRepository,
+  facturacionService,
+  pedidoEmitter
+);
 const mesaController = new MesaController(mesaService);
 
 /**

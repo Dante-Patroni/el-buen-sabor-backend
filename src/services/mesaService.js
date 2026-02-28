@@ -4,10 +4,14 @@ class MesaService {
    * @description Crea una instancia del servicio de mesas.
    * @param {import("../repositories/mesaRepository")} mesaRepository - Repositorio de mesas.
    * @param {import("../repositories/pedidoRepository")} pedidoRepository - Repositorio de pedidos.
+   * @param {import("./facturacionService")|null} facturacionService - Servicio de facturacion para cierre de mesa.
+   * @param {import("events").EventEmitter|undefined} pedidoEmitter - Emisor de eventos para notificaciones en tiempo real.
    */
-  constructor(mesaRepository, pedidoRepository) {
+  constructor(mesaRepository, pedidoRepository, facturacionService = null, pedidoEmitter = undefined) {
     this.mesaRepository = mesaRepository;
     this.pedidoRepository = pedidoRepository;
+    this.facturacionService = facturacionService;
+    this.pedidoEmitter = pedidoEmitter;
   }
 
   /**
@@ -63,7 +67,7 @@ class MesaService {
   /**
    * @description Cierra una mesa en forma atomica, marca pedidos como pagados y libera la mesa.
    * @param {number|string} mesaId - Id de la mesa a cerrar.
-   * @returns {Promise<{mesaId:number,totalCobrado:number}>} Datos de cierre para respuesta HTTP.
+   * @returns {Promise<{mesaId:number,totalCobrado:number,facturacion?:object}>} Datos de cierre para respuesta HTTP.
    * @throws {Error} `MESA_NO_ENCONTRADA` o `MESA_YA_LIBRE`.
    */
   async cerrarMesa(mesaId) {
@@ -98,6 +102,9 @@ class MesaService {
 
       // 3️⃣ Guardamos el total antes de resetear la mesa
       const totalCobrado = Number(mesa.totalActual) || 0;
+      const facturacion = this.facturacionService
+        ? await this.facturacionService.generarResumenCierre(mesaId, transaction)
+        : null;
 
       // 4️⃣ Actualizamos los pedidos asociados a la mesa
       // También dentro de la misma transacción
@@ -120,8 +127,15 @@ class MesaService {
       // Este valor será el que devuelva inTransaction
       return {
         mesaId: mesa.id,
-        totalCobrado
+        totalCobrado,
+        ...(facturacion ? { facturacion } : {}),
       };
+    }).then((resultadoCierre) => {
+      if (resultadoCierre.facturacion && this.pedidoEmitter?.emit) {
+        this.pedidoEmitter.emit("ticket-generado", resultadoCierre.facturacion);
+      }
+
+      return resultadoCierre;
     });
   }
 
