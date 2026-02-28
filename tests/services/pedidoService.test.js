@@ -63,6 +63,7 @@ describe("PedidoService", () => {
     jest.spyOn(pedidoService, "_procesarProductos").mockResolvedValue({
       total: 10000,
       detalles: [{ PlatoId: 1, cantidad: 2, subtotal: 10000, aclaracion: "" }],
+      comandaItems: [{ platoId: 1, plato: "Milanesa", cantidad: 2, aclaracion: "" }],
     });
 
     const pedidoCreado = {
@@ -90,7 +91,17 @@ describe("PedidoService", () => {
     expect(mockMesaService.sumarTotal).toHaveBeenCalledWith(4, 10000, expect.any(Object));
     expect(mockPedidoEmitter.emit).toHaveBeenCalledWith(
       "pedido-creado",
-      expect.objectContaining({ pedido: expect.any(Object) })
+      expect.objectContaining({
+        pedido: expect.objectContaining({
+          id: 101,
+          items: expect.arrayContaining([
+            expect.objectContaining({
+              platoId: 1,
+              cantidad: 2,
+            }),
+          ]),
+        }),
+      })
     );
     expect(resultado.id).toBe(101);
   });

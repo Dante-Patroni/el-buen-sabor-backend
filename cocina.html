@@ -4,8 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>👨‍🍳 Monitor de Cocina (PoC)</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>Monitor de Cocina</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <style>
         body {
@@ -34,96 +34,101 @@
                 opacity: 1;
             }
         }
-
-        .parpadeo {
-            animation: blinker 1s linear infinite;
-        }
-
-        @keyframes blinker {
-            50% {
-                opacity: 0;
-            }
-        }
     </style>
 </head>
 
 <body class="p-4">
     <div class="container">
-        <h2 class="mb-4">👨‍🍳 Monitor de Cocina <span class="badge bg-warning text-dark">En Vivo</span></h2>
+        <h2 class="mb-4">Monitor de Cocina <span class="badge bg-warning text-dark">En Vivo</span></h2>
 
-        <div id="estado-conexion" class="alert alert-danger">🔴 Desconectado del Servidor</div>
+        <div id="estado-conexion" class="alert alert-danger">Desconectado del servidor</div>
 
         <div class="row" id="lista-pedidos">
             <div class="col-12 text-center text-muted mt-5" id="mensaje-vacio">
                 <h4>Esperando comandas...</h4>
-                <p>Envíe un pedido desde la App Móvil</p>
+                <p>Envia un pedido desde la app para ver el detalle aqui.</p>
             </div>
         </div>
     </div>
 
     <script>
-        // 1. CONEXIÓN: Nos conectamos a tu Backend Node.js
-        // Asegúrate de que esta sea la IP de tu PC
-        const socket = io('http://localhost:3000');
+        const socket = io("http://localhost:3000");
 
-        const estadoDiv = document.getElementById('estado-conexion');
-        const listaPedidos = document.getElementById('lista-pedidos');
-        const mensajeVacio = document.getElementById('mensaje-vacio');
+        const estadoDiv = document.getElementById("estado-conexion");
+        const listaPedidos = document.getElementById("lista-pedidos");
+        const mensajeVacio = document.getElementById("mensaje-vacio");
 
-        // 2. EVENTOS DE CONEXIÓN
-        socket.on('connect', () => {
-            estadoDiv.className = 'alert alert-success';
-            estadoDiv.innerHTML = '🟢 <b>CONECTADO:</b> Escuchando pedidos de los mozos...';
-            console.log("Conectado al WebSocket ID:", socket.id);
+        /**
+         * @description Renderiza los items de una comanda para cocina sin precios.
+         * @param {Array<object>} items - Items recibidos en el evento de nuevo pedido.
+         * @returns {string} HTML de items.
+         */
+        function renderItemsComanda(items) {
+            if (!Array.isArray(items) || items.length === 0) {
+                return `
+                    <li class="list-group-item text-muted">
+                        Sin detalle de comanda.
+                    </li>
+                `;
+            }
+
+            return items.map((item) => `
+                <li class="list-group-item">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <strong>${item.plato || "Plato sin nombre"}</strong>
+                        <span class="badge bg-dark">x${item.cantidad || 0}</span>
+                    </div>
+                    ${item.aclaracion ? `<small class="text-muted">Aclaracion: ${item.aclaracion}</small>` : ""}
+                </li>
+            `).join("");
+        }
+
+        socket.on("connect", () => {
+            estadoDiv.className = "alert alert-success";
+            estadoDiv.innerHTML = "<b>CONECTADO:</b> Escuchando pedidos...";
         });
 
-        socket.on('disconnect', () => {
-            estadoDiv.className = 'alert alert-danger';
-            estadoDiv.innerHTML = '🔴 <b>DESCONECTADO:</b> Revisa si el servidor Node.js está corriendo.';
+        socket.on("disconnect", () => {
+            estadoDiv.className = "alert alert-danger";
+            estadoDiv.innerHTML = "<b>DESCONECTADO:</b> Revisa si el backend esta corriendo.";
         });
 
-        // 3. EL MOMENTO DE LA VERDAD: Recibir el "Grito"
-        socket.on('nuevo-pedido', (pedido) => {
-            console.log("📦 Pedido Recibido:", pedido);
+        socket.on("nuevo-pedido", (pedido) => {
+            if (mensajeVacio) mensajeVacio.style.display = "none";
 
-            // Ocultar mensaje de espera
-            if (mensajeVacio) mensajeVacio.style.display = 'none';
-
-            // Crear la tarjeta HTML del pedido
             const cardHtml = `
                 <div class="col-md-4 mb-3">
                     <div class="card shadow-sm pedido-card">
                         <div class="card-header pedido-header d-flex justify-content-between align-items-center">
-                            <strong>Mesa ${pedido.mesa || '?'}</strong>
-                            <span class="badge bg-danger parpadeo">NUEVO</span>
+                            <strong>Mesa ${pedido.mesa || "?"}</strong>
+                            <span class="badge bg-danger">NUEVO</span>
                         </div>
                         <div class="card-body">
                             <h5 class="card-title">Pedido #${pedido.id}</h5>
-                            <p class="card-text text-muted">Mozo: ${pedido.cliente || 'Sin nombre'}</p>
+                            <p class="card-text text-muted">Cliente: ${pedido.cliente || "Sin nombre"}</p>
                             <hr>
-                            <ul class="list-group list-group-flush">
-    <li class="list-group-item d-flex justify-content-between align-items-center">
-        <span>💰 Total Pedido:</span>
-        <span class="badge bg-success rounded-pill">$${pedido.total}</span>
-    </li>
-    <li class="list-group-item d-flex justify-content-between align-items-center">
-        <span>🚦 Estado:</span>
-        <span class="badge bg-warning text-dark">${pedido.estado}</span>
-    </li>
-</ul>
-                            <div class="d-grid gap-2 mt-3">
-                                <button class="btn btn-success" onclick="this.closest('.col-md-4').remove()">✅ Listo para entregar</button>
+                            <h6 class="mb-2">Detalle de comanda</h6>
+                            <ul class="list-group list-group-flush mb-3">
+                                ${renderItemsComanda(pedido.items)}
+                            </ul>
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <span>Estado:</span>
+                                <span class="badge bg-warning text-dark">${pedido.estado || "pendiente"}</span>
+                            </div>
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-success" onclick="this.closest('.col-md-4').remove()">
+                                    Listo para entregar
+                                </button>
                             </div>
                         </div>
                         <div class="card-footer text-muted small">
-                            🕒 ${new Date().toLocaleTimeString()}
+                            ${new Date().toLocaleTimeString()}
                         </div>
                     </div>
                 </div>
             `;
 
-            // Insertar al principio de la lista
-            listaPedidos.insertAdjacentHTML('afterbegin', cardHtml);
+            listaPedidos.insertAdjacentHTML("afterbegin", cardHtml);
         });
     </script>
 </body>

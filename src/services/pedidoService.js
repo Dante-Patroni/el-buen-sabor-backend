@@ -47,7 +47,7 @@ class PedidoService {
       }
 
       // 2️⃣ Procesar productos (validar stock y descontar)
-      const { total, detalles } = await this._procesarProductos(productos, transaction);
+      const { total, detalles, comandaItems } = await this._procesarProductos(productos, transaction);
 
       // 3️⃣ Crear pedido
       const nuevoPedido = await this.pedidoRepository.crearPedido({
@@ -69,16 +69,22 @@ class PedidoService {
       // 5️⃣ Actualizar total de la mesa
       await this.mesaService.sumarTotal(mesaNumero, total, transaction);
 
-      return nuevoPedido;
+      return { nuevoPedido, comandaItems };
     })
-      .then((pedido) => {
+      .then(({ nuevoPedido, comandaItems }) => {
+        const pedidoBase = typeof nuevoPedido.toJSON === "function"
+          ? nuevoPedido.toJSON()
+          : { ...nuevoPedido };
 
         // 🔔 Evento fuera de la transacción
         this.pedidoEmitter?.emit("pedido-creado", {
-          pedido: pedido.toJSON()
+          pedido: {
+            ...pedidoBase,
+            items: comandaItems,
+          }
         });
 
-        return pedido;
+        return nuevoPedido;
       });
   }
   /**
@@ -314,13 +320,14 @@ class PedidoService {
    * @description Valida items, descuenta stock y construye detalles/total para persistencia.
    * @param {Array<{platoId:number|string,cantidad:number|string,aclaracion?:string}>} productos - Items solicitados.
    * @param {object} transaction - Transaccion activa.
-   * @returns {Promise<{total:number, detalles:Array<object>}>} Total calculado y detalles listos.
+   * @returns {Promise<{total:number, detalles:Array<object>, comandaItems:Array<object>}>} Total calculado, detalles de persistencia e items para cocina.
    * @throws {Error} `PLATO_ID_INVALIDO`, `CANTIDAD_INVALIDA`, `PLATO_NO_ENCONTRADO`, `STOCK_INSUFICIENTE`.
    */
   async _procesarProductos(productos, transaction) {
 
     let total = 0;
     const detalles = [];
+    const comandaItems = [];
 
     for (const item of productos) {
 
@@ -360,9 +367,16 @@ class PedidoService {
         subtotal,
         aclaracion: item.aclaracion || ""
       });
+
+      comandaItems.push({
+        platoId: plato.id,
+        plato: plato.nombre || `Plato ${plato.id}`,
+        cantidad,
+        aclaracion: item.aclaracion || "",
+      });
     }
 
-    return { total, detalles };
+    return { total, detalles, comandaItems };
   }
   /**
    * @description Restaura stock para cada detalle de pedido provisto.
