@@ -13,8 +13,8 @@ class PlatoService {
    * @param {number|string} id - Id del plato.
    * @returns {Promise<object|null>} Plato encontrado o `null`.
    */
-  async buscarPorId(id) {
-    return await this.platoRepository.buscarPorId(id);
+  async obtenerPorId(id) {
+    return await this.platoRepository.obtenerPorId(id);
   }
 
   /**
@@ -27,7 +27,7 @@ class PlatoService {
    */
   async descontarStock(platoId, cantidadADescontar, transaction = null) {
 
-    const plato = await this.platoRepository.buscarPorId(platoId, transaction);
+    const plato = await this.platoRepository.obtenerPorId(platoId, transaction);
 
     if (!plato) {
       throw new Error("PLATO_NO_ENCONTRADO");
@@ -61,7 +61,7 @@ class PlatoService {
    */
   async restaurarStock(platoId, cantidadARestaurar, transaction = null) {
 
-    const plato = await this.platoRepository.buscarPorId(platoId, transaction);
+    const plato = await this.platoRepository.obtenerPorId(platoId, transaction);
 
     if (!plato) {
       throw new Error("PLATO_NO_ENCONTRADO");
@@ -119,8 +119,8 @@ class PlatoService {
   async modificarProducto(id, datos, transaction = null) {
     // Si recibimos transacción externa, desde PedidoServicela usamos
     if (transaction) {
-      const producto = await this.platoRepository.buscarPorId(id, transaction);
-      if (!producto) 
+      const producto = await this.platoRepository.obtenerPorId(id, transaction);
+      if (!producto)
         throw new Error("PLATO_NO_ENCONTRADO");
 
       const datosValidados = await this._validarProducto(datos, producto, transaction);
@@ -131,7 +131,7 @@ class PlatoService {
     }
     // Si NO recibimos transacción, creamos una propia
     return await this.platoRepository.inTransaction(async (t) => {
-      const producto = await this.platoRepository.buscarPorId(id, t);
+      const producto = await this.platoRepository.obtenerPorId(id, t);
 
       if (!producto) throw new Error("PLATO_NO_ENCONTRADO");
 
@@ -143,29 +143,37 @@ class PlatoService {
     });
   }
 
-  /**
-   * @description Elimina un plato por id con soporte transaccional.
-   * @param {number|string} id - Id del plato.
-   * @param {object|null} transaction - Transaccion opcional.
-   * @returns {Promise<boolean>} `true` si se elimina.
-   * @throws {Error} `PLATO_NO_ENCONTRADO`.
-   */
-  async eliminarProducto(id, transaction = null) {
-    if (transaction) {
-      const producto = await this.platoRepository.buscarPorId(id, transaction);
-      if (!producto) throw new Error("PLATO_NO_ENCONTRADO");
-
-      await this.platoRepository.eliminarPorId(id, transaction);
-
-      return true;
-    }
+  async desactivarPlato(id) {
     return await this.platoRepository.inTransaction(async (t) => {
-      const producto = await this.platoRepository.buscarPorId(id, t);
-      if (!producto) throw new Error("PLATO_NO_ENCONTRADO");
-      await this.platoRepository.eliminarPorId(id, t);
-      return true;
+
+      const plato = await this.platoRepository.obtenerPorId(id, t);
+
+      if (!plato) {
+        throw new Error("PLATO_NO_ENCONTRADO");
+      }
+
+      if (!plato.esActivo) {
+        throw new Error("PLATO_YA_INACTIVO");
+      }
+
+      await this.platoRepository.modificarProductoSeleccionado(
+        id,
+        { esActivo: false },
+        t
+      );
+
+      return {
+        id: plato.id,
+        nombre: plato.nombre,
+        esActivo: false
+      };
     });
   }
+
+
+  async listarDisponibles() {
+  return await this.platoRepository.listarPlatosActivos();
+}
 
   /**
    * @description Asigna una imagen a un plato existente.
@@ -176,20 +184,22 @@ class PlatoService {
    * @throws {Error} `PLATO_NO_ENCONTRADO`.
    */
   async cargarImagenProducto(id, nombreArchivo, transaction = null) {
+  const producto = await this.platoRepository.obtenerPorId(id, transaction);
+  if (!producto) throw new Error("PLATO_NO_ENCONTRADO");
 
-    const producto = await this.platoRepository.buscarPorId(id, transaction);
-    if (!producto) throw new Error("PLATO_NO_ENCONTRADO");
+  // 🧹 eliminar imagen anterior (opcional pero PRO)
+  // fs.unlinkSync(...)
 
-    const imagenPath = `/uploads/${nombreArchivo}`;
+  const imagenPath = `/uploads/${nombreArchivo}`;
 
-    await this.platoRepository.modificarProductoSeleccionado(
-      id,
-      { imagenPath },
-      transaction
-    );
+  await this.platoRepository.modificarProductoSeleccionado(
+    id,
+    { imagenPath },
+    transaction
+  );
 
-    return await this.platoRepository.buscarPorId(id, transaction);
-  }
+  return await this.platoRepository.obtenerPorId(id, transaction);
+}
 
   /**
    * @description Valida y normaliza datos de plato para alta o modificacion.

@@ -18,7 +18,7 @@ class PlatoRepository {
    * @returns {Promise<Array<object>>} Lista de platos.
    * @throws {Error} Implementacion pendiente en clase concreta.
    */
-  async listarMenuCompleto() {
+  async listarMenuCompleto(transaction = null) {
     throw new Error("Not implemented");
   }
 
@@ -29,7 +29,7 @@ class PlatoRepository {
    * @returns {Promise<object|null>} Plato encontrado o `null`.
    * @throws {Error} Implementacion pendiente en clase concreta.
    */
-  async buscarPorId(id, transaction = null) {
+  async obtenerPorId(id, transaction = null) {
     throw new Error("Not implemented");
   }
 

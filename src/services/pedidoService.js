@@ -242,7 +242,7 @@ class PedidoService {
 
       return pedidoActualizado;
     });
-    
+
   }
 
   /**
@@ -325,86 +325,67 @@ class PedidoService {
    */
   async _procesarProductos(productos, transaction) {
 
-    let total = 0;
-    const detalles = [];
-    const comandaItems = [];
+  let total = 0;
+  const detalles = [];
+  const comandaItems = [];
 
-    for (const item of productos) {
+  for (const item of productos) {
 
-      const platoId = parseInt(item.platoId, 10);
-      const cantidadParseada = parseInt(item.cantidad, 10);
-      const cantidad = Number.isNaN(cantidadParseada) ? 1 : cantidadParseada;
+    const platoId = parseInt(item.platoId, 10);
+    const cantidadParseada = parseInt(item.cantidad, 10);
+    const cantidad = Number.isNaN(cantidadParseada) ? 1 : cantidadParseada;
 
-      if (!platoId || platoId < 1) {
-        throw new Error("PLATO_ID_INVALIDO");
-      }
-
-      if (cantidad < 1) {
-        throw new Error("CANTIDAD_INVALIDA");
-      }
-
-      // 1️⃣ Obtener plato a través del PlatoService
-      const plato = await this.platoService.buscarPorId(platoId);
-
-      if (!plato) {
-        throw new Error("PLATO_NO_ENCONTRADO");
-      }
-
-      // 2️⃣ Validar stock
-      if (plato.stockActual < cantidad) {
-        throw new Error("STOCK_INSUFICIENTE");
-      }
-
-      // 3️⃣ Delegar descuento de stock al PlatoService
-      await this.platoService.descontarStock(platoId, cantidad, transaction);
-
-      const subtotal = plato.precio * cantidad;
-      total += subtotal;
-
-      detalles.push({
-        PlatoId: plato.id,
-        cantidad,
-        subtotal,
-        aclaracion: item.aclaracion || ""
-      });
-
-      comandaItems.push({
-        platoId: plato.id,
-        plato: plato.nombre || `Plato ${plato.id}`,
-        cantidad,
-        aclaracion: item.aclaracion || "",
-      });
+    if (!platoId || platoId < 1) {
+      throw new Error("PLATO_ID_INVALIDO");
     }
 
-    return { total, detalles, comandaItems };
-  }
-  /**
-   * @description Restaura stock para cada detalle de pedido provisto.
-   * @param {Array<{PlatoId:number,cantidad:number}>} detalles - Detalles del pedido.
-   * @param {object} transaction - Transaccion activa.
-   * @returns {Promise<void>} Resolucion sin valor.
-   * @throws {Error} `PLATO_ID_INVALIDO`.
-   */
-  async _restaurarStock(detalles, transaction) {
-
-    for (const detalle of detalles) {
-
-      const platoId = detalle.PlatoId;
-      const cantidad = detalle.cantidad;
-
-      if (!platoId) {
-        throw new Error("PLATO_ID_INVALIDO");
-      }
-
-      // Delegamos completamente la lógica de restauración
-      await this.platoService.restaurarStock(
-        platoId,
-        cantidad,
-        transaction
-      );
+    if (cantidad < 1) {
+      throw new Error("CANTIDAD_INVALIDA");
     }
+
+    // ✅ Ahora con transaction
+    const plato = await this.platoService.buscarPorId(platoId, transaction);
+
+    if (!plato) {
+      throw new Error("PLATO_NO_ENCONTRADO");
+    }
+
+    // ✅ NUEVO
+    if (!plato.esActivo) {
+      throw new Error("PLATO_NO_DISPONIBLE");
+    }
+
+    // ✅ Atómico real
+    const filasAfectadas = await this.platoService.descontarStock(
+      platoId,
+      cantidad,
+      transaction
+    );
+
+    if (filasAfectadas === 0) {
+      throw new Error("STOCK_INSUFICIENTE");
+    }
+
+    const subtotal = plato.precio * cantidad;
+    total += subtotal;
+
+    detalles.push({
+      PlatoId: plato.id,
+      cantidad,
+      subtotal,
+      aclaracion: item.aclaracion || ""
+    });
+
+    comandaItems.push({
+      platoId: plato.id,
+      plato: plato.nombre || `Plato ${plato.id}`,
+      cantidad,
+      aclaracion: item.aclaracion || "",
+    });
   }
 
+  return { total, detalles, comandaItems };
+}
 
 
 }

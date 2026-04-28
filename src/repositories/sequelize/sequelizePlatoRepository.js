@@ -43,11 +43,10 @@ class SequelizePlatoRepository extends PlatoRepository {
    * @returns {Promise<Array<object>>} Platos con rubro.
    */
   async listarMenuCompleto() {
-    // A. MySQL: Traemos platos e incluimos el nombre del Rubro
     return await Plato.findAll({
+      where: { esActivo: true },
       include: [{ model: Rubro, as: 'rubro', attributes: ['denominacion'] }]
     });
-
   }
 
   /**
@@ -67,8 +66,10 @@ class SequelizePlatoRepository extends PlatoRepository {
    * @param {import("sequelize").Transaction|null} transaction - Transaccion opcional.
    * @returns {Promise<object|null>} Plato encontrado o `null`.
    */
-  async buscarPorId(id, transaction = null) {
-    return await Plato.findByPk(id, { transaction });
+  async obtenerPorId(id, transaction = null) {
+    return await Plato.findByPk(id, {
+      transaction,
+    });
   }
   /**
    * @description Busca un plato por nombre.
@@ -77,11 +78,11 @@ class SequelizePlatoRepository extends PlatoRepository {
    * @returns {Promise<object|null>} Plato encontrado o `null`.
    */
   async buscarPorNombre(nombre, transaction = null) {
-    return await Plato.findOne({
-      where: { nombre },
-      transaction
-    });
-  }
+      return await Plato.findOne({
+        where: { nombre },
+        transaction
+      });
+    }
 
   /**
    * @description Actualiza un plato por id y devuelve la entidad actualizada.
@@ -91,23 +92,15 @@ class SequelizePlatoRepository extends PlatoRepository {
    * @returns {Promise<object|null>} Plato actualizado o `null`.
    */
   async modificarProductoSeleccionado(id, datos, transaction = null) {
-    await Plato.update(datos, { where: { id }, transaction });
-    return await Plato.findByPk(id, { transaction });
-  }
-  /**
-   * @description Elimina un plato por id.
-   * @param {number|string} id - Id del plato.
-   * @param {import("sequelize").Transaction|null} transaction - Transaccion opcional.
-   * @returns {Promise<number>} Cantidad de filas eliminadas.
-   */
-  async eliminarPorId(id, transaction = null) {
-    const filasEliminadas = await Plato.destroy({
-      where: { id },
-      transaction
-    });
+      await Plato.update(datos, { where: { id }, transaction });
+      return await Plato.findByPk(id, { transaction });
+    }
 
-    return filasEliminadas; // devuelve 0 o 1
-  }
+  async listarPlatosActivos() {
+      return await Plato.findAll({
+        where: { esActivo: true }
+      });
+    }
 
   /**
    * @description Actualiza el stock absoluto y devuelve el plato resultante.
@@ -117,12 +110,12 @@ class SequelizePlatoRepository extends PlatoRepository {
    * @returns {Promise<object|null>} Plato actualizado o `null`.
    */
   async actualizarStock(id, nuevoStock, transaction = null) {
-    await Plato.update(
-      { stockActual: nuevoStock },
-      { where: { id }, transaction }
-    );
-    return await Plato.findByPk(id, { transaction });
-  }
+      await Plato.update(
+        { stockActual: nuevoStock },
+        { where: { id }, transaction }
+      );
+      return await Plato.findByPk(id, { transaction });
+    }
 
   /**
    * @description Descuenta stock de forma atomica usando condicion `stockActual >= cantidad`.
@@ -132,22 +125,22 @@ class SequelizePlatoRepository extends PlatoRepository {
    * @returns {Promise<number>} Filas afectadas.
    */
   async descontarStockAtomico(id, cantidad, transaction) {
-    const [filasAfectadas] = await Plato.update(
-      {
-        stockActual: Sequelize.literal(`stockActual - ${cantidad}`)
-      },
-      {
-        where: {
-          id,
-          esIlimitado: false,
-          stockActual: { [Op.gte]: cantidad } //Es lo mismo que WHERE stockActual >= cantidad
+      const [filasAfectadas] = await Plato.update(
+        {
+          stockActual: Sequelize.literal(`stockActual - ${cantidad}`)
         },
-        transaction
-      }
-    );
+        {
+          where: {
+            id,
+            esIlimitado: false,
+            stockActual: { [Op.gte]: cantidad } //Es lo mismo que WHERE stockActual >= cantidad
+          },
+          transaction
+        }
+      );
 
-    return filasAfectadas; // 0 si no pudo descontar
-  }
+      return filasAfectadas; // 0 si no pudo descontar
+    }
 
   /**
    * @description Restaura stock de forma atomica para platos no ilimitados.
@@ -157,19 +150,19 @@ class SequelizePlatoRepository extends PlatoRepository {
    * @returns {Promise<void>} Resolucion sin valor.
    */
   async restaurarStockAtomico(id, cantidad, transaction) {
-    await Plato.update(
-      {
-        stockActual: Sequelize.literal(`stockActual + ${cantidad}`)
-      },
-      {
-        where: {
-          id,
-          esIlimitado: false
+      await Plato.update(
+        {
+          stockActual: Sequelize.literal(`stockActual + ${cantidad}`)
         },
-        transaction
-      }
-    );
-  }
+        {
+          where: {
+            id,
+            esIlimitado: false
+          },
+          transaction
+        }
+      );
+    }
 
   /**
    * @description Actualiza el estado de un pedido relacionado.
@@ -179,13 +172,13 @@ class SequelizePlatoRepository extends PlatoRepository {
    * @returns {Promise<Array<number>>} Resultado de `update` de Sequelize.
    */
   async actualizarEstadoPedido(pedidoId, nuevoEstado, transaction = null) {
-    return await Pedido.update(
-      { estado: nuevoEstado },
-      { where: { id: pedidoId }, transaction }
-    );
-  }
+      return await Pedido.update(
+        { estado: nuevoEstado },
+        { where: { id: pedidoId }, transaction }
+      );
+    }
 
 
-}//FIN DE CLASE
+  }//FIN DE CLASE
 
 module.exports = SequelizePlatoRepository;
