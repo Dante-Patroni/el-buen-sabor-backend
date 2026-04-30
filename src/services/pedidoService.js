@@ -54,7 +54,6 @@ class PedidoService {
         mesa: mesaNumero,
         cliente: cliente || "Anónimo",
         estado: "pendiente",
-        total: parseFloat(total.toFixed(2)),
       }, transaction);
 
       // 4️⃣ Crear detalles asociados
@@ -67,11 +66,10 @@ class PedidoService {
       );
 
       // 5️⃣ Actualizar total de la mesa
-      await this.mesaService.sumarTotal(mesaNumero, total, transaction);
 
-      return { nuevoPedido, comandaItems };
+      return { nuevoPedido, comandaItems, total };
     })
-      .then(({ nuevoPedido, comandaItems }) => {
+      .then(({ nuevoPedido, comandaItems, total }) => {
         const pedidoBase = typeof nuevoPedido.toJSON === "function"
           ? nuevoPedido.toJSON()
           : { ...nuevoPedido };
@@ -80,11 +78,16 @@ class PedidoService {
         this.pedidoEmitter?.emit("pedido-creado", {
           pedido: {
             ...pedidoBase,
+            total: total,
             items: comandaItems,
           }
         });
 
-        return nuevoPedido;
+        return {
+          ...pedidoBase,
+          total,
+          items: comandaItems
+        };
       });
   }
   /**
@@ -94,6 +97,27 @@ class PedidoService {
    */
   async listarPedidos(estado) {
     return this.pedidoRepository.listarPedidosPorEstado(estado);
+  }
+
+  /**
+   * @description Obtiene los pedidos pendientes formateados específicamente para el monitor de cocina.
+   * @returns {Promise<Array<object>>} Lista de pedidos mapeada.
+   */
+  async obtenerPedidosParaCocina() {
+    const pedidos = await this.listarPedidos("pendiente");
+    
+    return pedidos.map((p) => ({
+      id: p.id,
+      mesa: p.mesa, 
+      cliente: p.cliente,
+      estado: p.estado,
+      hora: new Date(p.createdAt).toLocaleTimeString("es-AR"),
+      items: (p.DetallePedidos ?? p.items ?? p.detalles ?? []).map((i) => ({
+        nombre: i.Plato?.nombre ?? i.nombre ?? `Plato ${i.PlatoId || ""}`,
+        cantidad: i.cantidad,
+        aclaracion: i.aclaracion || "",
+      })),
+    }));
   }
 
   /**
@@ -163,7 +187,7 @@ class PedidoService {
 
     return await this.pedidoRepository.inTransaction(async (transaction) => {
 
-      const { id: pedidoId, productos, mesa: mesaId } = datos;
+      const { id: pedidoId, productos } = datos;
 
       if (!pedidoId) {
         throw new Error("PEDIDO_ID_INVALIDO");
@@ -209,40 +233,37 @@ class PedidoService {
         transaction
       );
 
-      // 6️⃣ Ajustar diferencia en la mesa
-      const diferencia = total - pedido.total;
-
-      if (diferencia !== 0) {
-        await this.mesaService.ajustarTotal(
-          mesaId,
-          diferencia,
-          transaction
-        );
-      }
-
-      // 7️⃣ Actualizar total del pedido
-      await this.pedidoRepository.actualizarTotalPedido(
-        pedidoId,
-        parseFloat(total.toFixed(2)),
+      const totalMesa = await this.pedidoRepository.calcularTotalMesa(
+        pedido.mesa,
         transaction
       );
 
-      return pedidoId;
+      await this.mesaService.actualizarTotalMesa(
+        pedido.mesa,
+        totalMesa,
+        transaction
+      );
 
-    }).then(async (pedidoId) => {//Fuera de la Transacción -Si hay un error no se emite el evento
+      return { pedidoId, total };
 
-      // 🔔 Evento fuera de la transacción
+    }).then(async ({ pedidoId, total }) => {
+
       const pedidoActualizado =
-        await this.pedidoRepository.buscarPedidoPorId(pedidoId,);
+        await this.pedidoRepository.buscarPedidoPorId(pedidoId);
 
       this.pedidoEmitter?.emit("pedido-modificado", {
         mesa: pedidoActualizado.mesa,
-        pedido: pedidoActualizado
+        pedido: {
+          ...pedidoActualizado.toJSON(),
+          total
+        }
       });
 
-      return pedidoActualizado;
+      return {
+        ...pedidoActualizado.toJSON(),
+        total
+      };
     });
-
   }
 
   /**
@@ -325,67 +346,84 @@ class PedidoService {
    */
   async _procesarProductos(productos, transaction) {
 
-  let total = 0;
-  const detalles = [];
-  const comandaItems = [];
+    let total = 0;
+    const detalles = [];
+    const comandaItems = [];
 
-  for (const item of productos) {
+    for (const item of productos) {
 
-    const platoId = parseInt(item.platoId, 10);
-    const cantidadParseada = parseInt(item.cantidad, 10);
-    const cantidad = Number.isNaN(cantidadParseada) ? 1 : cantidadParseada;
+      const platoId = parseInt(item.platoId, 10);
+      const cantidadParseada = parseInt(item.cantidad, 10);
+      const cantidad = Number.isNaN(cantidadParseada) ? 1 : cantidadParseada;
 
-    if (!platoId || platoId < 1) {
-      throw new Error("PLATO_ID_INVALIDO");
+      if (!platoId || platoId < 1) {
+        throw new Error("PLATO_ID_INVALIDO");
+      }
+
+      if (cantidad < 1) {
+        throw new Error("CANTIDAD_INVALIDA");
+      }
+
+      // ✅ Ahora con transaction
+      const plato = await this.platoService.obtenerPorId(platoId, transaction);
+
+      if (!plato) {
+        throw new Error("PLATO_NO_ENCONTRADO");
+      }
+
+      // ✅ NUEVO
+      if (!plato.esActivo) {
+        throw new Error("PLATO_NO_DISPONIBLE");
+      }
+
+      // ✅ Atómico real
+      const filasAfectadas = await this.platoService.descontarStock(
+        platoId,
+        cantidad,
+        transaction
+      );
+
+      if (filasAfectadas === 0) {
+        throw new Error("STOCK_INSUFICIENTE");
+      }
+
+      const precioUnitario = Number(plato.precio);
+      const subtotal = Number((precioUnitario * cantidad).toFixed(2));
+
+      total += subtotal;
+
+      detalles.push({
+        PlatoId: plato.id,
+        cantidad,
+        precioUnitario: precioUnitario,
+        subtotal,
+        aclaracion: item.aclaracion || ""
+      });
+
+      comandaItems.push({
+        platoId: plato.id,
+        nombre: plato.nombre || `Plato ${plato.id}`,
+        cantidad,
+        aclaracion: item.aclaracion || "",
+      });
     }
 
-    if (cantidad < 1) {
-      throw new Error("CANTIDAD_INVALIDA");
-    }
-
-    // ✅ Ahora con transaction
-    const plato = await this.platoService.buscarPorId(platoId, transaction);
-
-    if (!plato) {
-      throw new Error("PLATO_NO_ENCONTRADO");
-    }
-
-    // ✅ NUEVO
-    if (!plato.esActivo) {
-      throw new Error("PLATO_NO_DISPONIBLE");
-    }
-
-    // ✅ Atómico real
-    const filasAfectadas = await this.platoService.descontarStock(
-      platoId,
-      cantidad,
-      transaction
-    );
-
-    if (filasAfectadas === 0) {
-      throw new Error("STOCK_INSUFICIENTE");
-    }
-
-    const subtotal = plato.precio * cantidad;
-    total += subtotal;
-
-    detalles.push({
-      PlatoId: plato.id,
-      cantidad,
-      subtotal,
-      aclaracion: item.aclaracion || ""
-    });
-
-    comandaItems.push({
-      platoId: plato.id,
-      plato: plato.nombre || `Plato ${plato.id}`,
-      cantidad,
-      aclaracion: item.aclaracion || "",
-    });
+    return { total, detalles, comandaItems };
   }
+  async _restaurarStock(detalles, transaction) {
 
-  return { total, detalles, comandaItems };
-}
+    for (const det of detalles) {
+
+      const platoId = det.PlatoId;
+      const cantidad = det.cantidad;
+
+      await this.platoService.restaurarStock(
+        platoId,
+        cantidad,
+        transaction
+      );
+    }
+  }
 
 
 }

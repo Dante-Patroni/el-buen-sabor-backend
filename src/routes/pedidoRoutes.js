@@ -1,42 +1,12 @@
 const express = require("express");
-const router = express.Router();
+const router  = express.Router();
 
-// 1. Importamos las CLASES (No instancias)
-const PedidoService = require("../services/pedidoService");
-const MesaService = require("../services/mesaService");
-const PlatoService = require("../services/platoService");
-const PedidoController = require("../controllers/pedidoController");
-const SequelizePedidoRepository = require("../repositories/sequelize/sequelizePedidoRepository");
-const SequelizeMesaRepository = require("../repositories/sequelize/sequelizeMesaRepository");
-const SequelizePlatoRepository = require("../repositories/sequelize/sequelizePlatoRepository");
-const pedidoEmitter = require("../events/pedidoEvents");
+const { pedidoService } = require("../container");
+const PedidoController  = require("../controllers/pedidoController");
+const authMiddleware    = require("../middlewares/authMiddleware");
+const { validarPedido, validarMesaParam } = require("../middlewares/pedidoValidator");
 
-// 2. Instanciamos las dependencias
-const pedidoRepository = new SequelizePedidoRepository();
-const platoRepository = new SequelizePlatoRepository();
-const mesaRepository = new SequelizeMesaRepository();
-const platoService = new PlatoService(platoRepository);
-const mesaService = new MesaService(mesaRepository, pedidoRepository);
-const pedidoService = new PedidoService(
-  pedidoRepository,
-  platoService,
-  mesaService,
-  pedidoEmitter
-);
 const pedidoController = new PedidoController(pedidoService);
-
-// 3. Middlewares
-const authMiddleware = require("../middlewares/authMiddleware");
-const {
-  validarPedido,
-  validarMesaParam,
-} = require("../middlewares/pedidoValidator");
-
-
-
-// =========================================================================
-// DOCUMENTACIÓN SWAGGER Y RUTAS
-// =========================================================================
 
 /**
  * @swagger
@@ -88,7 +58,6 @@ const {
  */
 router.post("/", authMiddleware, validarPedido, pedidoController.crear);
 
-
 /**
  * @swagger
  * /api/pedidos:
@@ -130,7 +99,7 @@ router.get("/mesa/:mesa", authMiddleware, validarMesaParam, pedidoController.bus
  * @swagger
  * /api/pedidos/modificar:
  *   put:
- *     summary: Modifica un pedido existente (actualiza productos, stock y total)
+ *     summary: Modifica un pedido existente
  *     tags: [Pedidos]
  *     security:
  *       - bearerAuth: []
@@ -147,7 +116,6 @@ router.get("/mesa/:mesa", authMiddleware, validarMesaParam, pedidoController.bus
  *             properties:
  *               id:
  *                 type: integer
- *                 description: ID del pedido a modificar
  *                 example: 69
  *               mesa:
  *                 type: string
@@ -169,8 +137,6 @@ router.get("/mesa/:mesa", authMiddleware, validarMesaParam, pedidoController.bus
  *     responses:
  *       200:
  *         description: Pedido modificado correctamente
- *       201:
- *         description: Pedido recreado con éxito
  *       400:
  *         description: Datos inválidos o stock insuficiente
  *       404:
@@ -180,9 +146,46 @@ router.put("/modificar", authMiddleware, pedidoController.modificar);
 
 /**
  * @swagger
+ * /api/pedidos/{id}/estado:
+ *   patch:
+ *     summary: Actualiza únicamente el estado de un pedido
+ *     tags: [Pedidos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID del pedido
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - estado
+ *             properties:
+ *               estado:
+ *                 type: string
+ *                 example: "en_preparacion"
+ *     responses:
+ *       200:
+ *         description: Estado actualizado exitosamente
+ *       400:
+ *         description: Transición de estado inválida
+ *       404:
+ *         description: Pedido no encontrado
+ */
+router.patch("/:id/estado", /*authMiddleware*/ pedidoController.actualizarEstado);
+
+/**
+ * @swagger
  * /api/pedidos/{id}:
  *   delete:
- *     summary: Elimina un pedido y restaura el stock de los productos
+ *     summary: Elimina un pedido y restaura el stock
  *     tags: [Pedidos]
  *     security:
  *       - bearerAuth: []
