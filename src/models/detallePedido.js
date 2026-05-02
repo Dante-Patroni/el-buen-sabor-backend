@@ -21,6 +21,11 @@ module.exports = (sequelize, DataTypes) => {
                 type: DataTypes.FLOAT, // O DECIMAL(10,2)
                 allowNull: false
             },
+             aclaracion: {                    // ← agregás esto
+            type: DataTypes.STRING,
+            allowNull: true,
+            defaultValue: ""
+        },
             // Sequelize crea automáticamente PedidoId y PlatoId, 
             // pero puedes declararlos explícitamente si quieres validaciones extra.
         },

@@ -67,14 +67,24 @@ class SequelizePedidoRepository extends PedidoRepository {
    * @param {string|undefined} estado - Estado opcional.
    * @returns {Promise<Array<object>>} Pedidos con detalles incluidos.
    */
-  async listarPedidosPorEstado(estado) {
-    const filtro = estado ? { where: { estado } } : {};
+ async listarPedidosPorEstado(estado) {
+  const filtro = estado ? { where: { estado } } : {};
 
-    return await Pedido.findAll({
-      ...filtro,
-      include: [DetallePedido]
-    });
-  }
+  return await Pedido.findAll({
+    ...filtro,
+    include: [
+      {
+        model: DetallePedido,
+        include: [
+          {
+            model: Plato,
+            attributes: ["id", "nombre"],
+          },
+        ],
+      },
+    ],
+  });
+}
 
   /**
    * @description Busca pedidos por mesa ordenados por fecha de creacion.

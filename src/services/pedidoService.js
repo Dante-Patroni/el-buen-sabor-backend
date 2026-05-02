@@ -404,6 +404,26 @@ class PedidoService {
       );
     }
   }
+  /**
+ * @description Obtiene los pedidos pendientes formateados para el monitor de cocina.
+ * @returns {Promise<Array<object>>} Lista de pedidos mapeada.
+ */
+async obtenerPedidosParaCocina() {
+  const pedidos = await this.listarPedidos("pendiente");
+  
+  return pedidos.map((p) => ({
+    id: p.id,
+    mesa: p.mesa,
+    cliente: p.cliente,
+    estado: p.estado,
+    hora: new Date(p.createdAt).toLocaleTimeString("es-AR"),
+    items: (p.DetallePedidos ?? p.items ?? p.detalles ?? []).map((i) => ({
+      nombre: i.Plato?.nombre ?? i.nombre ?? `Plato ${i.PlatoId || ""}`,
+      cantidad: i.cantidad,
+      aclaracion: i.aclaracion || "",
+    })),
+  }));
+}
 
 
 
