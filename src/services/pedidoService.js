@@ -242,7 +242,7 @@ class PedidoService {
 
       return pedidoActualizado;
     });
-    
+
   }
 
   /**
@@ -343,15 +343,25 @@ class PedidoService {
         throw new Error("CANTIDAD_INVALIDA");
       }
 
-      // 1️⃣ Obtener plato a través del PlatoService
-      const plato = await this.platoService.buscarPorId(platoId);
+      // 1️⃣ Obtener plato CON transaction para lectura consistente
+      const plato = await this.platoService.obtenerPorId(platoId, transaction);
 
       if (!plato) {
         throw new Error("PLATO_NO_ENCONTRADO");
       }
 
-      // 2️⃣ Validar stock
-      if (plato.stockActual < cantidad) {
+      if (!plato.esActivo) {
+        throw new Error("PLATO_NO_DISPONIBLE");
+      }
+
+      // 2️⃣ Descontar stock atómicamente
+      const filasAfectadas = await this.platoService.descontarStock(
+        platoId,
+        cantidad,
+        transaction
+      );
+
+      if (filasAfectadas === 0) {
         throw new Error("STOCK_INSUFICIENTE");
       }
 
@@ -408,22 +418,22 @@ class PedidoService {
  * @description Obtiene los pedidos pendientes formateados para el monitor de cocina.
  * @returns {Promise<Array<object>>} Lista de pedidos mapeada.
  */
-async obtenerPedidosParaCocina() {
-  const pedidos = await this.listarPedidos("pendiente");
-  
-  return pedidos.map((p) => ({
-    id: p.id,
-    mesa: p.mesa,
-    cliente: p.cliente,
-    estado: p.estado,
-    hora: new Date(p.createdAt).toLocaleTimeString("es-AR"),
-    items: (p.DetallePedidos ?? p.items ?? p.detalles ?? []).map((i) => ({
-      nombre: i.Plato?.nombre ?? i.nombre ?? `Plato ${i.PlatoId || ""}`,
-      cantidad: i.cantidad,
-      aclaracion: i.aclaracion || "",
-    })),
-  }));
-}
+  async obtenerPedidosParaCocina() {
+    const pedidos = await this.listarPedidos("pendiente");
+
+    return pedidos.map((p) => ({
+      id: p.id,
+      mesa: p.mesa,
+      cliente: p.cliente,
+      estado: p.estado,
+      hora: new Date(p.createdAt).toLocaleTimeString("es-AR"),
+      items: (p.DetallePedidos ?? p.items ?? p.detalles ?? []).map((i) => ({
+        nombre: i.Plato?.nombre ?? i.nombre ?? `Plato ${i.PlatoId || ""}`,
+        cantidad: i.cantidad,
+        aclaracion: i.aclaracion || "",
+      })),
+    }));
+  }
 
 
 
