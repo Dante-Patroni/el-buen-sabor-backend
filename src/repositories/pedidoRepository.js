@@ -57,7 +57,7 @@ class PedidoRepository {
    * @returns {Promise<object|null>} Pedido encontrado o `null`.
    * @throws {Error} Implementacion pendiente en clase concreta.
    */
-  async buscarPedidoPorId(id) {
+  async buscarPedidoPorId(id, transaction = null) {
     throw new Error("Not implemented");
   }
 
@@ -67,7 +67,7 @@ class PedidoRepository {
    * @returns {Promise<Array<object>>} Pedidos abiertos.
    * @throws {Error} Implementacion pendiente en clase concreta.
    */
-  async buscarPedidoAbiertosPorMesa(mesaId) {
+  async buscarPedidoAbiertosPorMesa(mesaId, transaction = null) {
     throw new Error("Not implemented");
   }
 
@@ -137,17 +137,13 @@ class PedidoRepository {
     throw new Error("Not implemented");
   }
 
-  /**
-   * @description Actualiza el total de un pedido.
-   * @param {number|string} pedidoId - Id del pedido.
-   * @param {number} nuevoTotal - Nuevo total.
-   * @param {object|null} transaction - Transaccion opcional.
-   * @returns {Promise<object|number|boolean>} Resultado de actualizacion.
-   * @throws {Error} Implementacion pendiente en clase concreta.
-   */
-  async actualizarTotalPedido(pedidoId, nuevoTotal, transaction = null) {
+  async calcularTotalMesa(mesaId, transaction = null) {
     throw new Error("Not implemented");
   }
+
+  async contarItemsPendientes(mesaId, transaction = null) {
+  throw new Error("Not implemented");
+}
 }
 
 module.exports = PedidoRepository;

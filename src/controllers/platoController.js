@@ -26,6 +26,31 @@ class PlatoController {
     }
   }
 
+  obtenerPorId = async (req, res) => {
+    console.log("SERVICE:", this.platoService);
+  try {
+    const { id } = req.params;
+
+    console.log("ID RECIBIDO:", id);
+
+    if (!id || isNaN(id)) {
+      return res.status(400).json({ error: "ID_INVALIDO" });
+    }
+
+    const plato = await this.platoService.obtenerPorId(id);
+
+    if (!plato) {
+      return res.status(404).json({ error: "PLATO_NO_ENCONTRADO" });
+    }
+
+    return res.status(200).json(plato);
+
+  } catch (error) {
+    console.error("ERROR REAL:", error); // 👈 esto te va a decir TODO
+    return manejarErrorHttp(error, res);
+  }
+};
+
   /**
    * @description Crea un nuevo plato aplicando validaciones de negocio.
    * @param {import("express").Request} req - Request con datos del plato.
@@ -70,20 +95,20 @@ class PlatoController {
   };
 
   /**
-   * @description Elimina un plato por id.
+   * @description Desactiva un plato por id.
    * @param {import("express").Request} req - Request con `params.id`.
    * @param {import("express").Response} res - Response HTTP.
-   * @returns {Promise<import("express").Response>} Confirmacion de eliminacion.
+   * @returns {Promise<import("express").Response>} Confirmacion de desactivacion.
    * @throws {Error} `PLATO_NO_ENCONTRADO` u otros codigos de dominio.
    */
-  eliminarProducto = async (req, res) => {
+  desactivarPlato = async (req, res) => {
   try {
     const { id } = req.params;
 
-    await this.platoService.eliminarProducto(id);
+    await this.platoService.desactivarPlato(id);
 
     return res.status(200).json({
-      mensaje: "PLATO_ELIMINADO_CORRECTAMENTE",
+      mensaje: "PLATO_DESACTIVADO_CORRECTAMENTE",
     });
   } catch (error) {
     return manejarErrorHttp(error, res);

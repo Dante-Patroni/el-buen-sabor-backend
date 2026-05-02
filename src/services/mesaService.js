@@ -18,9 +18,16 @@ class MesaService {
    * @description Lista todas las mesas con informacion de mozo asociada.
    * @returns {Promise<Array<object>>} Lista de mesas.
    */
-  async listar() {
-    return await this.mesaRepository.listarMesasConMozo();
+ async listar() {
+  const mesas = await this.mesaRepository.listarMesasConMozo();
+
+  for (const mesa of mesas) {
+    const total = await this.pedidoRepository.calcularTotalMesa(mesa.id);
+    mesa.totalActual = total;
   }
+
+  return mesas;
+}
 
   /**
    * @description Obtiene una mesa por id dentro o fuera de una transaccion.
@@ -46,21 +53,21 @@ class MesaService {
    */
   async abrirMesa(mesaId, mozoId) {
 
-  if (!mozoId) {
-    throw new Error("MOZO_REQUERIDO");
-    
-  }
+    if (!mozoId) {
+      throw new Error("MOZO_REQUERIDO");
 
-  const affectedRows = await this.mesaRepository.abrirMesaSiEstaLibre(
-    mesaId,
-    mozoId
-  );
+    }
 
-  if (affectedRows === 0) {
-    throw new Error("MESA_YA_OCUPADA");
-  }
+    const affectedRows = await this.mesaRepository.abrirMesaSiEstaLibre(
+      mesaId,
+      mozoId
+    );
 
-  return { mensaje: "Mesa abierta correctamente" };
+    if (affectedRows === 0) {
+      throw new Error("MESA_YA_OCUPADA");
+    }
+
+    return { mensaje: "Mesa abierta correctamente" };
   }
 
 
@@ -101,7 +108,10 @@ class MesaService {
       }
 
       // 3️⃣ Guardamos el total antes de resetear la mesa
-      const totalCobrado = Number(mesa.totalActual) || 0;
+      const totalCobrado = await this.pedidoRepository.calcularTotalMesa(
+        mesaId,
+        transaction
+      );
       const facturacion = this.facturacionService
         ? await this.facturacionService.generarResumenCierre(mesaId, transaction)
         : null;
@@ -139,6 +149,14 @@ class MesaService {
     });
   }
 
+  /*async actualizarTotalMesa(mesaId, total, transaction = null) {
+  return await this.mesaRepository.actualizarTotalMesa(
+    mesaId,
+    total,
+    transaction
+  );
+}
+
   /**
    * @description Suma un monto al total actual de una mesa ocupada.
    * @param {number|string} mesaId - Id de mesa.
@@ -147,7 +165,7 @@ class MesaService {
    * @returns {Promise<object>} Mesa actualizada.
    * @throws {Error} `MESA_NO_ENCONTRADA` o `MESA_NO_OCUPADA`.
    */
-  async sumarTotal(mesaId, monto, transaction = null) {
+ /* async sumarTotal(mesaId, monto, transaction = null) {
     const mesa = await this.obtenerPorId(mesaId, transaction);
 
     if (mesa.estado !== "ocupada") {
@@ -161,7 +179,7 @@ class MesaService {
 
     return mesa;
   }
-
+*/
   /**
    * @description Resta un monto al total de una mesa y la libera si queda en cero.
    * @param {number|string} mesaId - Id de mesa.
@@ -170,7 +188,7 @@ class MesaService {
    * @returns {Promise<object>} Mesa actualizada.
    * @throws {Error} `MESA_NO_ENCONTRADA`.
    */
-  async restarTotal(mesaId, monto, transaction = null) {
+  /*async restarTotal(mesaId, monto, transaction = null) {
     const mesa = await this.obtenerPorId(mesaId, transaction);
 
     const decremento = Number(monto) || 0;
@@ -200,7 +218,7 @@ class MesaService {
    * @returns {Promise<object>} Mesa actualizada.
    * @throws {Error} `MESA_NO_ENCONTRADA` o `MESA_NO_OCUPADA`.
    */
-  async ajustarTotal(mesaId, diferencia, transaction = null) {
+  /*async ajustarTotal(mesaId, diferencia, transaction = null) {
     const mesa = await this.obtenerPorId(mesaId, transaction);
     //Solo puedo modificar totales de mesas activas
     if (mesa.estado !== "ocupada") {
@@ -212,7 +230,7 @@ class MesaService {
 
     return mesa;
   }
-
+*/
 }
 
 module.exports = MesaService;

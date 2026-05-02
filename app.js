@@ -32,7 +32,10 @@ const whitelist = [
   "http://localhost:4200",      
   "http://192.168.18.3:3000",   
   "http://192.168.18.3",        
-  "http://127.0.0.1:5500"       // ✅ Monitor de Cocina
+  "http://127.0.0.1:5500",       // ✅ Monitor de Cocina
+  "http://localhost:5173",      // ✅ React Vite
+  "http://127.0.0.1:5173"       // ✅ por las dudas
+  
 ];
 
 const corsOptions = {
@@ -84,7 +87,7 @@ app.use('/api/rubros', require('./src/routes/rubroRoutes'));
 // ==========================================
 const startServer = async () => {
   try {
-    await dbConnection();
+    // await dbConnection(); // 🛑 MongoDB desactivado (inhabilitado temporalmente por falta de uso)
  
     await sequelize.sync({ force: false, alter: false });
     console.log("📦 Tablas MySQL sincronizadas");

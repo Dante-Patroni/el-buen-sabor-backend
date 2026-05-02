@@ -32,6 +32,10 @@ const platoController = new PlatoController(platoService);
 // GET: Listar (Público)
 router.get("/", (req, res) => platoController.listarMenuCompleto(req, res));
 
+router.get("/:id", (req, res) =>
+  platoController.obtenerPorId(req, res)
+);
+
 /**
  * @swagger
  * /api/platos:
@@ -60,7 +64,7 @@ router.get("/", (req, res) => platoController.listarMenuCompleto(req, res));
  *         description: Plato creado exitosamente
  */
 // POST: Crear (Privado - Requiere Token) - 🚨 AQUÍ ESTABA EL FALTANTE
-router.post("/", authMiddleware, (req, res) => platoController.crearNuevoProducto(req, res));
+router.post("/",  (req, res) => platoController.crearNuevoProducto(req, res));
 
 /**
  * @swagger
@@ -91,7 +95,7 @@ router.post("/", authMiddleware, (req, res) => platoController.crearNuevoProduct
  *         description: Plato actualizado
  */
 // PUT: Editar (Privado - Requiere Token)
-router.put("/:id", authMiddleware, (req, res) => platoController.modificarProducto(req, res));
+router.put("/:id", /*authMiddleware,*/ (req, res) => platoController.modificarProducto(req, res));
 
 /**
  * @swagger
@@ -124,9 +128,7 @@ router.put("/:id", authMiddleware, (req, res) => platoController.modificarProduc
  *       500:
  *         description: Error interno del servidor
  */
-router.delete("/:id", authMiddleware, (req, res) =>
-  platoController.eliminarProducto(req, res)
-);
+router.patch("/:id/desactivar", authMiddleware, platoController.desactivarPlato);
 
 
 
@@ -160,7 +162,7 @@ router.delete("/:id", authMiddleware, (req, res) =>
 // POST Imagen: Subir foto (Privado)
 router.post(
   "/:id/imagen",
-  authMiddleware,
+  /*authMiddleware,*/
   upload.single("imagen"),
   manejarErroresUpload,
   (req, res) => platoController.cargarImagenProducto(req, res)

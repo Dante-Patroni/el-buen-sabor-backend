@@ -1,0 +1,912 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "API El Buen Sabor",
+    "version": "1.0.0",
+    "description": "API para gestión de pedidos de restaurante. Documentación automática.",
+    "contact": {
+      "name": "Dante Patroni",
+      "url": "https://github.com/Dante-Patroni/el-buen-sabor-backend.git"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Servidor de Desarrollo"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "Plato": {
+        "type": "object",
+        "properties": {
+          "stock": {
+            "type": "object",
+            "properties": {
+              "cantidad": {
+                "type": "integer",
+                "example": 20
+              },
+              "esIlimitado": {
+                "type": "boolean",
+                "example": false
+              },
+              "estado": {
+                "type": "string",
+                "example": "DISPONIBLE"
+              }
+            }
+          }
+        }
+      },
+      "Mesa": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "ID único de la mesa"
+          },
+          "numero": {
+            "type": "string",
+            "description": "Número o nombre visual de la mesa"
+          },
+          "estado": {
+            "type": "string",
+            "enum": [
+              "libre",
+              "ocupada"
+            ]
+          },
+          "totalActual": {
+            "type": "number",
+            "format": "float",
+            "description": "Monto acumulado de los pedidos"
+          },
+          "mozo": {
+            "type": "object",
+            "properties": {
+              "nombre": {
+                "type": "string"
+              },
+              "apellido": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "example": {
+          "id": 1,
+          "numero": "4",
+          "estado": "ocupada",
+          "totalActual": 1500.5,
+          "mozo": {
+            "nombre": "Dante",
+            "apellido": "Patroni"
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/api/mesas": {
+      "get": {
+        "summary": "Obtiene el estado actual de todas las mesas",
+        "responses": {
+          "200": {
+            "description": "Lista de mesas obtenida correctamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "example": 4
+                      },
+                      "nombre": {
+                        "type": "string",
+                        "example": "Mesa 4"
+                      },
+                      "estado": {
+                        "type": "string",
+                        "enum": [
+                          "libre",
+                          "ocupada"
+                        ],
+                        "example": "ocupada"
+                      },
+                      "totalActual": {
+                        "type": "number",
+                        "description": "Total acumulado en la mesa",
+                        "example": 1500
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error al obtener las mesas"
+          }
+        }
+      }
+    },
+    "/api/mesas/{id}/abrir": {
+      "post": {
+        "summary": "Ocupa una mesa y asigna un mozo",
+        "description": "Cambia el estado de la mesa a 'ocupada' y guarda la relación con el Mozo.",
+        "tags": [
+          "Mesas"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true,
+            "description": "ID de la mesa a abrir"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "idMozo"
+                ],
+                "properties": {
+                  "idMozo": {
+                    "type": "integer",
+                    "description": "ID del usuario (Mozo) que abre la mesa",
+                    "example": 5
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Mesa abierta exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Mesa abierta con éxito"
+                    },
+                    "mesa": {
+                      "$ref": "#/components/schemas/Mesa"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos faltantes (idMozo) o mesa ya ocupada"
+          },
+          "404": {
+            "description": "Mesa no encontrada"
+          },
+          "500": {
+            "description": "Error en el servidor"
+          }
+        }
+      }
+    },
+    "/api/mesas/{id}/cerrar": {
+      "post": {
+        "summary": "Cierra una mesa y libera su estado",
+        "description": "Cambia el estado de la mesa a 'libre', borra el mozo asignado y devuelve el total cobrado.",
+        "tags": [
+          "Mesas"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "ID de la mesa a cerrar"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Mesa cerrada correctamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Mesa cerrada con éxito"
+                    },
+                    "mesaId": {
+                      "type": "integer",
+                      "example": 4
+                    },
+                    "totalCobrado": {
+                      "type": "number",
+                      "example": 2500.75
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "La mesa ya está libre"
+          },
+          "404": {
+            "description": "Mesa no encontrada"
+          },
+          "500": {
+            "description": "Error en el servidor"
+          }
+        }
+      }
+    },
+    "/api/pedidos": {
+      "post": {
+        "summary": "Crea un nuevo pedido",
+        "tags": [
+          "Pedidos"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "mesa",
+                  "productos"
+                ],
+                "properties": {
+                  "mesa": {
+                    "type": "string",
+                    "example": "5"
+                  },
+                  "cliente": {
+                    "type": "string",
+                    "example": "Juan Pérez"
+                  },
+                  "productos": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "platoId": {
+                          "type": "integer",
+                          "example": 1
+                        },
+                        "cantidad": {
+                          "type": "integer",
+                          "example": 2
+                        },
+                        "aclaracion": {
+                          "type": "string",
+                          "example": "Sin sal"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Pedido creado exitosamente"
+          },
+          "400": {
+            "description": "Error de validación"
+          },
+          "401": {
+            "description": "No autorizado"
+          },
+          "500": {
+            "description": "Error interno del servidor"
+          }
+        }
+      },
+      "get": {
+        "summary": "Obtiene el historial de todos los pedidos",
+        "tags": [
+          "Pedidos"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de pedidos recuperada"
+          },
+          "500": {
+            "description": "Error interno del servidor"
+          }
+        }
+      }
+    },
+    "/api/pedidos/mesa/{mesa}": {
+      "get": {
+        "summary": "Obtiene los pedidos activos de una mesa",
+        "tags": [
+          "Pedidos"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "mesa",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "Número de la mesa"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de pedidos de la mesa"
+          },
+          "500": {
+            "description": "Error del servidor"
+          }
+        }
+      }
+    },
+    "/api/pedidos/modificar": {
+      "put": {
+        "summary": "Modifica un pedido existente (actualiza productos, stock y total)",
+        "tags": [
+          "Pedidos"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "id",
+                  "mesa",
+                  "productos"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "description": "ID del pedido a modificar",
+                    "example": 69
+                  },
+                  "mesa": {
+                    "type": "string",
+                    "example": "4"
+                  },
+                  "productos": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "platoId": {
+                          "type": "integer",
+                          "example": 1
+                        },
+                        "cantidad": {
+                          "type": "integer",
+                          "example": 3
+                        },
+                        "aclaracion": {
+                          "type": "string",
+                          "example": "Modificado"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Pedido modificado correctamente"
+          },
+          "201": {
+            "description": "Pedido recreado con éxito"
+          },
+          "400": {
+            "description": "Datos inválidos o stock insuficiente"
+          },
+          "404": {
+            "description": "Pedido no encontrado"
+          }
+        }
+      }
+    },
+    "/api/pedidos/{id}": {
+      "delete": {
+        "summary": "Elimina un pedido y restaura el stock de los productos",
+        "tags": [
+          "Pedidos"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true,
+            "description": "ID del pedido a eliminar"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Pedido eliminado y stock restaurado"
+          },
+          "404": {
+            "description": "Pedido no encontrado"
+          },
+          "500": {
+            "description": "Error interno del servidor"
+          }
+        }
+      }
+    },
+    "/api/platos": {
+      "get": {
+        "summary": "Obtiene el menú completo",
+        "tags": [
+          "Platos"
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de platos"
+          }
+        }
+      },
+      "post": {
+        "summary": "Crear un nuevo plato",
+        "tags": [
+          "Platos"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "nombre": {
+                    "type": "string"
+                  },
+                  "precio": {
+                    "type": "number"
+                  },
+                  "rubroId": {
+                    "type": "integer"
+                  },
+                  "esMenuDelDia": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Plato creado exitosamente"
+          }
+        }
+      }
+    },
+    "/api/platos/{id}": {
+      "put": {
+        "summary": "Editar un plato (Precio, Menú del día)",
+        "tags": [
+          "Platos"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "precio": {
+                    "type": "number"
+                  },
+                  "esMenuDelDia": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Plato actualizado"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Eliminar un plato por ID",
+        "tags": [
+          "Platos"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "ID del plato a eliminar",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Plato eliminado correctamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "mensaje": {
+                      "type": "string",
+                      "example": "Plato eliminado correctamente"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Plato no encontrado"
+          },
+          "500": {
+            "description": "Error interno del servidor"
+          }
+        }
+      }
+    },
+    "/api/platos/{id}/imagen": {
+      "post": {
+        "summary": "Sube una foto para un plato",
+        "tags": [
+          "Platos"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "imagen": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Imagen subida correctamente"
+          }
+        }
+      }
+    },
+    "/api/rubros": {
+      "get": {
+        "summary": "Obtener el árbol jerárquico de rubros",
+        "tags": [
+          "Rubros"
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de rubros obtenida correctamente"
+          },
+          "500": {
+            "description": "Error interno del servidor"
+          }
+        }
+      },
+      "post": {
+        "summary": "Crear un nuevo rubro o reactivarlo",
+        "tags": [
+          "Rubros"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "denominacion"
+                ],
+                "properties": {
+                  "denominacion": {
+                    "type": "string",
+                    "example": "Bebidas"
+                  },
+                  "padreId": {
+                    "type": "integer",
+                    "nullable": true,
+                    "example": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Rubro creado correctamente"
+          },
+          "400": {
+            "description": "Error de validación"
+          },
+          "500": {
+            "description": "Error interno"
+          }
+        }
+      }
+    },
+    "/api/rubros/{id}": {
+      "put": {
+        "summary": "Actualizar un rubro existente",
+        "tags": [
+          "Rubros"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "denominacion"
+                ],
+                "properties": {
+                  "denominacion": {
+                    "type": "string",
+                    "example": "Bebidas sin alcohol"
+                  },
+                  "padreId": {
+                    "type": "integer",
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Rubro actualizado correctamente"
+          },
+          "400": {
+            "description": "Error de validación"
+          },
+          "404": {
+            "description": "Rubro no encontrado"
+          },
+          "500": {
+            "description": "Error interno"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Eliminar lógicamente un rubro",
+        "tags": [
+          "Rubros"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Rubro eliminado correctamente"
+          },
+          "400": {
+            "description": "No se puede eliminar"
+          },
+          "404": {
+            "description": "Rubro no encontrado"
+          },
+          "500": {
+            "description": "Error interno"
+          }
+        }
+      }
+    },
+    "/api/usuarios/login": {
+      "post": {
+        "summary": "Inicia sesión en el sistema",
+        "tags": [
+          "Usuarios"
+        ],
+        "responses": {
+          "200": {
+            "description": "Login exitoso"
+          },
+          "400": {
+            "description": "Datos inválidos"
+          },
+          "401": {
+            "description": "Password incorrecta"
+          },
+          "403": {
+            "description": "Usuario inactivo"
+          },
+          "404": {
+            "description": "Usuario no encontrado"
+          }
+        }
+      }
+    },
+    "/api/usuarios": {
+      "get": {
+        "summary": "Lista usuarios (solo admin)",
+        "tags": [
+          "Usuarios"
+        ]
+      },
+      "post": {
+        "summary": "Crea un usuario (solo admin)",
+        "tags": [
+          "Usuarios"
+        ]
+      }
+    },
+    "/api/usuarios/{id}": {
+      "get": {
+        "summary": "Obtiene un usuario por ID (solo admin)",
+        "tags": [
+          "Usuarios"
+        ]
+      },
+      "put": {
+        "summary": "Actualiza un usuario (solo admin)",
+        "tags": [
+          "Usuarios"
+        ]
+      },
+      "delete": {
+        "summary": "Baja lógica de usuario (solo admin)",
+        "tags": [
+          "Usuarios"
+        ]
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Platos",
+      "description": "Gestión del menú y fotos"
+    },
+    {
+      "name": "Rubros",
+      "description": "Gestión de categorías del menú"
+    },
+    {
+      "name": "Usuarios",
+      "description": "Gestión de usuarios del sistema"
+    }
+  ]
+}
