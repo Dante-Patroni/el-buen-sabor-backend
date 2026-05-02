@@ -52,14 +52,15 @@ class PedidoRepository {
   }
 
   /**
-   * @description Busca un pedido por su id.
-   * @param {number|string} id - Id del pedido.
-   * @returns {Promise<object|null>} Pedido encontrado o `null`.
-   * @throws {Error} Implementacion pendiente en clase concreta.
-   */
-  async buscarPedidoPorId(id) {
-    throw new Error("Not implemented");
-  }
+ * @description Busca un pedido por su id.
+ * @param {number|string} id - Id del pedido.
+ * @param {object|null} transaction - Transaccion opcional.
+ * @returns {Promise<object|null>} Pedido encontrado o `null`.
+ * @throws {Error} Implementacion pendiente en clase concreta.
+ */
+async buscarPedidoPorId(id, transaction = null) {
+  throw new Error("Not implemented");
+}
 
   /**
    * @description Busca pedidos abiertos de una mesa.

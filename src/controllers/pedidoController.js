@@ -87,6 +87,26 @@ class PedidoController {
   };
 
   /**
+ * @description Actualiza el estado de un pedido respetando las reglas de negocio.
+ * @param {import("express").Request} req - Request con `params.id` y cuerpo `{ estado: string }`.
+ * @param {import("express").Response} res - Response HTTP.
+ * @returns {Promise<import("express").Response>} Resultado de la actualización.
+ */
+  actualizarEstado = async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { estado } = req.body;
+      await this.pedidoService.actualizarEstadoPedido(id, estado);
+      return res.status(200).json({
+        mensaje: "Estado del pedido actualizado exitosamente",
+        data: { id, estado },
+      });
+    } catch (error) {
+      return manejarErrorHttp(error, res);
+    }
+  };
+
+  /**
    * @description Elimina un pedido pendiente y restaura stock/total asociado.
    * @param {import("express").Request} req - Request con `params.id`.
    * @param {import("express").Response} res - Response HTTP.

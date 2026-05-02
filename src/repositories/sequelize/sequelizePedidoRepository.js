@@ -67,24 +67,24 @@ class SequelizePedidoRepository extends PedidoRepository {
    * @param {string|undefined} estado - Estado opcional.
    * @returns {Promise<Array<object>>} Pedidos con detalles incluidos.
    */
- async listarPedidosPorEstado(estado) {
-  const filtro = estado ? { where: { estado } } : {};
+  async listarPedidosPorEstado(estado) {
+    const filtro = estado ? { where: { estado } } : {};
 
-  return await Pedido.findAll({
-    ...filtro,
-    include: [
-      {
-        model: DetallePedido,
-        include: [
-          {
-            model: Plato,
-            attributes: ["id", "nombre"],
-          },
-        ],
-      },
-    ],
-  });
-}
+    return await Pedido.findAll({
+      ...filtro,
+      include: [
+        {
+          model: DetallePedido,
+          include: [
+            {
+              model: Plato,
+              attributes: ["id", "nombre"],
+            },
+          ],
+        },
+      ],
+    });
+  }
 
   /**
    * @description Busca pedidos por mesa ordenados por fecha de creacion.
@@ -104,14 +104,7 @@ class SequelizePedidoRepository extends PedidoRepository {
     });
   }
 
-  /**
-   * @description Busca un pedido por clave primaria.
-   * @param {number|string} id - Id del pedido.
-   * @returns {Promise<object|null>} Pedido encontrado o `null`.
-   */
-  async buscarPedidoPorId(id) {
-    return await Pedido.findByPk(id);
-  }
+
 
   /**
    * @description Elimina un pedido por id.
@@ -242,6 +235,30 @@ class SequelizePedidoRepository extends PedidoRepository {
     return await Pedido.update(
       { total: nuevoTotal },
       { where: { id: pedidoId }, transaction }
+    );
+  }
+
+  /**
+ * @description Busca un pedido por id dentro de una transaccion.
+ * @param {number|string} id - Id del pedido.
+ * @param {import("sequelize").Transaction|null} transaction - Transaccion opcional.
+ * @returns {Promise<object|null>} Pedido encontrado o null.
+ */
+  async buscarPedidoPorId(id, transaction = null) {
+    return await Pedido.findByPk(id, { transaction });
+  }
+
+  /**
+   * @description Actualiza el estado de un pedido.
+   * @param {number|string} id - Id del pedido.
+   * @param {string} nuevoEstado - Nuevo estado.
+   * @param {import("sequelize").Transaction|null} transaction - Transaccion opcional.
+   * @returns {Promise<Array<number>>} Resultado del update.
+   */
+  async actualizarEstadoPedido(id, nuevoEstado, transaction = null) {
+    return await Pedido.update(
+      { estado: nuevoEstado },
+      { where: { id }, transaction }
     );
   }
 }

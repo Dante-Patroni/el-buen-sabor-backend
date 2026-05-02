@@ -155,6 +155,8 @@ router.get("/mesa/:mesa", authMiddleware, validarMesaParam, pedidoController.bus
  */
 router.put("/modificar", authMiddleware, pedidoController.modificar);
 
+router.patch("/:id/estado", authMiddleware, pedidoController.actualizarEstado);
+
 /**
  * @swagger
  * /api/pedidos/{id}:
