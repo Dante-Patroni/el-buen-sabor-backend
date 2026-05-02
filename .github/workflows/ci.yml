@@ -18,17 +18,21 @@ jobs:
           MYSQL_DATABASE: el_buen_sabor_test
         ports:
           - 3306:3306
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
 
       mongo:
         image: mongo:5.0
         ports:
           - 27017:27017
         options: >-
-          --health-cmd mongo
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+          --health-cmd="mongo --eval 'db.runCommand(\"ping\")'"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
 
     steps:
       - name: Checkout del código
@@ -61,26 +65,19 @@ jobs:
           DB_DATABASE: el_buen_sabor_test
           DB_HOST: 127.0.0.1
           NODE_ENV: test
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
-
+          JWT_SECRET: test_secret_for_ci
         run: |
           # 1. Migraciones
           npx sequelize-cli db:migrate
 
-          # 2. Seeds
-          npx sequelize-cli db:seed:all
+          # 2. Seeds (Nuevo sistema)
+          npm run seed
 
-          # 3. Levantar servidor
+          # 3. Levantar servidor en background
           npm start &
 
           # 4. Esperar servidor
           npx wait-on http://127.0.0.1:3000/api-docs
 
-          # 5. Instalar Newman
-          npm install -g newman
-
-          # 6. Ejecutar colección
-          newman run tests/tests.json \
-            -e tests/entorno.json \
-            --working-dir . \
-            --reporters cli
+          # 5. Ejecutar colección Newman
+          npx newman run tests/tests.json -e tests/entorno.json

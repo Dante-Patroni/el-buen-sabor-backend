@@ -10,7 +10,7 @@
     "test:unit": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "seed": "npx sequelize-cli db:seed:all"
+    "seed": "node seed.js"
   },
   "keywords": [],
   "author": "",
@@ -28,6 +28,7 @@
     "puppeteer": "^24.40.0",
     "sequelize": "^6.37.7",
     "socket.io": "^4.8.3",
+    "socket.io-client": "^4.8.3",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1"
   },

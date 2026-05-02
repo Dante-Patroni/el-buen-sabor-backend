@@ -72,7 +72,17 @@ class SequelizePedidoRepository extends PedidoRepository {
 
     return await Pedido.findAll({
       ...filtro,
-      include: [DetallePedido]
+      include: [
+        {
+          model: DetallePedido,
+          include: [
+            {
+              model: Plato,
+              attributes: ["id", "nombre"],
+            },
+          ],
+        },
+      ],
     });
   }
 
@@ -97,11 +107,30 @@ class SequelizePedidoRepository extends PedidoRepository {
   /**
    * @description Busca un pedido por clave primaria.
    * @param {number|string} id - Id del pedido.
+   * @param {import("sequelize").Transaction|null} transaction - Transaccion opcional.
    * @returns {Promise<object|null>} Pedido encontrado o `null`.
    */
-  async buscarPedidoPorId(id) {
-    return await Pedido.findByPk(id);
+  async buscarPedidoPorId(id, transaction = null) {
+    return await Pedido.findByPk(id, {
+      include: [{ model: DetallePedido }],
+      transaction
+    });
   }
+
+  /**
+   * @description Actualiza el estado de un pedido.
+   * @param {number|string} pedidoId - Id del pedido.
+   * @param {string} nuevoEstado - Nuevo estado.
+   * @param {import("sequelize").Transaction|null} transaction - Transaccion opcional.
+   * @returns {Promise<Array<number>>} Resultado de `update` de Sequelize.
+   */
+  async actualizarEstadoPedido(pedidoId, nuevoEstado, transaction = null) {
+      return await Pedido.update(
+        { estado: nuevoEstado },
+        { where: { id: pedidoId }, transaction }
+      );
+    }
+
 
   /**
    * @description Elimina un pedido por id.
@@ -110,9 +139,9 @@ class SequelizePedidoRepository extends PedidoRepository {
    * @returns {Promise<boolean>} `true` cuando finaliza.
    */
   async eliminarPedidoPorId(id, transaction = null) {
-    await Pedido.destroy({ where: { id }, transaction });
-    return true;
-  }
+      await Pedido.destroy({ where: { id }, transaction });
+      return true;
+    }
 
   /**
    * @description Busca pedidos no pagados/abiertos de una mesa.
@@ -120,25 +149,25 @@ class SequelizePedidoRepository extends PedidoRepository {
    * @returns {Promise<Array<object>>} Pedidos abiertos.
    */
   async buscarPedidoAbiertosPorMesa(mesaId) {
-    return await Pedido.findAll({
-      where: {
-        mesa: mesaId,
-        [Op.or]: [
-          {
-            estado: {
-              [Op.in]: ["pendiente", "en_preparacion", "entregado", ""]
+      return await Pedido.findAll({
+        where: {
+          mesa: mesaId,
+          [Op.or]: [
+            {
+              estado: {
+                [Op.in]: ["pendiente", "en_preparacion", "entregado", ""]
+              }
+            },
+            {
+              estado: {
+                [Op.is]: null
+              }
             }
-          },
-          {
-            estado: {
-              [Op.is]: null
-            }
-          }
-        ]
-      }
+          ]
+        }
 
-    });
-  }
+      });
+    }
 
   /**
    * @description Obtiene pedidos abiertos de una mesa incluyendo sus detalles y datos de plato.
@@ -147,29 +176,29 @@ class SequelizePedidoRepository extends PedidoRepository {
    * @returns {Promise<Array<object>>} Pedidos facturables listos para construir ticket.
    */
   async buscarPedidosFacturablesPorMesa(mesaId, transaction = null) {
-    return await Pedido.findAll({
-      where: {
-        mesa: mesaId,
-        [Op.or]: [
-          { estado: { [Op.in]: ["pendiente", "en_preparacion", "entregado", ""] } },
-          { estado: { [Op.is]: null } }
-        ]
-      },
-      include: [
-        {
-          model: DetallePedido,
-          include: [
-            {
-              model: Plato,
-              attributes: ["id", "nombre", "precio"],
-            },
-          ],
+      return await Pedido.findAll({
+        where: {
+          mesa: mesaId,
+          [Op.or]: [
+            { estado: { [Op.in]: ["pendiente", "en_preparacion", "entregado", ""] } },
+            { estado: { [Op.is]: null } }
+          ]
         },
-      ],
-      order: [["id", "ASC"]],
-      transaction,
-    });
-  }
+        include: [
+          {
+            model: DetallePedido,
+            include: [
+              {
+                model: Plato,
+                attributes: ["id", "nombre", "precio"],
+              },
+            ],
+          },
+        ],
+        order: [["id", "ASC"]],
+        transaction,
+      });
+    }
 
   /**
    * @description Marca como pagados los pedidos abiertos de una mesa.
@@ -178,35 +207,36 @@ class SequelizePedidoRepository extends PedidoRepository {
    * @returns {Promise<void>} Resolucion sin valor.
    */
   async marcarPedidosComoPagados(mesaId, transaction = null) {
-    await Pedido.update(
-      { estado: 'pagado' },
-      {
-        where: {
-          mesa: mesaId,
-          estado: {
-            [Op.or]: [
-              { [Op.eq]: 'pendiente' },
-              { [Op.eq]: 'en_preparacion' },
-              { [Op.eq]: 'entregado' },
-              { [Op.is]: null },
-              { [Op.eq]: '' }
-            ]
-          }
-        },
-        transaction
-      }
-    );
-  }
+      await Pedido.update(
+        { estado: 'pagado' },
+        {
+          where: {
+            mesa: mesaId,
+            estado: {
+              [Op.or]: [
+                { [Op.eq]: 'pendiente' },
+                { [Op.eq]: 'en_preparacion' },
+                { [Op.eq]: 'entregado' },
+                { [Op.is]: null },
+                { [Op.eq]: '' }
+              ]
+            }
+          },
+          transaction
+        }
+      );
+    }
   /**
    * @description Obtiene los detalles de un pedido.
    * @param {number|string} pedidoId - Id del pedido.
    * @returns {Promise<Array<object>>} Detalles encontrados.
    */
-  async obtenerDetallesPedido(pedidoId) {
-    return await DetallePedido.findAll({
-      where: { PedidoId: pedidoId }
-    });
-  }
+  async obtenerDetallesPedido(pedidoId, transaction = null) {
+      return await DetallePedido.findAll({
+        where: { PedidoId: pedidoId },
+        transaction
+      });
+    }
 
   /**
    * @description Elimina los detalles asociados a un pedido.
@@ -215,25 +245,51 @@ class SequelizePedidoRepository extends PedidoRepository {
    * @returns {Promise<number>} Cantidad de filas eliminadas.
    */
   async eliminarDetallesPedido(pedidoId, transaction = null) {
-    return await DetallePedido.destroy({
-      where: { PedidoId: pedidoId },
-      transaction
-    });
+      return await DetallePedido.destroy({
+        where: { PedidoId: pedidoId },
+        transaction
+      });
+    }
+
+  async calcularTotalMesa(mesaId, transaction = null) {
+      const resultado = await sequelize.query(
+        `
+    SELECT SUM(dp.subtotal) as total
+    FROM pedidos p
+    JOIN detallePedidos dp ON dp.PedidoId = p.id
+    WHERE p.mesa = :mesaId
+    AND p.estado != 'pagado'
+    `,
+        {
+          replacements: { mesaId },
+          type: sequelize.QueryTypes.SELECT,
+          transaction
+        }
+      );
+
+      return Number(resultado[0].total) || 0;
+    }
+
+  async contarItemsPendientes(mesaId, transaction = null) {
+      const resultado = await sequelize.query(
+        `
+    SELECT SUM(dp.cantidad) as cantidad
+    FROM Pedidos p
+    JOIN DetallePedidos dp ON dp.PedidoId = p.id
+    WHERE p.mesa = :mesaId
+    AND p.estado != 'pagado'
+    `,
+        {
+          replacements: { mesaId },
+          type: sequelize.QueryTypes.SELECT,
+          transaction
+        }
+      );
+
+      return Number(resultado[0].cantidad) || 0;
+    }
   }
 
-  /**
-   * @description Actualiza el total monetario de un pedido.
-   * @param {number|string} pedidoId - Id del pedido.
-   * @param {number} nuevoTotal - Nuevo total calculado.
-   * @param {import("sequelize").Transaction|null} transaction - Transaccion opcional.
-   * @returns {Promise<Array<number>>} Resultado de `update` de Sequelize.
-   */
-  async actualizarTotalPedido(pedidoId, nuevoTotal, transaction = null) {
-    return await Pedido.update(
-      { total: nuevoTotal },
-      { where: { id: pedidoId }, transaction }
-    );
-  }
-}
+
 
 module.exports = SequelizePedidoRepository;
