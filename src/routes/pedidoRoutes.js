@@ -1,36 +1,13 @@
 const express = require("express");
 const router = express.Router();
 
-// 1. Importamos las CLASES (No instancias)
-const PedidoService = require("../services/pedidoService");
-const MesaService = require("../services/mesaService");
-const PlatoService = require("../services/platoService");
+// Dependencias desde el container
+const { pedidoService } = require("../container");
 const PedidoController = require("../controllers/pedidoController");
-const SequelizePedidoRepository = require("../repositories/sequelize/sequelizePedidoRepository");
-const SequelizeMesaRepository = require("../repositories/sequelize/sequelizeMesaRepository");
-const SequelizePlatoRepository = require("../repositories/sequelize/sequelizePlatoRepository");
-const pedidoEmitter = require("../events/pedidoEvents");
-
-// 2. Instanciamos las dependencias
-const pedidoRepository = new SequelizePedidoRepository();
-const platoRepository = new SequelizePlatoRepository();
-const mesaRepository = new SequelizeMesaRepository();
-const platoService = new PlatoService(platoRepository);
-const mesaService = new MesaService(mesaRepository, pedidoRepository);
-const pedidoService = new PedidoService(
-  pedidoRepository,
-  platoService,
-  mesaService,
-  pedidoEmitter
-);
-const pedidoController = new PedidoController(pedidoService);
-
-// 3. Middlewares
 const authMiddleware = require("../middlewares/authMiddleware");
-const {
-  validarPedido,
-  validarMesaParam,
-} = require("../middlewares/pedidoValidator");
+const { validarPedido, validarMesaParam } = require("../middlewares/pedidoValidator");
+
+const pedidoController = new PedidoController(pedidoService);
 
 
 
