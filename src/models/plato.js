@@ -35,6 +35,13 @@ module.exports = (sequelize, DataTypes) => {
         }
       },
 
+
+      esActivo: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: true
+      },
+
       // ===== STOCK OPERATIVO =====
 
       stockActual: {
