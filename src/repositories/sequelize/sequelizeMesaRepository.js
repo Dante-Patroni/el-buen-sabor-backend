@@ -33,7 +33,7 @@ class SequelizeMesaRepository extends MesaRepository {
       {
         estado: "ocupada",
         mozoId: mozoId,
-        totalActual: 0
+        // ✅ YA NO seteamos totalActual (campo deprecated)
       },
       {
         where: {
@@ -45,7 +45,6 @@ class SequelizeMesaRepository extends MesaRepository {
 
     return affectedRows;
   }
-
 
   /**
    * @description Trae todas las mesas con su mozo asociado.
@@ -71,7 +70,6 @@ class SequelizeMesaRepository extends MesaRepository {
   async buscarMesaPorId(id, transaction = null) {
     return await Mesa.findByPk(id, { transaction });
   }
-
 
   /**
    * @description Persiste los cambios de una entidad mesa existente.

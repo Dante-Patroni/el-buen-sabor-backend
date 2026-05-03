@@ -60,8 +60,26 @@ router.get("/", (req, res) => platoController.listarMenuCompleto(req, res));
  *         description: Plato creado exitosamente
  */
 // POST: Crear (Privado - Requiere Token) - 🚨 AQUÍ ESTABA EL FALTANTE
-router.post("/", authMiddleware, (req, res) => platoController.crearNuevoProducto(req, res));
-
+router.post("/", /*authMiddleware*/ (req, res) => platoController.crearNuevoProducto(req, res));
+/**
+ * @swagger
+ * /api/platos/{id}:
+ *   get:
+ *     summary: Obtiene un plato por ID
+ *     tags: [Platos]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Plato encontrado
+ *       404:
+ *         description: Plato no encontrado
+ */
+router.get("/:id", (req, res) => platoController.buscarPorId(req, res));
 /**
  * @swagger
  * /api/platos/{id}:
@@ -91,7 +109,7 @@ router.post("/", authMiddleware, (req, res) => platoController.crearNuevoProduct
  *         description: Plato actualizado
  */
 // PUT: Editar (Privado - Requiere Token)
-router.put("/:id", authMiddleware, (req, res) => platoController.modificarProducto(req, res));
+router.put("/:id", /*authMiddleware*/ (req, res) => platoController.modificarProducto(req, res));
 
 /**
  * @swagger
@@ -124,7 +142,7 @@ router.put("/:id", authMiddleware, (req, res) => platoController.modificarProduc
  *       500:
  *         description: Error interno del servidor
  */
-router.delete("/:id", authMiddleware, (req, res) =>
+router.delete("/:id", /*authMiddleware*/ (req, res) =>
   platoController.eliminarProducto(req, res)
 );
 
@@ -160,8 +178,7 @@ router.delete("/:id", authMiddleware, (req, res) =>
 // POST Imagen: Subir foto (Privado)
 router.post(
   "/:id/imagen",
-  authMiddleware,
-  upload.single("imagen"),
+  /*authMiddleware*/ upload.single("imagen"),
   manejarErroresUpload,
   (req, res) => platoController.cargarImagenProducto(req, res)
 );

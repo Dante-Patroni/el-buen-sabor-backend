@@ -32,7 +32,8 @@ const whitelist = [
   "http://localhost:4200",      
   "http://192.168.18.3:3000",   
   "http://192.168.18.3",        
-  "http://127.0.0.1:5500"       // ✅ Monitor de Cocina
+  "http://127.0.0.1:5500", 
+  "http://localhost:5173"      // ✅ Monitor de Cocina
 ];
 
 const corsOptions = {

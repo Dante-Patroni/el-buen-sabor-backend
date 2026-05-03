@@ -1,4 +1,3 @@
-
 class MesaService {
   /**
    * @description Crea una instancia del servicio de mesas.
@@ -45,24 +44,21 @@ class MesaService {
    * @throws {Error} `MOZO_REQUERIDO` o `MESA_YA_OCUPADA`.
    */
   async abrirMesa(mesaId, mozoId) {
+    if (!mozoId) {
+      throw new Error("MOZO_REQUERIDO");
+    }
 
-  if (!mozoId) {
-    throw new Error("MOZO_REQUERIDO");
-    
+    const affectedRows = await this.mesaRepository.abrirMesaSiEstaLibre(
+      mesaId,
+      mozoId
+    );
+
+    if (affectedRows === 0) {
+      throw new Error("MESA_YA_OCUPADA");
+    }
+
+    return { mensaje: "Mesa abierta correctamente" };
   }
-
-  const affectedRows = await this.mesaRepository.abrirMesaSiEstaLibre(
-    mesaId,
-    mozoId
-  );
-
-  if (affectedRows === 0) {
-    throw new Error("MESA_YA_OCUPADA");
-  }
-
-  return { mensaje: "Mesa abierta correctamente" };
-  }
-
 
   /**
    * @description Cierra una mesa en forma atomica, marca pedidos como pagados y libera la mesa.
@@ -71,22 +67,7 @@ class MesaService {
    * @throws {Error} `MESA_NO_ENCONTRADA` o `MESA_YA_LIBRE`.
    */
   async cerrarMesa(mesaId) {
-
-    // Se delega al repository la ejecución transaccional.
-    // Le pasamos una función (callback) que contiene
-    // toda la lógica que debe ejecutarse de forma atómica.
     return await this.mesaRepository.inTransaction(async (transaction) => {
-
-      /**
-       * 🔹 ¿Qué es este "transaction"?
-       *
-       * Es el objeto de transacción que el Repository creó
-       * internamente usando Sequelize.
-       *
-       * El Service NO sabe cómo se creó.
-       * Solo lo recibe y lo pasa a los métodos que deben
-       * ejecutarse dentro de la misma unidad atómica.
-       */
 
       // 1️⃣ Buscar la mesa dentro de la transacción
       const mesa = await this.mesaRepository.buscarMesaPorId(mesaId, transaction);
@@ -100,31 +81,25 @@ class MesaService {
         throw new Error("MESA_YA_LIBRE");
       }
 
-      // 3️⃣ Guardamos el total antes de resetear la mesa
-      const totalCobrado = Number(mesa.totalActual) || 0;
+      // 3️⃣ Calcular el total dinámicamente desde DetallePedidos
+      const totalCobrado = await this.pedidoRepository.calcularTotalMesa(mesaId, transaction);
+
+      // 4️⃣ Generar facturación (si existe el servicio)
       const facturacion = this.facturacionService
         ? await this.facturacionService.generarResumenCierre(mesaId, transaction)
         : null;
 
-      // 4️⃣ Actualizamos los pedidos asociados a la mesa
-      // También dentro de la misma transacción
+      // 5️⃣ Marcar pedidos como pagados
       await this.pedidoRepository.marcarPedidosComoPagados(mesaId, transaction);
 
-      // 5️⃣ Modificamos el estado de la entidad en memoria
+      // 6️⃣ Liberar la mesa (NO tocamos totalActual, lo dejamos como está)
       mesa.estado = "libre";
-      mesa.totalActual = 0;
       mesa.mozoId = null;
-
-      /**
-       * 🔹 Punto clave:
-       * El Service decide QUÉ cambiar.
-       * El Repository solo persiste.
-       */
+      // ✅ NO reseteamos mesa.totalActual (campo deprecated)
 
       await this.mesaRepository.actualizarMesa(mesa, transaction);
 
-      // 6️⃣ Retornamos información relevante
-      // Este valor será el que devuelva inTransaction
+      // 7️⃣ Retornar información relevante
       return {
         mesaId: mesa.id,
         totalCobrado,
@@ -140,79 +115,48 @@ class MesaService {
   }
 
   /**
-   * @description Suma un monto al total actual de una mesa ocupada.
+   * @description Calcula dinámicamente el total actual de una mesa sumando subtotales de DetallePedidos.
    * @param {number|string} mesaId - Id de mesa.
-   * @param {number|string} monto - Monto a sumar.
    * @param {object|null} transaction - Transaccion opcional.
-   * @returns {Promise<object>} Mesa actualizada.
-   * @throws {Error} `MESA_NO_ENCONTRADA` o `MESA_NO_OCUPADA`.
+   * @returns {Promise<number>} Total calculado desde DetallePedidos.
+   */
+  async calcularTotalActual(mesaId, transaction = null) {
+    return await this.pedidoRepository.calcularTotalMesa(mesaId, transaction);
+  }
+
+  // ========================================================================
+  // ⚠️ MÉTODOS DEPRECATED - Mantener por compatibilidad, eliminar después
+  // ========================================================================
+
+  /**
+   * @deprecated Ya no se usa. El total se calcula dinámicamente.
+   * @description Suma un monto al total actual de una mesa ocupada.
    */
   async sumarTotal(mesaId, monto, transaction = null) {
-    const mesa = await this.obtenerPorId(mesaId, transaction);
-
-    if (mesa.estado !== "ocupada") {
-      throw new Error("MESA_NO_OCUPADA");
-    }
-
-    const incremento = Number(monto) || 0;
-    mesa.totalActual = Number(mesa.totalActual) + incremento;
-
-    await this.mesaRepository.actualizarMesa(mesa, transaction);
-
-    return mesa;
+    console.warn("⚠️ sumarTotal() está deprecated. El total se calcula dinámicamente.");
+    // No hace nada - mantener solo por compatibilidad
+    return await this.obtenerPorId(mesaId, transaction);
   }
 
   /**
-   * @description Resta un monto al total de una mesa y la libera si queda en cero.
-   * @param {number|string} mesaId - Id de mesa.
-   * @param {number|string} monto - Monto a restar.
-   * @param {object|null} transaction - Transaccion opcional.
-   * @returns {Promise<object>} Mesa actualizada.
-   * @throws {Error} `MESA_NO_ENCONTRADA`.
+   * @deprecated Ya no se usa. El total se calcula dinámicamente.
+   * @description Resta un monto al total de una mesa.
    */
   async restarTotal(mesaId, monto, transaction = null) {
-    const mesa = await this.obtenerPorId(mesaId, transaction);
-
-    const decremento = Number(monto) || 0;
-    let nuevoTotal = Number(mesa.totalActual) - decremento;
-
-    if (nuevoTotal < 0) {
-      nuevoTotal = 0;
-    }
-
-    mesa.totalActual = nuevoTotal;
-
-    // Regla de negocio: si queda en 0 → libre
-    if (nuevoTotal === 0) {
-      mesa.estado = "libre";
-      mesa.mozoId = null;
-    }
-
-    await this.mesaRepository.actualizarMesa(mesa, transaction);
-
-    return mesa;
+    console.warn("⚠️ restarTotal() está deprecated. El total se calcula dinámicamente.");
+    // No hace nada - mantener solo por compatibilidad
+    return await this.obtenerPorId(mesaId, transaction);
   }
+
   /**
-   * @description Ajusta el total de una mesa ocupada segun una diferencia positiva o negativa.
-   * @param {number|string} mesaId - Id de mesa.
-   * @param {number} diferencia - Delta a aplicar sobre total actual.
-   * @param {object|null} transaction - Transaccion opcional.
-   * @returns {Promise<object>} Mesa actualizada.
-   * @throws {Error} `MESA_NO_ENCONTRADA` o `MESA_NO_OCUPADA`.
+   * @deprecated Ya no se usa. El total se calcula dinámicamente.
+   * @description Ajusta el total de una mesa.
    */
   async ajustarTotal(mesaId, diferencia, transaction = null) {
-    const mesa = await this.obtenerPorId(mesaId, transaction);
-    //Solo puedo modificar totales de mesas activas
-    if (mesa.estado !== "ocupada") {
-      throw new Error("MESA_NO_OCUPADA");
-    }
-    //No toco estado de mesa, solo ajusto total. Si queda en 0, la mesa sigue ocupada (no es mi responsabilidad liberarla)
-    mesa.totalActual = Number(mesa.totalActual) + Number(diferencia);
-    await this.mesaRepository.actualizarMesa(mesa, transaction);
-
-    return mesa;
+    console.warn("⚠️ ajustarTotal() está deprecated. El total se calcula dinámicamente.");
+    // No hace nada - mantener solo por compatibilidad
+    return await this.obtenerPorId(mesaId, transaction);
   }
-
 }
 
 module.exports = MesaService;

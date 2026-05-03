@@ -10,31 +10,31 @@ module.exports = (sequelize, DataTypes) => {
         }
     }
 
-    DetallePedido.init(
-        {
-            cantidad: {
-                type: DataTypes.INTEGER,
-                defaultValue: 1,
-                allowNull: false
-            },
-            subtotal: {
-                type: DataTypes.FLOAT, // O DECIMAL(10,2)
-                allowNull: false
-            },
-             aclaracion: {                    // ← agregás esto
-            type: DataTypes.STRING,
-            allowNull: true,
-            defaultValue: ""
-        },
-            // Sequelize crea automáticamente PedidoId y PlatoId, 
-            // pero puedes declararlos explícitamente si quieres validaciones extra.
-        },
-        {
-            sequelize,
-            modelName: "DetallePedido",
-            tableName: "DetallePedidos", // Forzar nombre de tabla si quieres
-        }
-    );
-
+    DetallePedido.init({
+    cantidad: {
+        type: DataTypes.INTEGER,
+        defaultValue: 1,
+        allowNull: false
+    },
+    precioUnitario: {  // ✅ AGREGAR ESTE CAMPO
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: false,
+        comment: "Precio del plato al momento de la venta (histórico)"
+    },
+    subtotal: {
+        type: DataTypes.DECIMAL(10, 2), // Mejor que FLOAT
+        allowNull: false,
+        comment: "precioUnitario × cantidad"
+    },
+    aclaracion: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        defaultValue: ""
+    },
+}, {
+    sequelize,
+    modelName: "DetallePedido",
+    tableName: "DetallePedidos",
+});
     return DetallePedido;
 };
