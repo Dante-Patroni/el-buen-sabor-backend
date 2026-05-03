@@ -344,7 +344,7 @@ class PedidoService {
       }
 
       // 1️⃣ Obtener plato CON transaction para lectura consistente
-      const plato = await this.platoService.obtenerPorId(platoId, transaction);
+      const plato = await this.platoService.buscarPorId(platoId, transaction);
 
       if (!plato) {
         throw new Error("PLATO_NO_ENCONTRADO");

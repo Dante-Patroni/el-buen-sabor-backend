@@ -13,8 +13,8 @@ class PlatoService {
    * @param {number|string} id - Id del plato.
    * @returns {Promise<object|null>} Plato encontrado o `null`.
    */
-  async buscarPorId(id) {
-    return await this.platoRepository.buscarPorId(id);
+  async buscarPorId(id, transaction = null) {
+    return await this.platoRepository.buscarPorId(id, transaction);
   }
 
   /**
