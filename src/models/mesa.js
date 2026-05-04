@@ -3,16 +3,11 @@ const { Model } = require("sequelize");
 
 module.exports = (sequelize, DataTypes) => {
   class Mesa extends Model {
-    /**
-     * Helper method for defining associations.
-     * This method is not a part of Sequelize lifecycle.
-     * The `models/index` file will call this method automatically.
-     */
     static associate(models) {
       // La Mesa pertenece a un Usuario (Mozo)
       Mesa.belongsTo(models.Usuario, {
         foreignKey: 'mozoId',
-        as: 'mozo' // Así podremos hacer mesa.mozo.nombre
+        as: 'mozo'
       });
     }
   }
@@ -21,24 +16,17 @@ module.exports = (sequelize, DataTypes) => {
     {
       numero: {
         type: DataTypes.STRING(10),
-        allowNull: true, // Puede ser null si usas solo ID
+        allowNull: true,
       },
-      // Definimos los campos igual que en tu phpMyAdmin
       nombre: {
         type: DataTypes.STRING(50),
         allowNull: false,
       },
       estado: {
-        type: DataTypes.STRING(20), // 'libre', 'ocupada'
+        type: DataTypes.STRING(20),
         defaultValue: "libre",
       },
-      // 👇 MAPEO: JS (totalActual) <--> DB (total_actual)
-      totalActual: {
-        type: DataTypes.DECIMAL(10, 2),
-        defaultValue: 0.00,
-        field: "total_actual",
-      },
-      // 👇 MAPEO: JS (mozoId) <--> DB (mozo_id)
+      // ❌ ELIMINADO: totalActual (calculado dinámicamente)
       mozoId: {
         type: DataTypes.INTEGER,
         allowNull: true,
@@ -48,10 +36,11 @@ module.exports = (sequelize, DataTypes) => {
     {
       sequelize,
       modelName: "Mesa",
-      tableName: "mesas", // El nombre exacto de la tabla en MySQL
-      timestamps: false,  // 🛑 IMPORTANTE: Desactivamos esto porque la tabla SQL no tiene fechas automáticas
+      tableName: "mesas",
+      timestamps: false,
       underscored: true,
     }
   );
+
   return Mesa;
 };
