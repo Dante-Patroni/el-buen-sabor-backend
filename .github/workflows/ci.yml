@@ -2,9 +2,9 @@ name: CI - El Buen Sabor Backend
 
 on:
   push:
-    branches: ["main"]
+    branches: ["main", "develop"]
   pull_request:
-    branches: ["main"]
+    branches: ["main", "develop"]
 
 jobs:
   build-and-test:
@@ -20,22 +20,12 @@ jobs:
           - 3306:3306
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
 
-      mongo:
-        image: mongo:5.0
-        ports:
-          - 27017:27017
-        options: >-
-          --health-cmd mongo
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
       - name: Checkout del código
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Instalar Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: "18"
           cache: "npm"
@@ -50,37 +40,69 @@ jobs:
         run: npm run test:unit
 
       # =========================
+      # 🗄️ SETUP BASE DE DATOS
+      # =========================
+      - name: Esperar MySQL
+        run: |
+          until mysqladmin ping -h 127.0.0.1 --silent; do
+            echo 'Esperando MySQL...'
+            sleep 2
+          done
+
+      - name: Ejecutar Migraciones
+        env:
+          DB_USERNAME: root
+          DB_PASSWORD: root
+          DB_DATABASE: el_buen_sabor_test
+          DB_HOST: 127.0.0.1
+          NODE_ENV: test
+        run: npx sequelize-cli db:migrate
+
+      - name: Ejecutar Seeds
+        env:
+          DB_USERNAME: root
+          DB_PASSWORD: root
+          DB_DATABASE: el_buen_sabor_test
+          DB_HOST: 127.0.0.1
+          NODE_ENV: test
+        run: npx sequelize-cli db:seed:all
+
+      # =========================
       # 🌍 E2E TESTS (NEWMAN)
       # =========================
-      - name: Ejecutar Tests E2E
+      - name: Instalar Newman
+        run: npm install -g newman
+
+      - name: Levantar servidor en background
         env:
           PORT: 3000
-          MONGO_URI: mongodb://localhost:27017/el_buen_sabor_test
           DB_USERNAME: root
           DB_PASSWORD: root
           DB_DATABASE: el_buen_sabor_test
           DB_HOST: 127.0.0.1
           NODE_ENV: test
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
-
         run: |
-          # 1. Migraciones
-          npx sequelize-cli db:migrate
+          npm start > server.log 2>&1 &
+          echo $! > server.pid
 
-          # 2. Seeds
-          npx sequelize-cli db:seed:all
+      - name: Esperar que el servidor esté listo
+        run: npx wait-on http://127.0.0.1:3000/api-docs -t 60000
 
-          # 3. Levantar servidor
-          npm start &
-
-          # 4. Esperar servidor
-          npx wait-on http://127.0.0.1:3000/api-docs
-
-          # 5. Instalar Newman
-          npm install -g newman
-
-          # 6. Ejecutar colección
+      - name: Ejecutar Tests E2E (Newman)
+        run: |
           newman run tests/tests.json \
             -e tests/entorno.json \
             --working-dir . \
             --reporters cli
+
+      - name: Mostrar logs del servidor (si falló)
+        if: failure()
+        run: cat server.log
+
+      - name: Detener servidor
+        if: always()
+        run: |
+          if [ -f server.pid ]; then
+            kill $(cat server.pid) || true
+          fi
