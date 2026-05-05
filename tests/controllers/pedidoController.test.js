@@ -13,6 +13,7 @@ describe("PedidoController", () => {
       listarPedidos: jest.fn(),
       buscarPedidosPorMesa: jest.fn(),
       eliminarPedido: jest.fn(),
+      actualizarEstadoPedido: jest.fn(), // ✅ AGREGAR si tienes este endpoint
     };
 
     pedidoController = new PedidoController(pedidoServiceMock);
@@ -38,9 +39,17 @@ describe("PedidoController", () => {
     jest.clearAllMocks();
   });
 
-  test("crear: responde 201 con mensaje y data", async () => {
+  test("crear: responde 201 con mensaje y data (sin campo total deprecated)", async () => {
     req.body = { mesa: 4, productos: [{ platoId: 1, cantidad: 1 }] };
-    pedidoServiceMock.crearYValidarPedido.mockResolvedValue({ id: 101, total: 1500 });
+    
+    // ✅ Mock SIN campo 'total' (ya no existe en el modelo)
+    pedidoServiceMock.crearYValidarPedido.mockResolvedValue({ 
+      id: 101, 
+      mesa: 4,
+      cliente: "Anónimo",
+      estado: "pendiente"
+      // ❌ total eliminado
+    });
 
     await pedidoController.crear(req, res);
 
@@ -48,7 +57,12 @@ describe("PedidoController", () => {
     expect(res.status).toHaveBeenCalledWith(201);
     expect(res.json).toHaveBeenCalledWith({
       mensaje: "Pedido creado con éxito",
-      data: { id: 101, total: 1500 },
+      data: { 
+        id: 101, 
+        mesa: 4,
+        cliente: "Anónimo",
+        estado: "pendiente"
+      },
     });
   });
 
@@ -72,9 +86,16 @@ describe("PedidoController", () => {
     expect(res.json).toHaveBeenCalledWith({ error: "ERROR_INTERNO" });
   });
 
-  test("modificar: responde 200 con mensaje y data", async () => {
+  test("modificar: responde 200 con mensaje y data (sin campo total deprecated)", async () => {
     req.body = { id: 15, mesa: 4, productos: [{ platoId: 2, cantidad: 1 }] };
-    pedidoServiceMock.modificarPedido.mockResolvedValue({ id: 15, total: 3000 });
+    
+    // ✅ Mock SIN campo 'total'
+    pedidoServiceMock.modificarPedido.mockResolvedValue({ 
+      id: 15, 
+      mesa: 4,
+      estado: "pendiente"
+      // ❌ total eliminado
+    });
 
     await pedidoController.modificar(req, res);
 
@@ -82,7 +103,11 @@ describe("PedidoController", () => {
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.json).toHaveBeenCalledWith({
       mensaje: "Pedido modificado con éxito",
-      data: { id: 15, total: 3000 },
+      data: { 
+        id: 15, 
+        mesa: 4,
+        estado: "pendiente"
+      },
     });
   });
 
@@ -97,7 +122,10 @@ describe("PedidoController", () => {
   });
 
   test("listar: responde 200 con cantidad y data", async () => {
-    const pedidos = [{ id: 1 }, { id: 2 }];
+    const pedidos = [
+      { id: 1, mesa: 4, estado: "pendiente" }, 
+      { id: 2, mesa: 5, estado: "entregado" }
+    ];
     pedidoServiceMock.listarPedidos.mockResolvedValue(pedidos);
 
     await pedidoController.listar(req, res);
@@ -112,13 +140,17 @@ describe("PedidoController", () => {
 
   test("buscarPorMesa: responde 200 con pedidos", async () => {
     req.params = { mesa: "4" };
-    pedidoServiceMock.buscarPedidosPorMesa.mockResolvedValue([{ id: 11 }]);
+    pedidoServiceMock.buscarPedidosPorMesa.mockResolvedValue([
+      { id: 11, mesa: 4, estado: "pendiente" }
+    ]);
 
     await pedidoController.buscarPorMesa(req, res);
 
     expect(pedidoServiceMock.buscarPedidosPorMesa).toHaveBeenCalledWith("4");
     expect(res.status).toHaveBeenCalledWith(200);
-    expect(res.json).toHaveBeenCalledWith([{ id: 11 }]);
+    expect(res.json).toHaveBeenCalledWith([
+      { id: 11, mesa: 4, estado: "pendiente" }
+    ]);
   });
 
   test("buscarPorMesa: mapea MESA_NO_PROPORCIONADA a 400", async () => {
@@ -164,4 +196,3 @@ describe("PedidoController", () => {
     expect(res.json).toHaveBeenCalledWith({ error: "ERROR_INTERNO" });
   });
 });
-
