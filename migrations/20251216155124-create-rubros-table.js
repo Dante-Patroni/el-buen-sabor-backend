@@ -5,7 +5,7 @@ module.exports = {
   async up(queryInterface, Sequelize) {
     
     // 1. CREAR LA TABLA RUBROS
-    await queryInterface.createTable('Rubros', {
+    await queryInterface.createTable('rubros', {
       id: {
         allowNull: false,
         autoIncrement: true,
@@ -27,7 +27,7 @@ module.exports = {
         type: Sequelize.INTEGER,
         allowNull: true,
         references: {
-          model: 'Rubros',
+          model: 'rubros',
           key: 'id'
         },
         onUpdate: 'CASCADE',

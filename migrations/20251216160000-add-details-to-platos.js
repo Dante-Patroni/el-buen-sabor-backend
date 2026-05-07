@@ -3,13 +3,13 @@
 module.exports = {
   async up (queryInterface, Sequelize) {
     // 1. Obtenemos información de la tabla actual
-    const tableInfo = await queryInterface.describeTable('Platos');
+    const tableInfo = await queryInterface.describeTable('platos');
 
     // 2. Verificamos columna por columna antes de crearla
     
     // --- COLUMNA DESCRIPCION ---
     if (!tableInfo.descripcion) {
-      await queryInterface.addColumn('Platos', 'descripcion', {
+      await queryInterface.addColumn('platos', 'descripcion', {
         type: Sequelize.STRING,
         allowNull: true,
       });
@@ -17,7 +17,7 @@ module.exports = {
 
     // --- COLUMNA ES MENU DEL DIA ---
     if (!tableInfo.esMenuDelDia) {
-      await queryInterface.addColumn('Platos', 'esMenuDelDia', {
+      await queryInterface.addColumn('platos', 'esMenuDelDia', {
         type: Sequelize.BOOLEAN,
         defaultValue: false,
         allowNull: false,
@@ -26,7 +26,7 @@ module.exports = {
 
     // --- COLUMNA RUBRO ID ---
     if (!tableInfo.rubroId) {
-      await queryInterface.addColumn('Platos', 'rubroId', {
+      await queryInterface.addColumn('platos', 'rubroId', {
         type: Sequelize.INTEGER,
         allowNull: true,
         references: {

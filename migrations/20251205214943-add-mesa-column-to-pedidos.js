@@ -3,7 +3,7 @@ module.exports = {
   async up(queryInterface, Sequelize) {
     // Intentamos agregar la columna. Usamos try/catch por si ya existe.
     try {
-      await queryInterface.addColumn("Pedidos", "mesa", {
+      await queryInterface.addColumn("pedidos", "mesa", {
         type: Sequelize.STRING,
         allowNull: true, // Ponemos true para evitar líos con datos viejos
       });
@@ -13,6 +13,6 @@ module.exports = {
   },
 
   async down(queryInterface, Sequelize) {
-    await queryInterface.removeColumn("Pedidos", "mesa");
+    await queryInterface.removeColumn("pedidos", "mesa");
   },
 };

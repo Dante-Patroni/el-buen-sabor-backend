@@ -3,7 +3,7 @@
 module.exports = {
   async up (queryInterface, Sequelize) {
     // Redefinimos la columna 'estado' incluyendo 'pagado'
-    await queryInterface.changeColumn('Pedidos', 'estado', {
+    await queryInterface.changeColumn('pedidos', 'estado', {
       type: Sequelize.ENUM(
         'pendiente', 
         'en_preparacion', 
@@ -19,7 +19,7 @@ module.exports = {
   async down (queryInterface, Sequelize) {
     // Si volvemos atrás, quitamos 'pagado'
     // CUIDADO: Esto podría fallar si hay datos con 'pagado', pero para dev sirve.
-    await queryInterface.changeColumn('Pedidos', 'estado', {
+    await queryInterface.changeColumn('pedidos', 'estado', {
       type: Sequelize.ENUM(
         'pendiente', 
         'en_preparacion', 
