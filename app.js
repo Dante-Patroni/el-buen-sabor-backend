@@ -87,20 +87,23 @@ app.use('/api/rubros', require('./src/routes/rubroRoutes'));
 const startServer = async () => {
   try {
     await dbConnection();
- 
-    await sequelize.sync({ force: false, alter: false });
-    console.log("📦 Tablas MySQL sincronizadas");
-    await seedDatabase();
 
-    // 👇 IMPORTANTE: Pasamos 'io' para que los eventos puedan salir
-    setupListeners(io); 
+    // ❌ NO usar sync() cuando trabajás con migraciones
+    // await sequelize.sync({ force: false, alter: false });
 
-    // 👇 IMPORTANTE: Usamos 'server.listen', NO 'app.listen'
+    // 🌱 Seeder solo en desarrollo local
+    if (process.env.NODE_ENV === "development") {
+      await seedDatabase();
+    }
+
+    // 👇 Eventos Socket.IO
+    setupListeners(io);
+
+    // 👇 Levantar servidor
     server.listen(PORT, "0.0.0.0", () => {
       console.log(`🚀 Servidor 'El Buen Sabor' corriendo.`);
       console.log(`📡 Accesible localmente: http://localhost:${PORT}`);
-      console.log(`📡 Accesible en red:    http://192.168.18.3:${PORT}`);
-      console.log(`⚡ WebSockets:         ACTIVOS (Puerto compartido)`);
+      console.log(`⚡ WebSockets: ACTIVOS`);
     });
 
   } catch (error) {
