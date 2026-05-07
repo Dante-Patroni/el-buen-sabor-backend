@@ -9,7 +9,7 @@ module.exports = {
     // ===============================================
     // Es vital poner los IDs manuales para que coincidan con los platos de abajo.
     
-    await queryInterface.bulkInsert('Rubros', [
+    await queryInterface.bulkInsert('rubros', [
       // --- PADRES ---
       { id: 1, denominacion: 'Cocina', padreId: null, activo: true, createdAt: new Date(), updatedAt: new Date() },
       { id: 2, denominacion: 'Bebidas', padreId: null, activo: true, createdAt: new Date(), updatedAt: new Date() },
@@ -29,7 +29,7 @@ module.exports = {
     // ===============================================
     // Ahora sí funcionará porque los IDs 4, 5, 6, 9 y 10 ya existen arriba.
 
-    await queryInterface.bulkInsert('Platos', [
+    await queryInterface.bulkInsert('platos', [
       // --- HAMBURGUESAS (Rubro ID 4) ---
       {
         nombre: 'Hamburguesa Clásica',
@@ -107,8 +107,8 @@ module.exports = {
 
   async down (queryInterface, Sequelize) {
     // IMPORTANTE: Primero borramos los HIJOS (Platos) para no romper la relación
-    await queryInterface.bulkDelete('Platos', null, {});
+    await queryInterface.bulkDelete('platos', null, {});
     // Luego borramos los PADRES (Rubros)
-    await queryInterface.bulkDelete('Rubros', null, {});
+    await queryInterface.bulkDelete('rubros', null, {});
   }
 };
