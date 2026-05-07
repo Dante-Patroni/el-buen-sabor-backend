@@ -77,6 +77,7 @@ module.exports = (sequelize, DataTypes) => {
       sequelize,
       modelName: "Plato",
       tableName: "platos",
+      freezeTableName: true,
       timestamps: true, // te sirve para auditoría de stock
     }
   );
