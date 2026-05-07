@@ -1,24 +1,49 @@
+const bcrypt = require('bcryptjs');
 'use strict';
 
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
-  async up (queryInterface, Sequelize) {
-    
+  async up(queryInterface, Sequelize) {
+    const passwordHash = await bcrypt.hash('1234', 10);
+
+    const passwordHash = await bcrypt.hash("1234", 10);
+
+    await queryInterface.bulkInsert("usuarios", [
+      {
+        nombre: "Dante",
+        apellido: "Admin",
+        legajo: "1001",
+        password: passwordHash,
+        rol: "admin",
+        activo: true
+      }
+    ]);
+
+    await queryInterface.bulkInsert("mesas", [
+      {
+        id: 4,
+        numero: "4",
+        nombre: "Mesa 4",
+        estado: "libre",
+        mozo_id: null
+      }
+    ]);
+
     // ===============================================
     // 1. PRIMERO: CREAMOS LOS RUBROS (Categorías)
     // ===============================================
     // Es vital poner los IDs manuales para que coincidan con los platos de abajo.
-    
+
     await queryInterface.bulkInsert('rubros', [
       // --- PADRES ---
       { id: 1, denominacion: 'Cocina', padreId: null, activo: true, createdAt: new Date(), updatedAt: new Date() },
       { id: 2, denominacion: 'Bebidas', padreId: null, activo: true, createdAt: new Date(), updatedAt: new Date() },
-      
+
       // --- HIJOS DE COCINA (Padre ID 1) ---
       { id: 4, denominacion: 'Hamburguesas', padreId: 1, activo: true, createdAt: new Date(), updatedAt: new Date() },
       { id: 5, denominacion: 'Pizzas', padreId: 1, activo: true, createdAt: new Date(), updatedAt: new Date() },
       { id: 6, denominacion: 'Empanadas', padreId: 1, activo: true, createdAt: new Date(), updatedAt: new Date() },
-      
+
       // --- HIJOS DE BEBIDAS (Padre ID 2) ---
       { id: 9, denominacion: 'Sin Alcohol', padreId: 2, activo: true, createdAt: new Date(), updatedAt: new Date() },
       { id: 10, denominacion: 'Cervezas', padreId: 2, activo: true, createdAt: new Date(), updatedAt: new Date() }
@@ -35,7 +60,7 @@ module.exports = {
         nombre: 'Hamburguesa Clásica',
         precio: 4500,
         descripcion: 'Medallón de carne, lechuga, tomate y mayonesa.',
-        rubroId: 4, 
+        rubroId: 4,
         esMenuDelDia: false,
         imagenPath: '',
         createdAt: new Date(), updatedAt: new Date()
@@ -91,7 +116,7 @@ module.exports = {
         imagenPath: '',
         createdAt: new Date(), updatedAt: new Date()
       },
-      
+
       // --- CERVEZAS (Rubro ID 10) ---
       {
         nombre: 'Cerveza Andes IPA',
@@ -105,7 +130,7 @@ module.exports = {
     ]);
   },
 
-  async down (queryInterface, Sequelize) {
+  async down(queryInterface, Sequelize) {
     // IMPORTANTE: Primero borramos los HIJOS (Platos) para no romper la relación
     await queryInterface.bulkDelete('platos', null, {});
     // Luego borramos los PADRES (Rubros)
