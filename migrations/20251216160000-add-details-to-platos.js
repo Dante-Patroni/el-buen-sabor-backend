@@ -30,7 +30,7 @@ module.exports = {
         type: Sequelize.INTEGER,
         allowNull: true,
         references: {
-          model: 'Rubros',
+          model: 'rubros',
           key: 'id',
         },
         onUpdate: 'CASCADE',
@@ -41,10 +41,10 @@ module.exports = {
 
   async down (queryInterface, Sequelize) {
     // En el revert, también verificamos para evitar errores
-    const tableInfo = await queryInterface.describeTable('Platos');
+    const tableInfo = await queryInterface.describeTable('platos');
 
-    if (tableInfo.rubroId) await queryInterface.removeColumn('Platos', 'rubroId');
-    if (tableInfo.esMenuDelDia) await queryInterface.removeColumn('Platos', 'esMenuDelDia');
-    if (tableInfo.descripcion) await queryInterface.removeColumn('Platos', 'descripcion');
+    if (tableInfo.rubroId) await queryInterface.removeColumn('platos', 'rubroId');
+    if (tableInfo.esMenuDelDia) await queryInterface.removeColumn('platos', 'esMenuDelDia');
+    if (tableInfo.descripcion) await queryInterface.removeColumn('platos', 'descripcion');
   }
 };

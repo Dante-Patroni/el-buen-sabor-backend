@@ -45,11 +45,11 @@ module.exports = {
 
     // 2. CONECTAR PLATOS CON RUBROS
     // Agregamos la columna 'rubroId' a la tabla 'Platos'
-    await queryInterface.addColumn('Platos', 'rubroId', {
+    await queryInterface.addColumn('platos', 'rubroId', {
       type: Sequelize.INTEGER,
       allowNull: true,
       references: {
-        model: 'Rubros',
+        model: 'rubros',
         key: 'id'
       },
       onUpdate: 'CASCADE',
@@ -59,7 +59,7 @@ module.exports = {
 
   async down(queryInterface, Sequelize) {
     // Si deshacemos, borramos primero la columna y luego la tabla
-    await queryInterface.removeColumn('Platos', 'rubroId');
-    await queryInterface.dropTable('Rubros');
+    await queryInterface.removeColumn('platos', 'rubroId');
+    await queryInterface.dropTable('rubros');
   }
 };
