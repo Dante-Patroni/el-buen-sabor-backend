@@ -4,10 +4,21 @@ const { Model } = require("sequelize");
 module.exports = (sequelize, DataTypes) => {
   class Mesa extends Model {
     static associate(models) {
-      // La Mesa pertenece a un Usuario (Mozo)
+
+      // =========================
+      // Mesa -> Mozo
+      // =========================
       Mesa.belongsTo(models.Usuario, {
-        foreignKey: 'mozoId',
-        as: 'mozo'
+        foreignKey: "mozoId",
+        as: "mozo",
+      });
+
+      // =========================
+      // Mesa -> Pedidos
+      // =========================
+      Mesa.hasMany(models.Pedido, {
+        foreignKey: "mesaId",
+        as: "pedidos",
       });
     }
   }
@@ -18,26 +29,29 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING(10),
         allowNull: true,
       },
+
       nombre: {
         type: DataTypes.STRING(50),
         allowNull: false,
       },
+
       estado: {
         type: DataTypes.STRING(20),
+        allowNull: false,
         defaultValue: "libre",
       },
-      // ❌ ELIMINADO: totalActual (calculado dinámicamente)
+
       mozoId: {
         type: DataTypes.INTEGER,
-        allowNull: true,
         field: "mozo_id",
+        allowNull: true,
       },
     },
     {
       sequelize,
       modelName: "Mesa",
       tableName: "mesas",
-      timestamps: false,
+      timestamps: true,
       underscored: true,
     }
   );

@@ -32,9 +32,11 @@ class SequelizePedidoRepository extends PedidoRepository {
       include: [
         {
           model: DetallePedido,
+          as: "detalles",
           include: [
             {
               model: Plato,
+              as: "plato",
               attributes: ["id", "nombre"],
             },
           ],
@@ -45,10 +47,11 @@ class SequelizePedidoRepository extends PedidoRepository {
 
   async buscarPedidosPorMesa(mesaNumero) {
     return await Pedido.findAll({
-      where: { mesa: mesaNumero },
+      where: { mesaId: mesaNumero },
       include: [
         {
-          model: DetallePedido
+          model: DetallePedido,
+          as: "detalles"
         }
       ],
       order: [["createdAt", "ASC"]]
@@ -63,7 +66,7 @@ class SequelizePedidoRepository extends PedidoRepository {
   async buscarPedidoAbiertosPorMesa(mesaId) {
     return await Pedido.findAll({
       where: {
-        mesa: mesaId,
+        mesaId: mesaId,
         [Op.or]: [
           {
             estado: {
@@ -83,7 +86,7 @@ class SequelizePedidoRepository extends PedidoRepository {
   async buscarPedidosFacturablesPorMesa(mesaId, transaction = null) {
     return await Pedido.findAll({
       where: {
-        mesa: mesaId,
+        mesaId: mesaId,
         [Op.or]: [
           { estado: { [Op.in]: ["pendiente", "en_preparacion", "entregado", ""] } },
           { estado: { [Op.is]: null } }
@@ -92,9 +95,11 @@ class SequelizePedidoRepository extends PedidoRepository {
       include: [
         {
           model: DetallePedido,
+          as: "detalles",
           include: [
             {
               model: Plato,
+              as: "plato",
               attributes: ["id", "nombre", "precio"],
             },
           ],
@@ -110,7 +115,7 @@ class SequelizePedidoRepository extends PedidoRepository {
       { estado: 'pagado' },
       {
         where: {
-          mesa: mesaId,
+          mesaId: mesaId,
           estado: {
             [Op.or]: [
               { [Op.eq]: 'pendiente' },
@@ -128,33 +133,35 @@ class SequelizePedidoRepository extends PedidoRepository {
 
   async obtenerDetallesPedido(pedidoId, transaction = null) {
     return await DetallePedido.findAll({
-      where: { PedidoId: pedidoId },
+      where: { pedidoId: pedidoId },
       transaction
     });
   }
 
   async eliminarDetallesPedido(pedidoId, transaction = null) {
     return await DetallePedido.destroy({
-      where: { PedidoId: pedidoId },
+      where: { pedidoId: pedidoId },
       transaction
     });
   }
 
-  async actualizarTotalPedido(pedidoId, nuevoTotal, transaction = null) {
+  /*async actualizarTotalPedido(pedidoId, nuevoTotal, transaction = null) {
     return await Pedido.update(
       { total: nuevoTotal },
       { where: { id: pedidoId }, transaction }
     );
-  }
+  }*/
 
   async buscarPedidoPorId(id, transaction = null) {
     return await Pedido.findByPk(id, {
       include: [
         {
           model: DetallePedido,
+          as: "detalles",
           include: [
             {
               model: Plato,
+              as: "plato",
               attributes: ["id", "nombre", "precio"]
             }
           ]
@@ -174,16 +181,17 @@ class SequelizePedidoRepository extends PedidoRepository {
   async obtenerTotalPorMesa(mesaId, transaction = null) {
     const resultado = await Pedido.findAll({
       attributes: [
-        [Sequelize.fn("SUM", Sequelize.col("DetallePedidos.subtotal")), "total"]
+        [Sequelize.fn("SUM", Sequelize.col("detalles.subtotal")), "total"]
       ],
       include: [
         {
           model: DetallePedido,
+          as: "detalles",
           attributes: [],
         }
       ],
       where: {
-        mesa: mesaId,
+        mesaId: mesaId,
         estado: {
           [Op.ne]: "pagado"
         }
@@ -199,9 +207,9 @@ class SequelizePedidoRepository extends PedidoRepository {
     const resultado = await sequelize.query(
       `
       SELECT SUM(dp.subtotal) as total
-      FROM Pedidos p
-      JOIN DetallePedidos dp ON dp.PedidoId = p.id
-      WHERE p.mesa = :mesaId
+      FROM pedidos p
+      JOIN detallepedidos dp ON dp.pedido_id = p.id
+      WHERE p.mesa_id = :mesaId
       AND p.estado != 'pagado'
       `,
       {
@@ -218,8 +226,8 @@ class SequelizePedidoRepository extends PedidoRepository {
     const resultado = await sequelize.query(
       `
       SELECT SUM(dp.subtotal) as total
-      FROM DetallePedidos dp
-      WHERE dp.PedidoId = :pedidoId
+      FROM detallepedidos dp
+      WHERE dp.pedido_id = :pedidoId
       `,
       {
         replacements: { pedidoId },

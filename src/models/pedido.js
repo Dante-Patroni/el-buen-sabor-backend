@@ -3,34 +3,60 @@ const { Model } = require("sequelize");
 
 module.exports = (sequelize, DataTypes) => {
   class Pedido extends Model {
+
     static associate(models) {
-      // ✅ Relación con DetallePedido (1:N)
-      Pedido.hasMany(models.DetallePedido);
-      
+
+      // =========================
+      // Pedido -> Detalles
+      // =========================
+      Pedido.hasMany(models.DetallePedido, {
+        foreignKey: "pedidoId",
+        as: "detalles",
+      });
+
+      // =========================
+      // Pedido -> Mesa
+      // =========================
+      Pedido.belongsTo(models.Mesa, {
+        foreignKey: "mesaId",
+        as: "mesa",
+      });
+
     }
   }
 
   Pedido.init(
     {
-      cliente: DataTypes.STRING,
-      mesa: DataTypes.STRING,
+      cliente: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+
       estado: {
         type: DataTypes.ENUM(
           "pendiente",
           "en_preparacion",
-          "rechazado",
+          "listo",
           "entregado",
           "pagado",
           "cancelado"
         ),
+        allowNull: false,
         defaultValue: "pendiente",
+      },
+
+      mesaId: {
+        type: DataTypes.INTEGER,
+        field: "mesa_id",
+        allowNull: true,
       },
     },
     {
-       sequelize,
-    modelName: "Pedido",
-    tableName: "pedidos",
-    freezeTableName: true,
+      sequelize,
+      modelName: "Pedido",
+      tableName: "pedidos",
+      timestamps: true,
+      underscored: true,
     }
   );
 

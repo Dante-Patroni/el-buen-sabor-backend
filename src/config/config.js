@@ -10,6 +10,8 @@ module.exports = {
     database: process.env.DB_DATABASE || "el_buen_sabor_db",
     host: process.env.DB_HOST || "127.0.0.1",
     dialect: "mysql",
+    seederStorage: "sequelize",
+    seederStorageTableName: "SequelizeData",
   },
   // [B] Entorno de TESTING (GitHub Actions / CI)
   test: {
@@ -19,6 +21,8 @@ module.exports = {
     host: process.env.DB_HOST || "127.0.0.1",
     dialect: "mysql",
     logging: false, // [C] Silencio
+    seederStorage: "sequelize",
+    seederStorageTableName: "SequelizeData",
   },
 
   // [D] Entorno de PRODUCCIÓN (El Servidor Real)

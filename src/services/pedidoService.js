@@ -50,7 +50,7 @@ class PedidoService {
 
       // 3️⃣ Crear pedido SIN total
       const nuevoPedido = await this.pedidoRepository.crearPedido({
-        mesa: mesaNumero,
+        mesaId: mesaNumero,
         cliente: cliente || "Anónimo",
         estado: "pendiente",
         // ✅ NO se persiste 'total'
@@ -59,7 +59,7 @@ class PedidoService {
       // 4️⃣ Crear detalles asociados
       await this.pedidoRepository.crearDetalles(
         detalles.map(det => ({
-          PedidoId: nuevoPedido.id,
+          pedidoId: nuevoPedido.id,
           ...det
         })),
         transaction
@@ -244,7 +244,8 @@ class PedidoService {
 
       const transicionesValidas = {
         pendiente: ["en_preparacion"],
-        en_preparacion: ["entregado"],
+        en_preparacion: ["listo"],
+        listo: ["entregado"],
         entregado: [],
       };
 
@@ -335,7 +336,7 @@ class PedidoService {
       const subtotal = precioUnitario * cantidad;
 
       detalles.push({
-        PlatoId: plato.id,
+        platoId: plato.id,
         cantidad,
         precioUnitario, // ✅ Precio histórico
         subtotal,       // ✅ Calculado pero también persistido para consultas rápidas
@@ -355,7 +356,7 @@ class PedidoService {
 
   /**
    * @description Restaura stock para cada detalle de pedido provisto.
-   * @param {Array<{PlatoId:number,cantidad:number}>} detalles - Detalles del pedido.
+   * @param {Array<{platoId:number,cantidad:number}>} detalles - Detalles del pedido.
    * @param {object} transaction - Transaccion activa.
    * @returns {Promise<void>} Resolucion sin valor.
    * @throws {Error} `PLATO_ID_INVALIDO`.
@@ -363,7 +364,7 @@ class PedidoService {
   async _restaurarStock(detalles, transaction) {
     for (const detalle of detalles) {
 
-      const platoId = detalle.PlatoId;
+      const platoId = detalle.platoId;
       const cantidad = detalle.cantidad;
 
       if (!platoId) {
@@ -383,16 +384,16 @@ class PedidoService {
    * @returns {Promise<Array<object>>} Lista de pedidos mapeada.
    */
   async obtenerPedidosParaCocina() {
-    const pedidos = await this.listarPedidos("pendiente");
+    const pedidos = await this.listarPedidos(["pendiente", "en_preparacion", "listo"]);
 
     return pedidos.map((p) => ({
       id: p.id,
-      mesa: p.mesa,
+      mesaId: p.mesaId,
       cliente: p.cliente,
       estado: p.estado,
       hora: new Date(p.createdAt).toLocaleTimeString("es-AR"),
-      items: (p.DetallePedidos ?? p.items ?? p.detalles ?? []).map((i) => ({
-        nombre: i.Plato?.nombre ?? i.nombre ?? `Plato ${i.PlatoId || ""}`,
+      items: (p.detalles || []).map((i) => ({
+        nombre: i.plato?.nombre || `Plato ${i.platoId || ""}`,
         cantidad: i.cantidad,
         aclaracion: i.aclaracion || "",
       })),

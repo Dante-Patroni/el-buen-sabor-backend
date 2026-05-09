@@ -8,7 +8,7 @@ const cors = require("cors");
 const { dbConnection } = require("./src/config/mongo");
 const { sequelize } = require("./src/models");
 const setupListeners = require("./src/listeners/setupListeners");
-const seedDatabase = require("./src/seeders/initialSeeder");
+//const seedDatabase = require("./src/seeders/initialSeeder");
 
 // 👇 IMPORTACIONES DE RUTAS
 const mesaRouter = require("./src/routes/mesaRoutes");
@@ -28,11 +28,11 @@ const PORT = process.env.PORT || 3000;
 // 🛡️ 1. SEGURIDAD (CORS - Express)
 // ==========================================
 const whitelist = [
-  "http://localhost:3000",      
-  "http://localhost:4200",      
-  "http://192.168.18.3:3000",   
-  "http://192.168.18.3",        
-  "http://127.0.0.1:5500", 
+  "http://localhost:3000",
+  "http://localhost:4200",
+  "http://192.168.18.3:3000",
+  "http://192.168.18.3",
+  "http://127.0.0.1:5500",
   "http://localhost:5173"      // ✅ Monitor de Cocina
 ];
 
@@ -59,10 +59,10 @@ const server = http.createServer(app);
 
 // Configuramos Socket.io sobre ese servidor
 const io = new Server(server, {
-    cors: {
-        origin: "*", // 🔓 Permitimos todo para que el HTML local conecte sin problemas
-        methods: ["GET", "POST"]
-    }
+  cors: {
+    origin: "*", // 🔓 Permitimos todo para que el HTML local conecte sin problemas
+    methods: ["GET", "POST"]
+  }
 });
 
 // ==========================================
@@ -76,7 +76,7 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
 
 app.use("/api/mesas", mesaRouter);
 app.use("/api/pedidos", require("./src/routes/pedidoRoutes"));
-app.use("/api/cocina",  require("./src/routes/cocinaRoutes")); // ← nueva
+app.use("/api/cocina", require("./src/routes/cocinaRoutes")); // ← nueva
 app.use("/api/platos", require("./src/routes/platoRoutes"));
 app.use("/api/usuarios", require("./src/routes/usuarioRoutes"));
 app.use('/api/rubros', require('./src/routes/rubroRoutes'));
@@ -92,9 +92,9 @@ const startServer = async () => {
     // await sequelize.sync({ force: false, alter: false });
 
     // 🌱 Seeder solo en desarrollo local
-    if (process.env.NODE_ENV === "development") {
-      await seedDatabase();
-    }
+    //if (process.env.NODE_ENV === "development") {
+    // await seedDatabase();
+    //}
 
     // 👇 Eventos Socket.IO
     setupListeners(io);
