@@ -47,357 +47,308 @@ describe("PedidoService", () => {
   });
 
   // --------------------------------------------------
-  // TEST: CREAR Y VALIDAR PEDIDO
-  // --------------------------------------------------
-  describe("crearYValidarPedido", () => {
-    test("crea pedido exitosamente sin persistir total", async () => {
-      const datosPedido = {
-        mesa: 5,
-        productos: [
-          { platoId: 1, cantidad: 2, aclaracion: "Sin cebolla" },
-          { platoId: 2, cantidad: 1 },
-        ],
-        cliente: "Juan Pérez",
-      };
+// TEST: CREAR Y VALIDAR PEDIDO
+// --------------------------------------------------
+describe("crearYValidarPedido", () => {
+  test("crea pedido exitosamente sin persistir total", async () => {
+    const datosPedido = {
+      mesa: 5,
+      productos: [
+        { platoId: 1, cantidad: 2, aclaracion: "Sin cebolla" },
+        { platoId: 2, cantidad: 1 },
+      ],
+      cliente: "Juan Pérez",
+    };
 
-      const mesaMock = { id: 5, estado: "ocupada" };
+    const mesaMock = { id: 5, estado: "ocupada" };
 
-      const plato1Mock = {
-        id: 1,
-        nombre: "Pizza",
-        precio: 1000,
-        esActivo: true,
-      };
+    const plato1Mock = {
+      id: 1,
+      nombre: "Pizza",
+      precio: 1000,
+      esActivo: true,
+    };
 
-      const plato2Mock = {
-        id: 2,
-        nombre: "Coca",
-        precio: 500,
-        esActivo: true,
-      };
+    const plato2Mock = {
+      id: 2,
+      nombre: "Coca",
+      precio: 500,
+      esActivo: true,
+    };
 
-      const pedidoCreadoMock = {
+    const pedidoCreadoMock = {
+      id: 123,
+      mesaId: 5,
+      cliente: "Juan Pérez",
+      estado: "pendiente",
+      toJSON: () => ({
         id: 123,
         mesaId: 5,
         cliente: "Juan Pérez",
         estado: "pendiente",
-        toJSON: () => ({
-          id: 123,
-          mesaId: 5,
-          cliente: "Juan Pérez",
-          estado: "pendiente",
+      }),
+    };
+
+    mesaServiceMock.obtenerPorId.mockResolvedValue(mesaMock);
+
+    platoServiceMock.buscarPorId
+      .mockResolvedValueOnce(plato1Mock)
+      .mockResolvedValueOnce(plato2Mock);
+
+    platoServiceMock.descontarStock.mockResolvedValue(1);
+
+    pedidoRepositoryMock.crearPedido.mockResolvedValue(pedidoCreadoMock);
+
+    pedidoRepositoryMock.crearDetalles.mockResolvedValue(true);
+
+    const resultado =
+      await pedidoService.crearYValidarPedido(datosPedido);
+
+    expect(pedidoRepositoryMock.crearPedido).toHaveBeenCalledWith(
+      {
+        mesaId: 5,
+        cliente: "Juan Pérez",
+        estado: "pendiente",
+      },
+      expect.anything()
+    );
+
+    expect(pedidoRepositoryMock.crearDetalles).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({
+          pedidoId: 123,
+          platoId: 1,
+          cantidad: 2,
+          precioUnitario: 1000,
+          subtotal: 2000,
+          aclaracion: "Sin cebolla",
         }),
-      };
+        expect.objectContaining({
+          pedidoId: 123,
+          platoId: 2,
+          cantidad: 1,
+          precioUnitario: 500,
+          subtotal: 500,
+          aclaracion: "",
+        }),
+      ]),
+      expect.anything()
+    );
 
-      mesaServiceMock.obtenerPorId.mockResolvedValue(mesaMock);
+    expect(pedidoEmitterMock.emit).toHaveBeenCalledWith(
+      "pedido-creado",
+      expect.objectContaining({
+        pedido: expect.objectContaining({
+          items: expect.arrayContaining([
+            expect.objectContaining({
+              platoId: 1,
+              cantidad: 2,
+            }),
+            expect.objectContaining({
+              platoId: 2,
+              cantidad: 1,
+            }),
+          ]),
+        }),
+      })
+    );
 
-      platoServiceMock.buscarPorId
-        .mockResolvedValueOnce(plato1Mock)
-        .mockResolvedValueOnce(plato2Mock);
+    expect(resultado).toEqual(pedidoCreadoMock);
+  });
+});
 
-      platoServiceMock.descontarStock.mockResolvedValue(1);
+  // --------------------------------------------------
+// TEST: ELIMINAR PEDIDO
+// --------------------------------------------------
+describe("eliminarPedido", () => {
+  test("elimina pedido pendiente y restaura stock", async () => {
+    const pedidoId = 123;
 
-      pedidoRepositoryMock.crearPedido.mockResolvedValue(pedidoCreadoMock);
+    const pedidoMock = {
+      id: 123,
+      estado: "pendiente",
+    };
 
-      pedidoRepositoryMock.crearDetalles.mockResolvedValue(true);
+    const detallesMock = [
+      { platoId: 1, cantidad: 2 },
+      { platoId: 2, cantidad: 1 },
+    ];
 
-      const resultado =
-        await pedidoService.crearYValidarPedido(datosPedido);
+    pedidoRepositoryMock.buscarPedidoPorId.mockResolvedValue(
+      pedidoMock
+    );
 
-      expect(pedidoRepositoryMock.crearPedido).toHaveBeenCalledWith(
-        {
-          mesaId: 5,
-          cliente: "Juan Pérez",
-          estado: "pendiente",
-        },
+    pedidoRepositoryMock.obtenerDetallesPedido.mockResolvedValue(
+      detallesMock
+    );
+
+    platoServiceMock.restaurarStock.mockResolvedValue(true);
+
+    pedidoRepositoryMock.eliminarDetallesPedido.mockResolvedValue(
+      true
+    );
+
+    pedidoRepositoryMock.eliminarPedidoPorId.mockResolvedValue(
+      true
+    );
+
+    const resultado =
+      await pedidoService.eliminarPedido(pedidoId);
+
+    expect(platoServiceMock.restaurarStock)
+      .toHaveBeenCalledTimes(2);
+
+    expect(platoServiceMock.restaurarStock)
+      .toHaveBeenCalledWith(
+        1,
+        2,
         expect.anything()
       );
 
-      expect(pedidoRepositoryMock.crearDetalles).toHaveBeenCalledWith(
+    expect(platoServiceMock.restaurarStock)
+      .toHaveBeenCalledWith(
+        2,
+        1,
+        expect.anything()
+      );
+
+    expect(
+      pedidoRepositoryMock.eliminarDetallesPedido
+    ).toHaveBeenCalledWith(
+      pedidoId,
+      expect.anything()
+    );
+
+    expect(
+      pedidoRepositoryMock.eliminarPedidoPorId
+    ).toHaveBeenCalledWith(
+      pedidoId,
+      expect.anything()
+    );
+
+    expect(
+      mesaServiceMock.actualizarTotalMesa
+    ).toBeUndefined();
+
+    expect(resultado).toBe(true);
+  });
+});
+
+ // --------------------------------------------------
+// TEST: MODIFICAR PEDIDO
+// --------------------------------------------------
+describe("modificarPedido", () => {
+  test("modifica pedido pendiente actualizando stock y detalles", async () => {
+    const datosModificacion = {
+      id: 123,
+      productos: [
+        { platoId: 1, cantidad: 3 },
+        { platoId: 3, cantidad: 2 },
+      ],
+    };
+
+    const pedidoMock = {
+      id: 123,
+      estado: "pendiente",
+      mesa: 5,
+    };
+
+    const detallesActualesMock = [
+      { platoId: 1, cantidad: 2 },
+      { platoId: 2, cantidad: 1 },
+    ];
+
+    const plato1Mock = {
+      id: 1,
+      nombre: "Pizza",
+      precio: 1000,
+      esActivo: true,
+    };
+
+    const plato3Mock = {
+      id: 3,
+      nombre: "Empanadas",
+      precio: 800,
+      esActivo: true,
+    };
+
+    pedidoRepositoryMock.buscarPedidoPorId
+      .mockResolvedValueOnce(pedidoMock);
+
+    pedidoRepositoryMock.obtenerDetallesPedido
+      .mockResolvedValue(detallesActualesMock);
+
+    platoServiceMock.restaurarStock
+      .mockResolvedValue(true);
+
+    pedidoRepositoryMock.eliminarDetallesPedido
+      .mockResolvedValue(true);
+
+    platoServiceMock.buscarPorId
+      .mockResolvedValueOnce(plato1Mock)
+      .mockResolvedValueOnce(plato3Mock);
+
+    platoServiceMock.descontarStock
+      .mockResolvedValue(1);
+
+    pedidoRepositoryMock.crearDetalles
+      .mockResolvedValue(true);
+
+    pedidoRepositoryMock.buscarPedidoPorId
+      .mockResolvedValueOnce(pedidoMock);
+
+    const resultado =
+      await pedidoService.modificarPedido(
+        datosModificacion
+      );
+
+    expect(platoServiceMock.restaurarStock)
+      .toHaveBeenCalledWith(
+        1,
+        2,
+        expect.anything()
+      );
+
+    expect(platoServiceMock.restaurarStock)
+      .toHaveBeenCalledWith(
+        2,
+        1,
+        expect.anything()
+      );
+
+    expect(pedidoRepositoryMock.crearDetalles)
+      .toHaveBeenCalledWith(
         expect.arrayContaining([
           expect.objectContaining({
-            PedidoId: 123,
-            PlatoId: 1,
-            cantidad: 2,
+            pedidoId: 123,
+            platoId: 1,
+            cantidad: 3,
             precioUnitario: 1000,
-            subtotal: 2000,
-            aclaracion: "Sin cebolla",
+            subtotal: 3000,
           }),
           expect.objectContaining({
-            PedidoId: 123,
-            PlatoId: 2,
-            cantidad: 1,
-            precioUnitario: 500,
-            subtotal: 500,
-            aclaracion: "",
+            pedidoId: 123,
+            platoId: 3,
+            cantidad: 2,
+            precioUnitario: 800,
+            subtotal: 1600,
           }),
         ]),
         expect.anything()
       );
 
-      expect(pedidoEmitterMock.emit).toHaveBeenCalledWith(
-        "pedido-creado",
+    expect(pedidoEmitterMock.emit)
+      .toHaveBeenCalledWith(
+        "pedido-modificado",
         expect.objectContaining({
-          pedido: expect.objectContaining({
-            items: expect.arrayContaining([
-              expect.objectContaining({
-                platoId: 1,
-                cantidad: 2,
-              }),
-              expect.objectContaining({
-                platoId: 2,
-                cantidad: 1,
-              }),
-            ]),
-          }),
+          mesa: 5,
+          pedido: expect.any(Object),
         })
       );
 
-      expect(resultado).toEqual(pedidoCreadoMock);
-    });
-
-    test("lanza error si mesa está libre", async () => {
-      const datosPedido = {
-        mesa: 5,
-        productos: [{ platoId: 1, cantidad: 1 }],
-      };
-
-      const mesaMock = {
-        id: 5,
-        estado: "libre",
-      };
-
-      mesaServiceMock.obtenerPorId.mockResolvedValue(mesaMock);
-
-      await expect(
-        pedidoService.crearYValidarPedido(datosPedido)
-      ).rejects.toThrow(
-        "NO_SE_PUEDE_CREAR_PEDIDO_EN_MESA_LIBRE"
-      );
-    });
-
-    test("lanza error si falta número de mesa", async () => {
-      const datosPedido = {
-        productos: [{ platoId: 1, cantidad: 1 }],
-      };
-
-      await expect(
-        pedidoService.crearYValidarPedido(datosPedido)
-      ).rejects.toThrow("MESA_NO_PROPORCIONADA");
-    });
+    expect(resultado).toEqual(pedidoMock);
   });
-
-  // --------------------------------------------------
-  // TEST: ELIMINAR PEDIDO
-  // --------------------------------------------------
-  describe("eliminarPedido", () => {
-    test("elimina pedido pendiente y restaura stock", async () => {
-      const pedidoId = 123;
-
-      const pedidoMock = {
-        id: 123,
-        estado: "pendiente",
-      };
-
-      const detallesMock = [
-        { PlatoId: 1, cantidad: 2 },
-        { PlatoId: 2, cantidad: 1 },
-      ];
-
-      pedidoRepositoryMock.buscarPedidoPorId.mockResolvedValue(
-        pedidoMock
-      );
-
-      pedidoRepositoryMock.obtenerDetallesPedido.mockResolvedValue(
-        detallesMock
-      );
-
-      platoServiceMock.restaurarStock.mockResolvedValue(true);
-
-      pedidoRepositoryMock.eliminarDetallesPedido.mockResolvedValue(
-        true
-      );
-
-      pedidoRepositoryMock.eliminarPedidoPorId.mockResolvedValue(
-        true
-      );
-
-      const resultado =
-        await pedidoService.eliminarPedido(pedidoId);
-
-      expect(platoServiceMock.restaurarStock)
-        .toHaveBeenCalledTimes(2);
-
-      expect(platoServiceMock.restaurarStock)
-        .toHaveBeenCalledWith(
-          1,
-          2,
-          expect.anything()
-        );
-
-      expect(platoServiceMock.restaurarStock)
-        .toHaveBeenCalledWith(
-          2,
-          1,
-          expect.anything()
-        );
-
-      expect(
-        pedidoRepositoryMock.eliminarDetallesPedido
-      ).toHaveBeenCalledWith(
-        pedidoId,
-        expect.anything()
-      );
-
-      expect(
-        pedidoRepositoryMock.eliminarPedidoPorId
-      ).toHaveBeenCalledWith(
-        pedidoId,
-        expect.anything()
-      );
-
-      expect(
-        mesaServiceMock.actualizarTotalMesa
-      ).toBeUndefined();
-
-      expect(resultado).toBe(true);
-    });
-
-    test("lanza error si pedido no está pendiente", async () => {
-      const pedidoId = 123;
-
-      const pedidoMock = {
-        id: 123,
-        estado: "entregado",
-      };
-
-      pedidoRepositoryMock.buscarPedidoPorId.mockResolvedValue(
-        pedidoMock
-      );
-
-      await expect(
-        pedidoService.eliminarPedido(pedidoId)
-      ).rejects.toThrow(
-        "SOLO_SE_PUEDEN_ELIMINAR_PEDIDOS_PENDIENTES"
-      );
-    });
-  });
-
-  // --------------------------------------------------
-  // TEST: MODIFICAR PEDIDO
-  // --------------------------------------------------
-  describe("modificarPedido", () => {
-    test("modifica pedido pendiente actualizando stock y detalles", async () => {
-      const datosModificacion = {
-        id: 123,
-        productos: [
-          { platoId: 1, cantidad: 3 },
-          { platoId: 3, cantidad: 2 },
-        ],
-      };
-
-      const pedidoMock = {
-        id: 123,
-        estado: "pendiente",
-        mesa: 5,
-      };
-
-      const detallesActualesMock = [
-        { PlatoId: 1, cantidad: 2 },
-        { PlatoId: 2, cantidad: 1 },
-      ];
-
-      const plato1Mock = {
-        id: 1,
-        nombre: "Pizza",
-        precio: 1000,
-        esActivo: true,
-      };
-
-      const plato3Mock = {
-        id: 3,
-        nombre: "Empanadas",
-        precio: 800,
-        esActivo: true,
-      };
-
-      pedidoRepositoryMock.buscarPedidoPorId
-        .mockResolvedValueOnce(pedidoMock);
-
-      pedidoRepositoryMock.obtenerDetallesPedido
-        .mockResolvedValue(detallesActualesMock);
-
-      platoServiceMock.restaurarStock
-        .mockResolvedValue(true);
-
-      pedidoRepositoryMock.eliminarDetallesPedido
-        .mockResolvedValue(true);
-
-      platoServiceMock.buscarPorId
-        .mockResolvedValueOnce(plato1Mock)
-        .mockResolvedValueOnce(plato3Mock);
-
-      platoServiceMock.descontarStock
-        .mockResolvedValue(1);
-
-      pedidoRepositoryMock.crearDetalles
-        .mockResolvedValue(true);
-
-      pedidoRepositoryMock.buscarPedidoPorId
-        .mockResolvedValueOnce(pedidoMock);
-
-      const resultado =
-        await pedidoService.modificarPedido(
-          datosModificacion
-        );
-
-      expect(platoServiceMock.restaurarStock)
-        .toHaveBeenCalledWith(
-          1,
-          2,
-          expect.anything()
-        );
-
-      expect(platoServiceMock.restaurarStock)
-        .toHaveBeenCalledWith(
-          2,
-          1,
-          expect.anything()
-        );
-
-      expect(pedidoRepositoryMock.crearDetalles)
-        .toHaveBeenCalledWith(
-          expect.arrayContaining([
-            expect.objectContaining({
-              PedidoId: 123,
-              PlatoId: 1,
-              cantidad: 3,
-              precioUnitario: 1000,
-              subtotal: 3000,
-            }),
-            expect.objectContaining({
-              PedidoId: 123,
-              PlatoId: 3,
-              cantidad: 2,
-              precioUnitario: 800,
-              subtotal: 1600,
-            }),
-          ]),
-          expect.anything()
-        );
-
-      expect(pedidoEmitterMock.emit)
-        .toHaveBeenCalledWith(
-          "pedido-modificado",
-          expect.objectContaining({
-            mesa: 5,
-            pedido: expect.any(Object),
-          })
-        );
-
-      expect(resultado).toEqual(pedidoMock);
-    });
-  });
+});
 
   // --------------------------------------------------
   // TEST: OBTENER TOTAL POR MESA
@@ -464,64 +415,63 @@ describe("PedidoService", () => {
   });
 
   // --------------------------------------------------
-  // TEST: PEDIDOS PARA COCINA
-  // --------------------------------------------------
-  describe("obtenerPedidosParaCocina", () => {
-    test("formatea pedidos pendientes correctamente", async () => {
-      const pedidosMock = [
-        {
-          id: 1,
-          mesa: 5,
-          cliente: "Juan",
-          estado: "pendiente",
-          createdAt: new Date(),
-          detalles: [
-            {
-              plato: {
-                nombre: "Pizza",
-              },
-              cantidad: 2,
-              aclaracion: "Sin cebolla",
-            },
-            {
-              plato: {
-                nombre: "Coca",
-              },
-              cantidad: 1,
-              aclaracion: "",
-            },
-          ],
+// TEST: PEDIDOS PARA COCINA
+// --------------------------------------------------
+describe("obtenerPedidosParaCocina", () => {
+  test("formatea pedidos pendientes correctamente", async () => {
+    const pedidosMock = [
+  {
+    id: 1,
+    mesaId: 5,
+    cliente: "Juan",
+    estado: "pendiente",
+    createdAt: new Date(),
+    detalles: [
+      {
+        plato: {
+          nombre: "Pizza",
         },
-      ];
+        cantidad: 2,
+        aclaracion: "Sin cebolla",
+      },
+      {
+        plato: {
+          nombre: "Coca",
+        },
+        cantidad: 1,
+        aclaracion: "",
+      },
+    ],
+  },
+];
+    pedidoRepositoryMock.listarPedidosPorEstado
+      .mockResolvedValue(pedidosMock);
 
-      pedidoRepositoryMock.listarPedidosPorEstado
-        .mockResolvedValue(pedidosMock);
+    const resultado =
+      await pedidoService.obtenerPedidosParaCocina();
 
-      const resultado =
-        await pedidoService.obtenerPedidosParaCocina();
+    expect(resultado).toHaveLength(1);
 
-      expect(resultado).toHaveLength(1);
-
-      expect(resultado[0]).toMatchObject({
-        id: 1,
-        mesa: 5,
-        cliente: "Juan",
-        estado: "pendiente",
-        items: [
-          {
-            nombre: "Pizza",
-            cantidad: 2,
-            aclaracion: "Sin cebolla",
-          },
-          {
-            nombre: "Coca",
-            cantidad: 1,
-            aclaracion: "",
-          },
-        ],
-      });
+    expect(resultado[0]).toMatchObject({
+      id: 1,
+      mesaId: 5,
+      cliente: "Juan",
+      estado: "pendiente",
+      items: [
+        {
+          nombre: "Pizza",
+          cantidad: 2,
+          aclaracion: "Sin cebolla",
+        },
+        {
+          nombre: "Coca",
+          cantidad: 1,
+          aclaracion: "",
+        },
+      ],
     });
   });
+});
 
   // --------------------------------------------------
   // TEST: ACTUALIZAR ESTADO

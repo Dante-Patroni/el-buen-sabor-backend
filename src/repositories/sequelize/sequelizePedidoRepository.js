@@ -25,10 +25,17 @@ class SequelizePedidoRepository extends PedidoRepository {
   }
 
   async listarPedidosPorEstado(estado) {
-    const filtro = estado ? { where: { estado } } : {};
+    let whereClause = {};
+    if (estado) {
+      if (Array.isArray(estado)) {
+        whereClause.estado = { [Op.in]: estado };
+      } else {
+        whereClause.estado = estado;
+      }
+    }
 
     return await Pedido.findAll({
-      ...filtro,
+      where: whereClause,
       include: [
         {
           model: DetallePedido,

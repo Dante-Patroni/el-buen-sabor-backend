@@ -190,7 +190,7 @@ class PedidoService {
       // 5️⃣ Crear nuevos detalles
       await this.pedidoRepository.crearDetalles(
         detalles.map(det => ({
-          PedidoId: pedidoId,
+          pedidoId: pedidoId,
           ...det
         })),
         transaction
@@ -364,7 +364,7 @@ class PedidoService {
   async _restaurarStock(detalles, transaction) {
     for (const detalle of detalles) {
 
-      const platoId = detalle.platoId;
+      const platoId = detalle.platoId || detalle.PlatoId;
       const cantidad = detalle.cantidad;
 
       if (!platoId) {

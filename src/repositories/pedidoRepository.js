@@ -33,7 +33,7 @@ class PedidoRepository {
 
   /**
    * @description Lista pedidos filtrados por estado.
-   * @param {string|undefined} estado - Estado de pedido opcional.
+   * @param {string|string[]|undefined} estado - Estado de pedido opcional o array de estados.
    * @returns {Promise<Array<object>>} Pedidos encontrados.
    * @throws {Error} Implementacion pendiente en clase concreta.
    */
