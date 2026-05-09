@@ -63,7 +63,7 @@ const pedidoController = new PedidoController(pedidoService);
  *       500:
  *         description: Error interno del servidor
  */
-router.post("/", authMiddleware, validarPedido, pedidoController.crear);
+router.post("/", /*authMiddleware*/ validarPedido, pedidoController.crear);
 
 
 /**
@@ -80,7 +80,7 @@ router.post("/", authMiddleware, validarPedido, pedidoController.crear);
  *       500:
  *         description: Error interno del servidor
  */
-router.get("/", authMiddleware, pedidoController.listar);
+router.get("/", /*authMiddleware*/ pedidoController.listar);
 
 /**
  * @swagger
@@ -101,7 +101,7 @@ router.get("/", authMiddleware, pedidoController.listar);
  *       500:
  *         description: Error del servidor
  */
-router.get("/mesa/:mesa", authMiddleware, validarMesaParam, pedidoController.buscarPorMesa);
+router.get("/mesa/:mesa", /*authMiddleware*/ validarMesaParam, pedidoController.buscarPorMesa);
 
 /**
  * @swagger
@@ -153,9 +153,9 @@ router.get("/mesa/:mesa", authMiddleware, validarMesaParam, pedidoController.bus
  *       404:
  *         description: Pedido no encontrado
  */
-router.put("/modificar", authMiddleware, pedidoController.modificar);
+router.put("/modificar", /*authMiddleware*/ pedidoController.modificar);
 
-router.patch("/:id/estado", authMiddleware, pedidoController.actualizarEstado);
+router.patch("/:id/estado", /*authMiddleware*/ pedidoController.actualizarEstado);
 
 /**
  * @swagger
@@ -180,6 +180,6 @@ router.patch("/:id/estado", authMiddleware, pedidoController.actualizarEstado);
  *       500:
  *         description: Error interno del servidor
  */
-router.delete("/:id", authMiddleware, pedidoController.eliminar);
+router.delete("/:id", /*authMiddleware*/ pedidoController.eliminar);
 
 module.exports = router;

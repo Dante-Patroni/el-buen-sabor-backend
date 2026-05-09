@@ -9,6 +9,17 @@ class PlatoController {
     this.platoService = platoService;
   }
 
+
+  buscarPorId = async (req, res) => {
+    try {
+      const { id } = req.params;
+      const plato = await this.platoService.buscarPorId(id);
+      if (!plato) return res.status(404).json({ mensaje: "Plato no encontrado" });
+      return res.status(200).json(plato);
+    } catch (error) {
+      return manejarErrorHttp(error, res);
+    }
+  };
   /**
    * @description Devuelve el menu completo de platos.
    * @param {import("express").Request} req - Request HTTP.
@@ -77,18 +88,18 @@ class PlatoController {
    * @throws {Error} `PLATO_NO_ENCONTRADO` u otros codigos de dominio.
    */
   eliminarProducto = async (req, res) => {
-  try {
-    const { id } = req.params;
+    try {
+      const { id } = req.params;
 
-    await this.platoService.eliminarProducto(id);
+      await this.platoService.eliminarProducto(id);
 
-    return res.status(200).json({
-      mensaje: "PLATO_ELIMINADO_CORRECTAMENTE",
-    });
-  } catch (error) {
-    return manejarErrorHttp(error, res);
-  }
-};
+      return res.status(200).json({
+        mensaje: "PLATO_ELIMINADO_CORRECTAMENTE",
+      });
+    } catch (error) {
+      return manejarErrorHttp(error, res);
+    }
+  };
 
   /**
    * @description Asocia una imagen subida a un plato existente.

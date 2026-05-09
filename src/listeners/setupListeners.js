@@ -14,7 +14,7 @@ const setupListeners = (io) => {
   pedidoEmitter.on("pedido-creado", ({ pedido }) => {
     console.log("----------------------------------------------------");
     console.log(`COCINA: Nuevo pedido recibido (#${pedido.id})`);
-    console.log(`Mesa: ${pedido.mesa || "N/D"} | Cliente: ${pedido.cliente || "N/D"}`);
+    console.log(`Mesa: ${pedido.mesaId || "N/D"} | Cliente: ${pedido.cliente || "N/D"}`);
 
     if (io) {
       console.log("SOCKET: Enviando datos a la pantalla de cocina...");

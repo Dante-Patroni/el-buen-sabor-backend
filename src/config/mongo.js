@@ -8,6 +8,14 @@ require("dotenv").config(); // [A] Carga las variables del archivo .env a la mem
  */
 const dbConnection = async () => {
   try {
+     // 🚫 No conectar Mongo en entorno de testing
+    if (
+      process.env.NODE_ENV === "test" ||
+      !process.env.MONGO_URI
+    ) {
+      console.log("ℹ️ MongoDB deshabilitado en test");
+      return;
+    }
     // [B] Uso de la Variable de Entorno
     // process.env es un objeto global de Node.js donde viven las variables del sistema.
     // MONGO_URI es la clave que definiste en el archivo oculto.

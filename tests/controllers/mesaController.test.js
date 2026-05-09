@@ -11,6 +11,7 @@ describe("MesaController", () => {
       listar: jest.fn(),
       abrirMesa: jest.fn(),
       cerrarMesa: jest.fn(),
+      calcularTotalActual: jest.fn(), // ✅ NUEVO: agregar mock del método
     };
 
     mesaController = new MesaController(mesaServiceMock);
@@ -36,7 +37,8 @@ describe("MesaController", () => {
     jest.clearAllMocks();
   });
 
-  test("listar: responde 200 y formatea campos de salida", async () => {
+  test("listar: responde 200 y formatea campos de salida con totales dinámicos", async () => {
+    // ✅ Mock de mesas SIN totalActual
     mesaServiceMock.listar.mockResolvedValue([
       {
         id: 4,
@@ -44,7 +46,7 @@ describe("MesaController", () => {
         numero: null,
         estado: "ocupada",
         mozo: { id: 7, nombre: "Ana" },
-        totalActual: "1500.50",
+        // ❌ totalActual eliminado
       },
       {
         id: 5,
@@ -52,13 +54,22 @@ describe("MesaController", () => {
         numero: "P5",
         estado: "libre",
         mozo: null,
-        totalActual: null,
+        // ❌ totalActual eliminado
       },
     ]);
+
+    // ✅ Mock de calcularTotalActual para cada mesa
+    mesaServiceMock.calcularTotalActual
+      .mockResolvedValueOnce(1500.5)  // Mesa 4
+      .mockResolvedValueOnce(0);      // Mesa 5
 
     await mesaController.listar(req, res);
 
     expect(mesaServiceMock.listar).toHaveBeenCalledTimes(1);
+    expect(mesaServiceMock.calcularTotalActual).toHaveBeenCalledTimes(2);
+    expect(mesaServiceMock.calcularTotalActual).toHaveBeenNthCalledWith(1, 4);
+    expect(mesaServiceMock.calcularTotalActual).toHaveBeenNthCalledWith(2, 5);
+    
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.json).toHaveBeenCalledWith([
       {
@@ -68,7 +79,7 @@ describe("MesaController", () => {
         estado: "ocupada",
         mozo: { id: 7, nombre: "Ana" },
         itemsPendientes: 1,
-        totalActual: 1500.5,
+        totalActual: 1500.5, // ✅ Calculado dinámicamente
       },
       {
         id: 5,
@@ -77,7 +88,7 @@ describe("MesaController", () => {
         estado: "libre",
         mozo: null,
         itemsPendientes: 0,
-        totalActual: 0,
+        totalActual: 0, // ✅ Calculado dinámicamente
       },
     ]);
   });
@@ -116,9 +127,12 @@ describe("MesaController", () => {
     expect(res.json).toHaveBeenCalledWith({ error: "MESA_YA_OCUPADA" });
   });
 
-  test("cerrarMesa: responde 200 con mensaje y totales", async () => {
+  test("cerrarMesa: responde 200 con mensaje y totales calculados dinámicamente", async () => {
     req.params = { id: "4" };
-    mesaServiceMock.cerrarMesa.mockResolvedValue({ mesaId: 4, totalCobrado: 5000 });
+    mesaServiceMock.cerrarMesa.mockResolvedValue({ 
+      mesaId: 4, 
+      totalCobrado: 5000 // ✅ Este total viene de calcularTotalMesa()
+    });
 
     await mesaController.cerrarMesa(req, res);
 
@@ -151,4 +165,3 @@ describe("MesaController", () => {
     expect(res.json).toHaveBeenCalledWith({ error: "ERROR_INTERNO" });
   });
 });
-

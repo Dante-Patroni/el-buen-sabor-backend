@@ -8,7 +8,7 @@ const cors = require("cors");
 const { dbConnection } = require("./src/config/mongo");
 const { sequelize } = require("./src/models");
 const setupListeners = require("./src/listeners/setupListeners");
-const seedDatabase = require("./src/seeders/initialSeeder");
+//const seedDatabase = require("./src/seeders/initialSeeder");
 
 // 👇 IMPORTACIONES DE RUTAS
 const mesaRouter = require("./src/routes/mesaRoutes");
@@ -28,11 +28,12 @@ const PORT = process.env.PORT || 3000;
 // 🛡️ 1. SEGURIDAD (CORS - Express)
 // ==========================================
 const whitelist = [
-  "http://localhost:3000",      
-  "http://localhost:4200",      
-  "http://192.168.18.3:3000",   
-  "http://192.168.18.3",        
-  "http://127.0.0.1:5500"       // ✅ Monitor de Cocina
+  "http://localhost:3000",
+  "http://localhost:4200",
+  "http://192.168.18.3:3000",
+  "http://192.168.18.3",
+  "http://127.0.0.1:5500",
+  "http://localhost:5173"      // ✅ Monitor de Cocina
 ];
 
 const corsOptions = {
@@ -58,10 +59,10 @@ const server = http.createServer(app);
 
 // Configuramos Socket.io sobre ese servidor
 const io = new Server(server, {
-    cors: {
-        origin: "*", // 🔓 Permitimos todo para que el HTML local conecte sin problemas
-        methods: ["GET", "POST"]
-    }
+  cors: {
+    origin: "*", // 🔓 Permitimos todo para que el HTML local conecte sin problemas
+    methods: ["GET", "POST"]
+  }
 });
 
 // ==========================================
@@ -75,7 +76,7 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
 
 app.use("/api/mesas", mesaRouter);
 app.use("/api/pedidos", require("./src/routes/pedidoRoutes"));
-app.use("/api/cocina",  require("./src/routes/cocinaRoutes")); // ← nueva
+app.use("/api/cocina", require("./src/routes/cocinaRoutes")); // ← nueva
 app.use("/api/platos", require("./src/routes/platoRoutes"));
 app.use("/api/usuarios", require("./src/routes/usuarioRoutes"));
 app.use('/api/rubros', require('./src/routes/rubroRoutes'));
@@ -86,20 +87,23 @@ app.use('/api/rubros', require('./src/routes/rubroRoutes'));
 const startServer = async () => {
   try {
     await dbConnection();
- 
-    await sequelize.sync({ force: false, alter: false });
-    console.log("📦 Tablas MySQL sincronizadas");
-    await seedDatabase();
 
-    // 👇 IMPORTANTE: Pasamos 'io' para que los eventos puedan salir
-    setupListeners(io); 
+    // ❌ NO usar sync() cuando trabajás con migraciones
+    // await sequelize.sync({ force: false, alter: false });
 
-    // 👇 IMPORTANTE: Usamos 'server.listen', NO 'app.listen'
+    // 🌱 Seeder solo en desarrollo local
+    //if (process.env.NODE_ENV === "development") {
+    // await seedDatabase();
+    //}
+
+    // 👇 Eventos Socket.IO
+    setupListeners(io);
+
+    // 👇 Levantar servidor
     server.listen(PORT, "0.0.0.0", () => {
       console.log(`🚀 Servidor 'El Buen Sabor' corriendo.`);
       console.log(`📡 Accesible localmente: http://localhost:${PORT}`);
-      console.log(`📡 Accesible en red:    http://192.168.18.3:${PORT}`);
-      console.log(`⚡ WebSockets:         ACTIVOS (Puerto compartido)`);
+      console.log(`⚡ WebSockets: ACTIVOS`);
     });
 
   } catch (error) {

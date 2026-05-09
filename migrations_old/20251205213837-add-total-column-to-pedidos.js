@@ -3,7 +3,7 @@ module.exports = {
 async up (queryInterface, Sequelize) {
     try {
       // Intentamos agregar la columna
-      await queryInterface.addColumn('Pedidos', 'total', {
+      await queryInterface.addColumn('pedidos', 'total', {
         type: Sequelize.FLOAT,
         allowNull: false,
         defaultValue: 0
@@ -14,6 +14,6 @@ async up (queryInterface, Sequelize) {
     }
   },
   async down(queryInterface, Sequelize) {
-    await queryInterface.removeColumn("Pedidos", "total");
+    await queryInterface.removeColumn("pedidos", "total");
   },
 };

@@ -1,4 +1,4 @@
-const { Plato, Rubro, sequelize } = require("../../models");
+const { Plato, Rubro, Pedido, sequelize } = require("../../models");
 const PlatoRepository = require("../platoRepository");
 const { Op, Sequelize } = require("sequelize");
 
@@ -132,22 +132,22 @@ class SequelizePlatoRepository extends PlatoRepository {
    * @returns {Promise<number>} Filas afectadas.
    */
   async descontarStockAtomico(id, cantidad, transaction) {
-    const [filasAfectadas] = await Plato.update(
-      {
-        stockActual: Sequelize.literal(`stockActual - ${cantidad}`)
+  const [filasAfectadas] = await Plato.update(
+    {
+      stockActual: Sequelize.literal(`stock_actual - ${cantidad}`)
+    },
+    {
+      where: {
+        id,
+        esIlimitado: false,
+        stockActual: { [Op.gte]: cantidad }
       },
-      {
-        where: {
-          id,
-          esIlimitado: false,
-          stockActual: { [Op.gte]: cantidad } //Es lo mismo que WHERE stockActual >= cantidad
-        },
-        transaction
-      }
-    );
+      transaction
+    }
+  );
 
-    return filasAfectadas; // 0 si no pudo descontar
-  }
+  return filasAfectadas;
+}
 
   /**
    * @description Restaura stock de forma atomica para platos no ilimitados.
@@ -157,19 +157,19 @@ class SequelizePlatoRepository extends PlatoRepository {
    * @returns {Promise<void>} Resolucion sin valor.
    */
   async restaurarStockAtomico(id, cantidad, transaction) {
-    await Plato.update(
-      {
-        stockActual: Sequelize.literal(`stockActual + ${cantidad}`)
+  await Plato.update(
+    {
+      stockActual: Sequelize.literal(`stock_actual + ${cantidad}`)
+    },
+    {
+      where: {
+        id,
+        esIlimitado: false
       },
-      {
-        where: {
-          id,
-          esIlimitado: false
-        },
-        transaction
-      }
-    );
-  }
+      transaction
+    }
+  );
+}
 
   /**
    * @description Actualiza el estado de un pedido relacionado.

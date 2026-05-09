@@ -33,7 +33,7 @@ class PedidoRepository {
 
   /**
    * @description Lista pedidos filtrados por estado.
-   * @param {string|undefined} estado - Estado de pedido opcional.
+   * @param {string|string[]|undefined} estado - Estado de pedido opcional o array de estados.
    * @returns {Promise<Array<object>>} Pedidos encontrados.
    * @throws {Error} Implementacion pendiente en clase concreta.
    */
@@ -58,9 +58,9 @@ class PedidoRepository {
  * @returns {Promise<object|null>} Pedido encontrado o `null`.
  * @throws {Error} Implementacion pendiente en clase concreta.
  */
-async buscarPedidoPorId(id, transaction = null) {
-  throw new Error("Not implemented");
-}
+  async buscarPedidoPorId(id, transaction = null) {
+    throw new Error("Not implemented");
+  }
 
   /**
    * @description Busca pedidos abiertos de una mesa.
@@ -147,8 +147,15 @@ async buscarPedidoPorId(id, transaction = null) {
    * @throws {Error} Implementacion pendiente en clase concreta.
    */
   async actualizarTotalPedido(pedidoId, nuevoTotal, transaction = null) {
+    throw new Error("DEPRECATED_METHOD");
+  }
+
+  async obtenerTotalPorMesa(mesaId, transaction = null) {
+    throw new Error("Not implemented");
+  }
+
+  async calcularTotalMesa(mesaId, transaction = null) {
     throw new Error("Not implemented");
   }
 }
-
 module.exports = PedidoRepository;

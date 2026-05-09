@@ -11,6 +11,7 @@ class MesaController {
 
   /**
    * @description Lista mesas y adapta la salida al contrato HTTP esperado por frontend.
+   * Calcula dinámicamente el total desde DetallePedidos.
    * @param {import("express").Request} req - Request HTTP.
    * @param {import("express").Response} res - Response HTTP.
    * @returns {Promise<import("express").Response>} Lista de mesas con formato consistente.
@@ -20,20 +21,27 @@ class MesaController {
     try {
       const mesasRaw = await this.mesaService.listar();
 
-      const mesasFormateadas = mesasRaw.map((m) => {
-        const valorNumerico = parseFloat(m.totalActual) || 0;
-        const itemsCalc = valorNumerico > 0 || m.estado === "ocupada" ? 1 : 0;
+      const mesasFormateadas = await Promise.all(
+        mesasRaw.map(async (m) => {
 
-        return {
-          id: m.id,
-          nombre: m.nombre || `Mesa ${m.id}`,
-          numero: m.numero || m.id.toString(),
-          estado: m.estado,
-          mozo: m.mozo,
-          itemsPendientes: itemsCalc,
-          totalActual: valorNumerico,
-        };
-      });
+          // ✅ Calcula el total dinámicamente desde DetallePedidos
+          const totalCalculado = 
+            await this.mesaService.calcularTotalActual(m.id);
+
+          const itemsCalc = 
+            totalCalculado > 0 || m.estado === "ocupada" ? 1 : 0;
+
+          return {
+            id: m.id,
+            nombre: m.nombre || `Mesa ${m.id}`,
+            numero: m.numero || m.id.toString(),
+            estado: m.estado,
+            mozo: m.mozo,
+            itemsPendientes: itemsCalc,
+            totalActual: totalCalculado, // ✅ Este es el total dinámico
+          };
+        })
+      );
 
       return res.status(200).json(mesasFormateadas);
     } catch (error) {

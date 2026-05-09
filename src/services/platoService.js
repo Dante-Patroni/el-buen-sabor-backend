@@ -13,8 +13,8 @@ class PlatoService {
    * @param {number|string} id - Id del plato.
    * @returns {Promise<object|null>} Plato encontrado o `null`.
    */
-  async buscarPorId(id) {
-    return await this.platoRepository.buscarPorId(id);
+  async buscarPorId(id, transaction = null) {
+    return await this.platoRepository.buscarPorId(id, transaction);
   }
 
   /**
@@ -120,7 +120,7 @@ class PlatoService {
     // Si recibimos transacción externa, desde PedidoServicela usamos
     if (transaction) {
       const producto = await this.platoRepository.buscarPorId(id, transaction);
-      if (!producto) 
+      if (!producto)
         throw new Error("PLATO_NO_ENCONTRADO");
 
       const datosValidados = await this._validarProducto(datos, producto, transaction);
@@ -305,6 +305,13 @@ class PlatoService {
     // =========================
     if (datos.esMenuDelDia !== undefined) {
       datosFinales.esMenuDelDia = !!datos.esMenuDelDia;
+    }
+
+    // =========================
+    // ESTADO ACTIVO
+    // =========================
+    if (datos.esActivo !== undefined) {
+      datosFinales.esActivo = !!datos.esActivo;
     }
 
     return datosFinales;

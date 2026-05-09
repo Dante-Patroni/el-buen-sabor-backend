@@ -3,47 +3,62 @@ const { Model } = require("sequelize");
 
 module.exports = (sequelize, DataTypes) => {
   class Pedido extends Model {
+
     static associate(models) {
-      // Definimos que el Pedido "pertenece a" un Plato.
-      // Esto permite hacer el 'include: [Plato]' en las consultas.
-      Pedido.belongsTo(models.Plato, {
-        foreignKey: 'PlatoId', // La columna que conecta
-        // as: 'plato' // Opcional: si quisieras llamarlo de otra forma
+
+      // =========================
+      // Pedido -> Detalles
+      // =========================
+      Pedido.hasMany(models.DetallePedido, {
+        foreignKey: "pedidoId",
+        as: "detalles",
       });
 
-      // Esto permite: Pedido.findAll({ include: [models.DetallePedido] })
-      Pedido.hasMany(models.DetallePedido);
+      // =========================
+      // Pedido -> Mesa
+      // =========================
+      Pedido.belongsTo(models.Mesa, {
+        foreignKey: "mesaId",
+        as: "mesa",
+      });
+
     }
   }
+
   Pedido.init(
     {
-      cliente: DataTypes.STRING,
-      mesa: DataTypes.STRING,
-      fecha: DataTypes.DATE,
-
-      total: {
-        type: DataTypes.FLOAT, // O DECIMAL(10,2) para más precisión
-        defaultValue: 0,
+      cliente: {
+        type: DataTypes.STRING,
+        allowNull: true,
       },
+
       estado: {
         type: DataTypes.ENUM(
           "pendiente",
           "en_preparacion",
-          "rechazado",
+          "listo",
           "entregado",
-          "pagado",   // 🆕 AGREGADO
-          "cancelado" // 🆕 AGREGADO
+          "pagado",
+          "cancelado"
         ),
+        allowNull: false,
         defaultValue: "pendiente",
       },
-      // Asegúrate de que PlatoId esté definido si lo usas explícitamente,
-      // aunque Sequelize suele manejar las FK automáticamente.
-      PlatoId: DataTypes.INTEGER,
+
+      mesaId: {
+        type: DataTypes.INTEGER,
+        field: "mesa_id",
+        allowNull: true,
+      },
     },
     {
       sequelize,
       modelName: "Pedido",
-    },
+      tableName: "pedidos",
+      timestamps: true,
+      underscored: true,
+    }
   );
+
   return Pedido;
 };

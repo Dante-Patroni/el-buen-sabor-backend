@@ -1,43 +1,60 @@
 "use strict";
+
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.createTable("Pedidos", {
+    await queryInterface.createTable("pedidos", {
       id: {
         allowNull: false,
         autoIncrement: true,
         primaryKey: true,
         type: Sequelize.INTEGER,
       },
+
       cliente: {
         type: Sequelize.STRING,
+        allowNull: true,
       },
+
       estado: {
         type: Sequelize.ENUM(
           "pendiente",
           "en_preparacion",
-          "rechazado",
+          "listo",
           "entregado",
+          "pagado",
+          "cancelado"
         ),
-        defaultValue: "pendiente", // ¡Buena práctica! Siempre tener un valor por defecto
+        allowNull: false,
+        defaultValue: "pendiente",
       },
-      fecha: {
-        type: Sequelize.DATE,
-      },
-      PlatoId: {
+
+      mesa_id: {
         type: Sequelize.INTEGER,
+        allowNull: true,
+
+        references: {
+          model: "mesas",
+          key: "id",
+        },
+
+        onUpdate: "CASCADE",
+        onDelete: "SET NULL",
       },
-      createdAt: {
+
+      created_at: {
         allowNull: false,
         type: Sequelize.DATE,
       },
-      updatedAt: {
+
+      updated_at: {
         allowNull: false,
         type: Sequelize.DATE,
       },
     });
   },
-  async down(queryInterface, Sequelize) {
-    await queryInterface.dropTable("Pedidos");
+
+  async down(queryInterface) {
+    await queryInterface.dropTable("pedidos");
   },
 };

@@ -2,21 +2,30 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.createTable("Platos", {
+    await queryInterface.createTable("pedidos", {
       id: {
         allowNull: false,
         autoIncrement: true,
         primaryKey: true,
         type: Sequelize.INTEGER,
       },
-      nombre: {
+      cliente: {
         type: Sequelize.STRING,
       },
-      precio: {
-        type: Sequelize.FLOAT,
+      estado: {
+        type: Sequelize.ENUM(
+          "pendiente",
+          "en_preparacion",
+          "rechazado",
+          "entregado",
+        ),
+        defaultValue: "pendiente", // ¡Buena práctica! Siempre tener un valor por defecto
       },
-      ingredientePrincipal: {
-        type: Sequelize.STRING,
+      fecha: {
+        type: Sequelize.DATE,
+      },
+      PlatoId: {
+        type: Sequelize.INTEGER,
       },
       createdAt: {
         allowNull: false,
@@ -29,6 +38,6 @@ module.exports = {
     });
   },
   async down(queryInterface, Sequelize) {
-    await queryInterface.dropTable("Platos");
+    await queryInterface.dropTable("pedidos");
   },
 };
