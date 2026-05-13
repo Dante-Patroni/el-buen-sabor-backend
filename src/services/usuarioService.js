@@ -2,7 +2,11 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
 // Clave secreta para firmar (en produccion va en .env)
-const JWT_SECRET = process.env.JWT_SECRET || "ClaveSecretaDante123";
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET) {
+  throw new Error("JWT_SECRET no está definida");
+}
 const ROLES_VALIDOS = ["admin", "mozo", "cocinero", "cajero"];
 
 class UsuarioService {
@@ -38,11 +42,11 @@ class UsuarioService {
     );
 
     if (!usuario) {
-      throw new Error("USUARIO_NO_ENCONTRADO");
+      throw new Error("CREDENCIALES_INVALIDAS");
     }
 
     if (!usuario.activo) {
-      throw new Error("USUARIO_INACTIVO");
+      throw new Error("CREDENCIALES_INVALIDAS");
     }
 
     const passwordValido = await this.usuarioRepository.compararPassword(
