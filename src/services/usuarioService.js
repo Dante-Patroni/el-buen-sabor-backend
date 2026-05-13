@@ -57,12 +57,14 @@ class UsuarioService {
     // El token guarda identidad y rol para autorizacion posterior.
     const token = jwt.sign(
       {
-        id: usuario.id,
+        sub: usuario.id,
         rol: usuario.rol,
         nombre: usuario.nombre,
       },
       JWT_SECRET,
-      { expiresIn: "24h" }
+      {
+        expiresIn: "8h",
+      }
     );
 
     return {
