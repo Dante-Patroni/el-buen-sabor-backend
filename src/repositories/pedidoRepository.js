@@ -73,7 +73,7 @@ class PedidoRepository {
   }
 
   /**
-   * @description Obtiene pedidos facturables de una mesa con sus detalles y datos de plato.
+   * @description Obtiene pedidos entregados de una mesa con sus detalles y datos de plato listos para facturar.
    * @param {number|string} mesaId - Id o numero de mesa.
    * @param {object|null} transaction - Transaccion opcional.
    * @returns {Promise<Array<object>>} Pedidos con detalles listos para armar ticket.

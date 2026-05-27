@@ -23,6 +23,6 @@ const cocinaController = new CocinaController(pedidoService);
  *       500:
  *         description: Error interno del servidor
  */
-router.get("/pedidos", /*authMiddleware*/ cocinaController.listarPendientes);
+router.get("/pedidos", authMiddleware, cocinaController.listarPendientes);
 
 module.exports = router;

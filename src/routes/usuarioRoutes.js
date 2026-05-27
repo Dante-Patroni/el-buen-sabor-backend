@@ -5,6 +5,7 @@ const UsuarioController = require("../controllers/usuarioController");
 const SequelizeUsuarioRepository = require("../repositories/sequelize/sequelizeUsuarioRepository");
 const UsuarioService = require("../services/usuarioService");
 const authMiddleware = require("../middlewares/authMiddleware");
+const { soloRoles } = require("../middlewares/roleMiddleware");
 
 // Composicion de dependencias (DI manual): Router -> Controller -> Service -> Repository.
 const usuarioRepository = new SequelizeUsuarioRepository();
@@ -12,12 +13,7 @@ const usuarioService = new UsuarioService(usuarioRepository);
 const usuarioController = new UsuarioController(usuarioService);
 
 // Middleware de autorizacion por rol para endpoints ABM.
-const soloAdmin = (req, res, next) => {
-  if (req.usuario?.rol !== "admin") {
-    return res.status(403).json({ error: "SOLO_ADMIN" });
-  }
-  next();
-};
+const soloAdmin = soloRoles("admin");
 
 /**
  * @swagger

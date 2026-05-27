@@ -76,6 +76,7 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
 
 app.use("/api/mesas", mesaRouter);
 app.use("/api/pedidos", require("./src/routes/pedidoRoutes"));
+app.use("/api/caja", require("./src/routes/cajaRoutes"));
 app.use("/api/cocina", require("./src/routes/cocinaRoutes")); // ← nueva
 app.use("/api/platos", require("./src/routes/platoRoutes"));
 app.use("/api/usuarios", require("./src/routes/usuarioRoutes"));

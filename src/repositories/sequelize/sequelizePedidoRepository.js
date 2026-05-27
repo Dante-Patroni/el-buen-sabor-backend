@@ -58,7 +58,14 @@ class SequelizePedidoRepository extends PedidoRepository {
       include: [
         {
           model: DetallePedido,
-          as: "detalles"
+          as: "detalles",
+          include: [
+            {
+              model: Plato,
+              as: "plato",
+              attributes: ["id", "nombre"]
+            }
+          ]
         }
       ],
       order: [["createdAt", "ASC"]]

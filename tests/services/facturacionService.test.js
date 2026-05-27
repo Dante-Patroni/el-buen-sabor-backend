@@ -16,6 +16,7 @@ describe("FacturacionService", () => {
     pedidoRepositoryMock.buscarPedidosFacturablesPorMesa.mockResolvedValue([
       {
         id: 10,
+        estado: "entregado",
         cliente: "Cliente App",
         DetallePedidos: [
           {
@@ -34,6 +35,7 @@ describe("FacturacionService", () => {
       },
       {
         id: 11,
+        estado: "entregado",
         cliente: null,
         DetallePedidos: [
           {
@@ -65,6 +67,7 @@ describe("FacturacionService", () => {
     pedidoRepositoryMock.buscarPedidosFacturablesPorMesa.mockResolvedValue([
       {
         id: 22,
+        estado: "entregado",
         cliente: "Mesa 1",
         detallePedidos: [
           {
@@ -94,5 +97,43 @@ describe("FacturacionService", () => {
     expect(resultado.subtotal).toBe(0);
     expect(resultado.impuestos.ivaImporte).toBe(0);
     expect(resultado.totalFinal).toBe(0);
+  });
+
+  test("generarResumenCierre: solo incluye pedidos entregados en el ticket", async () => {
+    pedidoRepositoryMock.buscarPedidosFacturablesPorMesa.mockResolvedValue([
+      {
+        id: 30,
+        estado: "pendiente",
+        cliente: "Cliente sin entregar",
+        DetallePedidos: [
+          {
+            PlatoId: 1,
+            cantidad: 1,
+            subtotal: 4000,
+            Plato: { id: 1, nombre: "Pizza", precio: 4000 },
+          },
+        ],
+      },
+      {
+        id: 31,
+        estado: "entregado",
+        cliente: "Cliente entregado",
+        DetallePedidos: [
+          {
+            PlatoId: 2,
+            cantidad: 2,
+            subtotal: 6000,
+            Plato: { id: 2, nombre: "Empanadas", precio: 3000 },
+          },
+        ],
+      },
+    ]);
+
+    const resultado = await facturacionService.generarResumenCierre(5);
+
+    expect(resultado.pedidos).toHaveLength(1);
+    expect(resultado.pedidos[0].pedidoId).toBe(31);
+    expect(resultado.subtotal).toBe(6000);
+    expect(resultado.totalFinal).toBe(7260);
   });
 });

@@ -26,7 +26,9 @@ class FacturacionService {
       transaction
     );
 
-    const pedidos = (pedidosDb || []).map((pedido) => this._mapearPedidoFacturable(pedido));
+    const pedidos = (pedidosDb || [])
+      .filter((pedido) => this._esPedidoFacturable(pedido))
+      .map((pedido) => this._mapearPedidoFacturable(pedido));
     const subtotal = this._redondear(
       pedidos.reduce((acum, pedido) => acum + pedido.totalPedido, 0)
     );
@@ -71,11 +73,24 @@ class FacturacionService {
   }
 
   /**
+   * @description Determina si un pedido se puede incluir en el ticket de cierre.
+   * @param {object} pedido - Pedido recuperado desde persistencia.
+   * @returns {boolean} `true` cuando el pedido esta entregado y puede facturarse.
+   */
+  _esPedidoFacturable(pedido) {
+    return pedido?.estado === "entregado";
+  }
+
+  /**
    * @description Obtiene el arreglo de detalles desde distintas variantes de serializacion del ORM.
    * @param {object} pedido - Pedido ORM.
    * @returns {Array<object>} Detalles del pedido.
    */
   _obtenerDetallesPedido(pedido) {
+    if (Array.isArray(pedido?.detalles)) {
+      return pedido.detalles;
+    }
+
     if (Array.isArray(pedido?.DetallePedidos)) {
       return pedido.DetallePedidos;
     }
@@ -95,7 +110,8 @@ class FacturacionService {
   _mapearItemFacturable(detalle) {
     const cantidad = Number(detalle?.cantidad) || 0;
     const subtotal = this._redondear(Number(detalle?.subtotal) || 0);
-    const precioPlato = Number(detalle?.Plato?.precio);
+    const plato = detalle?.plato || detalle?.Plato;
+    const precioPlato = Number(plato?.precio);
     const precioUnitario = this._redondear(
       Number.isFinite(precioPlato) && precioPlato > 0
         ? precioPlato
@@ -105,8 +121,8 @@ class FacturacionService {
     );
 
     return {
-      platoId: detalle?.PlatoId ?? detalle?.Plato?.id ?? null,
-      plato: detalle?.Plato?.nombre || "Plato sin nombre",
+      platoId: plato?.id ?? detalle?.platoId ?? detalle?.PlatoId ?? null,
+      plato: plato?.nombre || "Plato sin nombre",
       cantidad,
       precioUnitario,
       subtotal,
