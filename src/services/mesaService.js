@@ -59,6 +59,41 @@ class MesaService {
 
     return { mensaje: "Mesa abierta correctamente" };
   }
+  
+  /**
+ * @description Marca una mesa como esperando cobro.
+ * @param {number|string} mesaId - Id de mesa.
+ * @returns {Promise<{mensaje:string}>}
+ * @throws {Error} MESA_NO_ENCONTRADA o MESA_YA_LIBRE
+ */
+async solicitarCobro(mesaId) {
+
+  const mesa = await this.mesaRepository.buscarMesaPorId(mesaId);
+
+  if (!mesa) {
+    throw new Error("MESA_NO_ENCONTRADA");
+  }
+
+  if (mesa.estado === "libre") {
+    throw new Error("MESA_YA_LIBRE");
+  }
+
+  mesa.estado = "esperando_cobro";
+
+  await this.mesaRepository.actualizarMesa(mesa);
+
+  if (this.pedidoEmitter?.emit) {
+    this.pedidoEmitter.emit("mesa-esperando-cobro", {
+      mesaId: mesa.id,
+      estado: mesa.estado,
+    });
+  }
+
+  return {
+    mensaje: "Cobro solicitado correctamente",
+  };
+}
+
 
   /**
    * @description Cierra una mesa en forma atomica, marca pedidos como pagados y libera la mesa.

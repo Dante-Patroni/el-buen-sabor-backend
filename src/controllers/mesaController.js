@@ -73,6 +73,19 @@ class MesaController {
     }
   };
 
+ solicitarCobro = async (req, res) => {
+  try {
+
+    const resultado =
+      await this.mesaService.solicitarCobro(req.params.id);
+
+    res.status(200).json(resultado);
+
+  } catch (error) {
+    manejarErrorHttp(error, res);
+  }
+};
+
   /**
    * @description Cierra una mesa, cobra el total y libera recursos asociados.
    * @param {import("express").Request} req - Request HTTP con `params.id`.

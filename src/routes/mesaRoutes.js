@@ -188,6 +188,10 @@ router.post("/:id/abrir", authMiddleware, mesaController.abrirMesa);
  */
 router.post("/:id/cerrar", authMiddleware, mesaController.cerrarMesa);
 
-
+router.post(
+  "/:id/solicitar-cobro",
+  authMiddleware,
+  mesaController.solicitarCobro
+);
 
 module.exports = router;
