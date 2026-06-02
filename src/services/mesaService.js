@@ -59,40 +59,41 @@ class MesaService {
 
     return { mensaje: "Mesa abierta correctamente" };
   }
-  
+
   /**
  * @description Marca una mesa como esperando cobro.
  * @param {number|string} mesaId - Id de mesa.
  * @returns {Promise<{mensaje:string}>}
  * @throws {Error} MESA_NO_ENCONTRADA o MESA_YA_LIBRE
  */
-async solicitarCobro(mesaId) {
+  async solicitarCobro(mesaId) {
 
-  const mesa = await this.mesaRepository.buscarMesaPorId(mesaId);
+    const mesa = await this.mesaRepository.buscarMesaPorId(mesaId);
 
-  if (!mesa) {
-    throw new Error("MESA_NO_ENCONTRADA");
+    if (!mesa) {
+      throw new Error("MESA_NO_ENCONTRADA");
+    }
+    console.log(`[BACKEND] Mesa ${mesa.id} ANTES de solicitar cobro. Estado: ${mesa.estado}`); // AÑADE ESTO
+    if (mesa.estado === "libre") {
+      throw new Error("MESA_YA_LIBRE");
+    }
+
+    mesa.estado = "esperando_cobro";
+
+    await this.mesaRepository.actualizarMesa(mesa);
+    console.log(`[BACKEND] Mesa ${mesa.id} DESPUÉS de actualizar en DB. Estado: ${mesa.estado}`); // AÑADE ESTO
+    // ... el resto ...
+    if (this.pedidoEmitter?.emit) {
+      this.pedidoEmitter.emit("mesa-esperando-cobro", {
+        mesaId: mesa.id,
+        estado: mesa.estado,
+      });
+    }
+
+    return {
+      mensaje: "Cobro solicitado correctamente",
+    };
   }
-
-  if (mesa.estado === "libre") {
-    throw new Error("MESA_YA_LIBRE");
-  }
-
-  mesa.estado = "esperando_cobro";
-
-  await this.mesaRepository.actualizarMesa(mesa);
-
-  if (this.pedidoEmitter?.emit) {
-    this.pedidoEmitter.emit("mesa-esperando-cobro", {
-      mesaId: mesa.id,
-      estado: mesa.estado,
-    });
-  }
-
-  return {
-    mensaje: "Cobro solicitado correctamente",
-  };
-}
 
 
   /**
@@ -114,6 +115,12 @@ async solicitarCobro(mesaId) {
 
       if (mesa.estado === "libre") {
         throw new Error("MESA_YA_LIBRE");
+      }
+
+      // 🔒 Solo se puede cobrar una mesa que el mozo/Flutter haya marcado
+      // como esperando cobro. No se puede cobrar una mesa "ocupada" directamente.
+      if (mesa.estado?.toLowerCase() !== "esperando_cobro") {
+        throw new Error("MESA_NO_SOLICITO_COBRO");
       }
 
       // 3️⃣ Calcular el total dinámicamente desde DetallePedidos

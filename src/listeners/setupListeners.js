@@ -78,6 +78,22 @@ const setupListeners = (io) => {
     console.log("----------------------------------------------------");
   });
 
+  /**
+   * @description Notifica que una mesa está esperando cobro.
+   */
+  pedidoEmitter.on("mesa-esperando-cobro", (data) => {
+    console.log("----------------------------------------------------");
+    console.log(`📋 MESA ESPERANDO COBRO: Mesa ${data.mesaId}, Estado: ${data.estado}`);
+
+    if (io) {
+      console.log("SOCKET: Emitiendo evento 'mesa-esperando-cobro' a todos los clientes...");
+      io.emit("mesa-esperando-cobro", data);
+    } else {
+      console.warn("⚠️ WebSocket no inicializado - evento no emitido");
+    }
+    console.log("----------------------------------------------------");
+  });
+
   console.log("Sistema de eventos: listeners activados y protegidos con JWT");
 };
 

@@ -12,11 +12,16 @@ class CajaService {
   }
 
   /**
-   * @description Lista todas las mesas disponibles para caja.
-   * @returns {Promise<Array<object>>} Mesas con estado y mozo.
+   * @description Lista solo las mesas que el mozo/Flutter marcó como esperando cobro.
+   * La caja únicamente opera sobre mesas en estado "esperando_cobro":
+   * el flujo correcto es Flutter → solicitar-cobro → caja ve la mesa → caja cobra.
+   * @returns {Promise<Array<object>>} Mesas en estado "esperando_cobro".
    */
   async listarMesasAbiertas() {
-    return await this.mesaService.listar();
+    const todasLasMesas = await this.mesaService.listar();
+    return todasLasMesas.filter(
+      (m) => m.estado?.toLowerCase() === "esperando_cobro"
+    );
   }
 
   /**
