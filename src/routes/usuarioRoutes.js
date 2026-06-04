@@ -1,27 +1,29 @@
+// src/routes/usuarioRoutes.js
 const express = require("express");
 const router = express.Router();
-
+ 
 const UsuarioController = require("../controllers/usuarioController");
 const SequelizeUsuarioRepository = require("../repositories/sequelize/sequelizeUsuarioRepository");
 const UsuarioService = require("../services/usuarioService");
 const authMiddleware = require("../middlewares/authMiddleware");
 const { soloRoles } = require("../middlewares/roleMiddleware");
-
+const { limitadorLogin } = require("../middlewares/rateLimitMiddleware"); // 🆕
+ 
 // Composicion de dependencias (DI manual): Router -> Controller -> Service -> Repository.
 const usuarioRepository = new SequelizeUsuarioRepository();
 const usuarioService = new UsuarioService(usuarioRepository);
 const usuarioController = new UsuarioController(usuarioService);
-
+ 
 // Middleware de autorizacion por rol para endpoints ABM.
 const soloAdmin = soloRoles("admin");
-
+ 
 /**
  * @swagger
  * tags:
  *   name: Usuarios
  *   description: Gestión de usuarios del sistema
  */
-
+ 
 /**
  * @swagger
  * /api/usuarios/login:
@@ -39,9 +41,11 @@ const soloAdmin = soloRoles("admin");
  *         description: Usuario inactivo
  *       404:
  *         description: Usuario no encontrado
+ *       429:
+ *         description: Demasiados intentos, bloqueado temporalmente
  */
-// Login se mantiene publico para obtener JWT.
-router.post("/login", usuarioController.login);
+// 🔒 limitadorLogin aplicado ANTES del controlador
+router.post("/login", limitadorLogin, usuarioController.login);
 
 /**
  * @swagger

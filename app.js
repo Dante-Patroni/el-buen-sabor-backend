@@ -3,6 +3,7 @@ const http = require("http"); // 🆕 NECESARIO PARA SOCKETS
 const { Server } = require("socket.io"); // 🆕 LIBRERÍA DE TIEMPO REAL
 const path = require("path");
 const cors = require("cors");
+const { limitadorGlobal } = require("./src/middlewares/rateLimitMiddleware"); // 🆕
 
 // 👇 IMPORTACIONES DE BASE DE DATOS Y CONFIGURACIÓN
 const { dbConnection } = require("./src/config/mongo");
@@ -68,6 +69,7 @@ const io = new Server(server, {
 // ==========================================
 // 📂 3. RUTAS
 // ==========================================
+app.use("/api", limitadorGlobal); // 🆕 Aplicamos el limitador global a todas las rutas que comienzan con /api
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 const swaggerUi = require("swagger-ui-express");
