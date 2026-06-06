@@ -1,19 +1,13 @@
 const express = require("express");
 const router = express.Router();
 
-// Dependencias desde el container
 const { pedidoService } = require("../container");
 const PedidoController = require("../controllers/pedidoController");
 const authMiddleware = require("../middlewares/authMiddleware");
+const { soloPermisos } = require("../middlewares/roleMiddleware"); // 🆕
 const { validarPedido, validarMesaParam } = require("../middlewares/pedidoValidator");
 
 const pedidoController = new PedidoController(pedidoService);
-
-
-
-// =========================================================================
-// DOCUMENTACIÓN SWAGGER Y RUTAS
-// =========================================================================
 
 /**
  * @swagger
@@ -60,11 +54,12 @@ const pedidoController = new PedidoController(pedidoService);
  *         description: Error de validación
  *       401:
  *         description: No autorizado
+ *       403:
+ *         description: Sin permisos
  *       500:
  *         description: Error interno del servidor
  */
-router.post("/", /*authMiddleware*/ validarPedido, pedidoController.crear);
-
+router.post("/", authMiddleware, soloPermisos("PEDIDO_CREAR"), validarPedido, pedidoController.crear);
 
 /**
  * @swagger
@@ -77,10 +72,14 @@ router.post("/", /*authMiddleware*/ validarPedido, pedidoController.crear);
  *     responses:
  *       200:
  *         description: Lista de pedidos recuperada
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Sin permisos
  *       500:
  *         description: Error interno del servidor
  */
-router.get("/", /*authMiddleware*/ pedidoController.listar);
+router.get("/", authMiddleware, soloPermisos("PEDIDO_VER"), pedidoController.listar);
 
 /**
  * @swagger
@@ -98,16 +97,20 @@ router.get("/", /*authMiddleware*/ pedidoController.listar);
  *     responses:
  *       200:
  *         description: Lista de pedidos de la mesa
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Sin permisos
  *       500:
  *         description: Error del servidor
  */
-router.get("/mesa/:mesa", /*authMiddleware*/ validarMesaParam, pedidoController.buscarPorMesa);
+router.get("/mesa/:mesa", authMiddleware, soloPermisos("PEDIDO_VER"), validarMesaParam, pedidoController.buscarPorMesa);
 
 /**
  * @swagger
  * /api/pedidos/modificar:
  *   put:
- *     summary: Modifica un pedido existente (actualiza productos, stock y total)
+ *     summary: Modifica un pedido existente
  *     tags: [Pedidos]
  *     security:
  *       - bearerAuth: []
@@ -124,7 +127,6 @@ router.get("/mesa/:mesa", /*authMiddleware*/ validarMesaParam, pedidoController.
  *             properties:
  *               id:
  *                 type: integer
- *                 description: ID del pedido a modificar
  *                 example: 69
  *               mesa:
  *                 type: string
@@ -146,22 +148,49 @@ router.get("/mesa/:mesa", /*authMiddleware*/ validarMesaParam, pedidoController.
  *     responses:
  *       200:
  *         description: Pedido modificado correctamente
- *       201:
- *         description: Pedido recreado con éxito
  *       400:
  *         description: Datos inválidos o stock insuficiente
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Sin permisos
  *       404:
  *         description: Pedido no encontrado
  */
-router.put("/modificar", /*authMiddleware*/ pedidoController.modificar);
+router.put("/modificar", authMiddleware, soloPermisos("PEDIDO_MODIFICAR"), pedidoController.modificar);
 
-router.patch("/:id/estado", /*authMiddleware*/ pedidoController.actualizarEstado);
+/**
+ * @swagger
+ * /api/pedidos/{id}/estado:
+ *   patch:
+ *     summary: Cambia el estado de un pedido
+ *     tags: [Pedidos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: ID del pedido
+ *     responses:
+ *       200:
+ *         description: Estado actualizado
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Sin permisos
+ *       404:
+ *         description: Pedido no encontrado
+ */
+router.patch("/:id/estado", authMiddleware, soloPermisos("PEDIDO_CAMBIAR_ESTADO"), pedidoController.actualizarEstado);
 
 /**
  * @swagger
  * /api/pedidos/{id}:
  *   delete:
- *     summary: Elimina un pedido y restaura el stock de los productos
+ *     summary: Elimina un pedido y restaura el stock
  *     tags: [Pedidos]
  *     security:
  *       - bearerAuth: []
@@ -175,11 +204,15 @@ router.patch("/:id/estado", /*authMiddleware*/ pedidoController.actualizarEstado
  *     responses:
  *       200:
  *         description: Pedido eliminado y stock restaurado
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Sin permisos
  *       404:
  *         description: Pedido no encontrado
  *       500:
  *         description: Error interno del servidor
  */
-router.delete("/:id", /*authMiddleware*/ pedidoController.eliminar);
+router.delete("/:id", authMiddleware, soloPermisos("PEDIDO_ELIMINAR"), pedidoController.eliminar);
 
 module.exports = router;

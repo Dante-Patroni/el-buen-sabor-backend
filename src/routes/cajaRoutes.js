@@ -10,7 +10,7 @@ const CajaService = require("../services/cajaService");
 const SequelizeMesaRepository = require("../repositories/sequelize/sequelizeMesaRepository");
 const SequelizePedidoRepository = require("../repositories/sequelize/sequelizePedidoRepository");
 const SequelizePlatoRepository = require("../repositories/sequelize/sequelizePlatoRepository");
-const soloRoles = require("../middlewares/roleMiddleware").soloRoles;
+const { soloPermisos } = require("../middlewares/roleMiddleware"); // 🆕
 const authMiddleware = require("../middlewares/authMiddleware");
 
 const mesaRepository = new SequelizeMesaRepository();
@@ -44,11 +44,11 @@ const cajaController = new CajaController(cajaService);
  *       401:
  *         description: No autorizado
  *       403:
- *         description: Rol no permitido
+ *         description: Sin permisos
  *       500:
  *         description: Error interno del servidor
  */
-router.get("/mesas", authMiddleware, soloRoles("cajero", "admin"), cajaController.listarMesas);
+router.get("/mesas", authMiddleware, soloPermisos("MESA_VER"), cajaController.listarMesas);
 
 /**
  * @swagger
@@ -71,13 +71,13 @@ router.get("/mesas", authMiddleware, soloRoles("cajero", "admin"), cajaControlle
  *       401:
  *         description: No autorizado
  *       403:
- *         description: Rol no permitido
+ *         description: Sin permisos
  *       404:
  *         description: Mesa no encontrada
  *       500:
  *         description: Error interno del servidor
  */
-router.get("/mesas/:id", authMiddleware, soloRoles("cajero", "admin"), cajaController.obtenerMesa);
+router.get("/mesas/:id", authMiddleware, soloPermisos("MESA_VER"), cajaController.obtenerMesa);
 
 /**
  * @swagger
@@ -100,13 +100,13 @@ router.get("/mesas/:id", authMiddleware, soloRoles("cajero", "admin"), cajaContr
  *       401:
  *         description: No autorizado
  *       403:
- *         description: Rol no permitido
+ *         description: Sin permisos
  *       404:
  *         description: Mesa no encontrada
  *       500:
  *         description: Error interno del servidor
  */
-router.get("/mesas/:id/ticket", authMiddleware, soloRoles("cajero", "admin"), cajaController.obtenerTicket);
+router.get("/mesas/:id/ticket", authMiddleware, soloPermisos("TICKET_VER"), cajaController.obtenerTicket);
 
 /**
  * @swagger
@@ -129,12 +129,12 @@ router.get("/mesas/:id/ticket", authMiddleware, soloRoles("cajero", "admin"), ca
  *       401:
  *         description: No autorizado
  *       403:
- *         description: Rol no permitido
+ *         description: Sin permisos
  *       404:
  *         description: Mesa no encontrada
  *       500:
  *         description: Error interno del servidor
  */
-router.post("/mesas/:id/cobrar", authMiddleware, soloRoles("cajero", "admin"), cajaController.cobrarMesa);
+router.post("/mesas/:id/cobrar", authMiddleware, soloPermisos("MESA_COBRAR"), cajaController.cobrarMesa);
 
 module.exports = router;

@@ -32,14 +32,17 @@ module.exports = {
         allowNull: false,
       },
 
-      rol: {
-        type: Sequelize.ENUM(
-          "admin",
-          "mozo",
-          "cocinero",
-          "cajero"
-        ),
-        defaultValue: "mozo",
+      rol_id: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+
+        references: {
+          model: "roles",
+          key: "id",
+        },
+
+        onUpdate: "CASCADE",
+        onDelete: "RESTRICT",
       },
 
       activo: {

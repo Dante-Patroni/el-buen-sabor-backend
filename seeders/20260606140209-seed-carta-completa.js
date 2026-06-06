@@ -14,11 +14,6 @@ const NOMBRES_PLATOS_SEED = [
 
 /**
  * @description Inserta registros y actualiza columnas si ya existe una clave primaria o unica.
- * @param {import("sequelize").QueryInterface} queryInterface - Interfaz de Sequelize para operar la base.
- * @param {string} tabla - Nombre de la tabla destino.
- * @param {Array<object>} registros - Registros a insertar o actualizar.
- * @param {Array<string>} columnasActualizables - Columnas que se actualizan ante duplicados.
- * @returns {Promise<void>} Promesa resuelta al completar la operacion.
  */
 async function insertarOActualizar(
   queryInterface,
@@ -33,24 +28,16 @@ async function insertarOActualizar(
 
 /**
  * @description Crea o actualiza platos del seed usando nombre como identificador funcional.
- * @param {import("sequelize").QueryInterface} queryInterface - Interfaz de Sequelize para operar la base.
- * @param {Array<object>} platos - Platos que deben quedar disponibles en la carta.
- * @returns {Promise<void>} Promesa resuelta al sincronizar todos los platos.
  */
 async function sincronizarPlatosPorNombre(queryInterface, platos) {
   for (const plato of platos) {
     const [existentes] = await queryInterface.sequelize.query(
       "SELECT id FROM platos WHERE nombre = :nombre LIMIT 1",
-      {
-        replacements: { nombre: plato.nombre },
-      }
+      { replacements: { nombre: plato.nombre } }
     );
 
     if (existentes.length > 0) {
-      const datosActualizados = {
-        ...plato,
-        updated_at: new Date(),
-      };
+      const datosActualizados = { ...plato, updated_at: new Date() };
       delete datosActualizados.created_at;
 
       await queryInterface.bulkUpdate(
@@ -68,16 +55,11 @@ async function sincronizarPlatosPorNombre(queryInterface, platos) {
 
 /** @type {import("sequelize-cli").Migration} */
 module.exports = {
-  /**
-   * @description Carga datos base de carta, rubros, usuario administrador y mesa demo sin duplicarlos.
-   * @param {import("sequelize").QueryInterface} queryInterface - Interfaz de Sequelize para operar la base.
-   * @param {import("sequelize")} Sequelize - Instancia de tipos y utilidades Sequelize provista por CLI.
-   * @returns {Promise<void>} Promesa resuelta al finalizar la carga inicial.
-   */
-  async up(queryInterface, Sequelize) {
+  async up(queryInterface) {
     const ahora = new Date();
     const passwordHash = await bcrypt.hash("1234", 10);
 
+    // ✅ rol_id: 2 = admin
     await insertarOActualizar(
       queryInterface,
       "usuarios",
@@ -87,11 +69,11 @@ module.exports = {
           apellido: "Admin",
           legajo: "1001",
           password: passwordHash,
-          rol: "admin",
+          rol_id: 1, // superadmin
           activo: true,
-        },
+        }
       ],
-      ["nombre", "apellido", "password", "rol", "activo"]
+      ["nombre", "apellido", "password", "rol_id", "activo"]
     );
 
     await insertarOActualizar(
@@ -278,31 +260,14 @@ module.exports = {
     ]);
   },
 
-  /**
-   * @description Revierte solo los datos creados por este seed respetando dependencias por clave foranea.
-   * @param {import("sequelize").QueryInterface} queryInterface - Interfaz de Sequelize para operar la base.
-   * @param {import("sequelize")} Sequelize - Instancia de tipos y utilidades Sequelize provista por CLI.
-   * @returns {Promise<void>} Promesa resuelta al finalizar la reversion del seed.
-   */
-  async down(queryInterface, Sequelize) {
+  async down(queryInterface) {
     await queryInterface.bulkDelete("platos", {
       nombre: NOMBRES_PLATOS_SEED,
     });
 
-    await queryInterface.bulkDelete("rubros", {
-      id: [4, 5, 6, 9, 10],
-    });
-
-    await queryInterface.bulkDelete("rubros", {
-      id: [1, 2],
-    });
-
-    await queryInterface.bulkDelete("mesas", {
-      id: 4,
-    });
-
-    await queryInterface.bulkDelete("usuarios", {
-      legajo: "1001",
-    });
+    await queryInterface.bulkDelete("rubros", { id: [4, 5, 6, 9, 10] });
+    await queryInterface.bulkDelete("rubros", { id: [1, 2] });
+    await queryInterface.bulkDelete("mesas", { id: 4 });
+    await queryInterface.bulkDelete("usuarios", { legajo: "1001" });
   },
 };

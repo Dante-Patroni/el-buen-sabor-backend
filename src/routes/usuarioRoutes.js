@@ -1,29 +1,26 @@
 // src/routes/usuarioRoutes.js
 const express = require("express");
 const router = express.Router();
- 
+
 const UsuarioController = require("../controllers/usuarioController");
 const SequelizeUsuarioRepository = require("../repositories/sequelize/sequelizeUsuarioRepository");
 const UsuarioService = require("../services/usuarioService");
 const authMiddleware = require("../middlewares/authMiddleware");
-const { soloRoles } = require("../middlewares/roleMiddleware");
-const { limitadorLogin } = require("../middlewares/rateLimitMiddleware"); // 🆕
- 
+const { soloPermisos } = require("../middlewares/roleMiddleware"); // 🆕
+const { limitadorLogin } = require("../middlewares/rateLimitMiddleware");
+
 // Composicion de dependencias (DI manual): Router -> Controller -> Service -> Repository.
 const usuarioRepository = new SequelizeUsuarioRepository();
 const usuarioService = new UsuarioService(usuarioRepository);
 const usuarioController = new UsuarioController(usuarioService);
- 
-// Middleware de autorizacion por rol para endpoints ABM.
-const soloAdmin = soloRoles("admin");
- 
+
 /**
  * @swagger
  * tags:
  *   name: Usuarios
  *   description: Gestión de usuarios del sistema
  */
- 
+
 /**
  * @swagger
  * /api/usuarios/login:
@@ -44,53 +41,51 @@ const soloAdmin = soloRoles("admin");
  *       429:
  *         description: Demasiados intentos, bloqueado temporalmente
  */
-// 🔒 limitadorLogin aplicado ANTES del controlador
 router.post("/login", limitadorLogin, usuarioController.login);
 
 /**
  * @swagger
  * /api/usuarios:
  *   get:
- *     summary: Lista usuarios (solo admin)
+ *     summary: Lista usuarios
  *     tags: [Usuarios]
  */
-// A partir de aca, todas son rutas protegidas y solo para admin.
-router.get("/", authMiddleware, soloAdmin, usuarioController.listar);
+router.get("/", authMiddleware, soloPermisos("USUARIO_VER"), usuarioController.listar);
 
 /**
  * @swagger
  * /api/usuarios/{id}:
  *   get:
- *     summary: Obtiene un usuario por ID (solo admin)
+ *     summary: Obtiene un usuario por ID
  *     tags: [Usuarios]
  */
-router.get("/:id", authMiddleware, soloAdmin, usuarioController.obtenerPorId);
+router.get("/:id", authMiddleware, soloPermisos("USUARIO_VER"), usuarioController.obtenerPorId);
 
 /**
  * @swagger
  * /api/usuarios:
  *   post:
- *     summary: Crea un usuario (solo admin)
+ *     summary: Crea un usuario
  *     tags: [Usuarios]
  */
-router.post("/", authMiddleware, soloAdmin, usuarioController.crear);
+router.post("/", authMiddleware, soloPermisos("USUARIO_CREAR"), usuarioController.crear);
 
 /**
  * @swagger
  * /api/usuarios/{id}:
  *   put:
- *     summary: Actualiza un usuario (solo admin)
+ *     summary: Actualiza un usuario
  *     tags: [Usuarios]
  */
-router.put("/:id", authMiddleware, soloAdmin, usuarioController.actualizar);
+router.put("/:id", authMiddleware, soloPermisos("USUARIO_MODIFICAR"), usuarioController.actualizar);
 
 /**
  * @swagger
  * /api/usuarios/{id}:
  *   delete:
- *     summary: Baja lógica de usuario (solo admin)
+ *     summary: Baja lógica de usuario
  *     tags: [Usuarios]
  */
-router.delete("/:id", authMiddleware, soloAdmin, usuarioController.eliminar);
+router.delete("/:id", authMiddleware, soloPermisos("USUARIO_ELIMINAR"), usuarioController.eliminar);
 
 module.exports = router;

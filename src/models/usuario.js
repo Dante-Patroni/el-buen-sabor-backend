@@ -13,9 +13,15 @@ module.exports = (sequelize, DataTypes) => {
         as: "mesasAsignadas",
       });
 
+      // =========================
+      // Usuario -> Roles
+      // =========================
+      Usuario.belongsTo(models.Rol, {
+        foreignKey: "rolId",
+        as: "rol",
+      });
     }
   }
-
   Usuario.init(
     {
       nombre: {
@@ -39,15 +45,10 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
       },
 
-      rol: {
-        type: DataTypes.ENUM(
-          "admin",
-          "mozo",
-          "cocinero",
-          "cajero"
-        ),
+      rolId: {
+        type: DataTypes.INTEGER,
         allowNull: false,
-        defaultValue: "mozo",
+        field: "rol_id",
       },
 
       activo: {

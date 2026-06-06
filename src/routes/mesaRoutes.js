@@ -1,17 +1,15 @@
 const express = require("express");
 const router = express.Router();
 
-// 1. Importamos Clases
 const MesaService = require("../services/mesaService");
 const FacturacionService = require("../services/facturacionService");
 const MesaController = require("../controllers/mesaController");
 const authMiddleware = require("../middlewares/authMiddleware");
+const { soloPermisos } = require("../middlewares/roleMiddleware"); // 🆕
 const SequelizeMesaRepository = require("../repositories/sequelize/sequelizeMesaRepository");
 const SequelizePedidoRepository = require("../repositories/sequelize/sequelizePedidoRepository");
 const pedidoEmitter = require("../events/pedidoEvents");
 
-
-// 1. Instanciamos Repositorio
 const mesaRepository = new SequelizeMesaRepository();
 const pedidoRepository = new SequelizePedidoRepository();
 const facturacionService = new FacturacionService(pedidoRepository);
@@ -32,17 +30,14 @@ const mesaController = new MesaController(mesaService);
  *       properties:
  *         id:
  *           type: integer
- *           description: ID único de la mesa
  *         numero:
  *           type: string
- *           description: Número o nombre visual de la mesa
  *         estado:
  *           type: string
  *           enum: [libre, ocupada]
  *         totalActual:
  *           type: number
  *           format: float
- *           description: Monto acumulado de los pedidos
  *         mozo:
  *           type: object
  *           properties:
@@ -65,43 +60,26 @@ const mesaController = new MesaController(mesaService);
  * /api/mesas:
  *   get:
  *     summary: Obtiene el estado actual de todas las mesas
+ *     tags: [Mesas]
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Lista de mesas obtenida correctamente
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   id:
- *                     type: integer
- *                     example: 4
- *                   nombre:
- *                     type: string
- *                     example: "Mesa 4"
- *                   estado:
- *                     type: string
- *                     enum: [libre, ocupada]
- *                     example: "ocupada"
- *                   totalActual:
- *                     type: number
- *                     description: Total acumulado en la mesa
- *                     example: 1500.00
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Sin permisos
  *       500:
  *         description: Error al obtener las mesas
  */
+router.get("/", authMiddleware, soloPermisos("MESA_VER"), mesaController.listar);
 
-// Definimos la ruta GET raíz (/)
-// Esto responderá cuando alguien llame a: http://localhost:3000/api/mesas
-router.get("/", authMiddleware, mesaController.listar);
 /**
  * @swagger
  * /api/mesas/{id}/abrir:
  *   post:
  *     summary: Ocupa una mesa y asigna un mozo
- *     description: Cambia el estado de la mesa a 'ocupada' y guarda la relación con el Mozo.
  *     tags: [Mesas]
  *     security:
  *       - bearerAuth: []
@@ -123,35 +101,28 @@ router.get("/", authMiddleware, mesaController.listar);
  *             properties:
  *               idMozo:
  *                 type: integer
- *                 description: ID del usuario (Mozo) que abre la mesa
  *                 example: 5
  *     responses:
  *       200:
  *         description: Mesa abierta exitosamente
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Mesa abierta con éxito"
- *                 mesa:
- *                   $ref: '#/components/schemas/Mesa'
  *       400:
- *         description: Datos faltantes (idMozo) o mesa ya ocupada
+ *         description: Datos faltantes o mesa ya ocupada
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Sin permisos
  *       404:
  *         description: Mesa no encontrada
  *       500:
  *         description: Error en el servidor
  */
-router.post("/:id/abrir", authMiddleware, mesaController.abrirMesa);
+router.post("/:id/abrir", authMiddleware, soloPermisos("MESA_ABRIR"), mesaController.abrirMesa);
+
 /**
  * @swagger
  * /api/mesas/{id}/cerrar:
  *   post:
  *     summary: Cierra una mesa y libera su estado
- *     description: Cambia el estado de la mesa a 'libre', borra el mozo asignado y devuelve el total cobrado.
  *     tags: [Mesas]
  *     security:
  *       - bearerAuth: []
@@ -165,33 +136,46 @@ router.post("/:id/abrir", authMiddleware, mesaController.abrirMesa);
  *     responses:
  *       200:
  *         description: Mesa cerrada correctamente
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Mesa cerrada con éxito"
- *                 mesaId:
- *                   type: integer
- *                   example: 4
- *                 totalCobrado:
- *                   type: number
- *                   example: 2500.75
  *       400:
  *         description: La mesa ya está libre
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Sin permisos
  *       404:
  *         description: Mesa no encontrada
  *       500:
  *         description: Error en el servidor
  */
-router.post("/:id/cerrar", authMiddleware, mesaController.cerrarMesa);
+router.post("/:id/cerrar", authMiddleware, soloPermisos("MESA_CERRAR"), mesaController.cerrarMesa);
 
-router.post(
-  "/:id/solicitar-cobro",
-  authMiddleware,
-  mesaController.solicitarCobro
-);
+/**
+ * @swagger
+ * /api/mesas/{id}/solicitar-cobro:
+ *   post:
+ *     summary: El mozo solicita el cobro de una mesa
+ *     tags: [Mesas]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID de la mesa
+ *     responses:
+ *       200:
+ *         description: Cobro solicitado correctamente
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Sin permisos
+ *       404:
+ *         description: Mesa no encontrada
+ *       500:
+ *         description: Error en el servidor
+ */
+router.post("/:id/solicitar-cobro", authMiddleware, soloPermisos("SOLICITAR_COBRO"), mesaController.solicitarCobro);
 
 module.exports = router;

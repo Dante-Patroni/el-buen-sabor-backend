@@ -1,24 +1,54 @@
- const { manejarErrorHttp } = require("../controllers/errorMapper");
+// src/middlewares/roleMiddleware.js
+const { manejarErrorHttp } = require("../controllers/errorMapper");
 
 /**
- * @description Crea un middleware que permite el acceso solo a ciertos roles.
- * @param {...string} rolesPermitidos - Roles autorizados para la ruta.
- * @returns {import("express").RequestHandler} Middleware de autorización por rol.
+ * @description Fábrica de middleware que verifica si el usuario autenticado
+ * posee al menos uno de los permisos requeridos.
+ *
+ * Los permisos vienen del JWT decodificado por authMiddleware (req.usuario.permisos).
+ *
+ * @param {...string} permisosRequeridos - Uno o más códigos de permiso (ej: "PLATO_CREAR", "USUARIO_VER").
+ * @returns {import("express").RequestHandler} Middleware de autorización.
+ *
+ * @example
+ * // Requiere exactamente este permiso:
+ * router.post("/", authMiddleware, soloPermisos("PLATO_CREAR"), controller.crear);
+ *
+ * @example
+ * // Requiere cualquiera de estos permisos:
+ * router.get("/", authMiddleware, soloPermisos("PLATO_VER", "USUARIO_VER"), controller.listar);
  */
-const soloRoles = (...rolesPermitidos) => {
+const soloPermisos = (...permisosRequeridos) => {
   return (req, res, next) => {
-    if (!req.usuario) {
-      return manejarErrorHttp(new Error("NO_AUTORIZADO"), res);
-    }
+    const permisosUsuario = req.usuario?.permisos ?? [];
 
-    if (!rolesPermitidos.includes(req.usuario.rol)) {
-      return manejarErrorHttp(new Error("SOLO_ROL_PERMITIDO"), res);
+    const tienePermiso = permisosRequeridos.some((permiso) =>
+      permisosUsuario.includes(permiso)
+    );
+
+    if (!tienePermiso) {
+      return manejarErrorHttp(new Error("PROHIBIDO"), res);
     }
 
     next();
   };
 };
 
-module.exports = {
-  soloRoles,
+/**
+ * @description Conservado por compatibilidad con rutas existentes.
+ * Preferir `soloPermisos` para nuevas rutas.
+ * @deprecated Usar soloPermisos en su lugar.
+ */
+const soloRoles = (...roles) => {
+  return (req, res, next) => {
+    const rolUsuario = req.usuario?.rol;
+
+    if (!roles.includes(rolUsuario)) {
+      return manejarErrorHttp(new Error("PROHIBIDO"), res);
+    }
+
+    next();
+  };
 };
+
+module.exports = { soloPermisos, soloRoles };

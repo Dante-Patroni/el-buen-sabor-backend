@@ -1,13 +1,12 @@
 const express = require('express');
 const router = express.Router();
 
-
 const SequelizeRubroRepository = require("../repositories/sequelize/sequelizeRubroRepository");
 const RubroService = require("../services/rubroService");
 const RubroController = require('../controllers/rubroController');
 const authMiddleware = require("../middlewares/authMiddleware");
+const { soloPermisos } = require("../middlewares/roleMiddleware"); // 🆕
 
-// 👇 INYECCIÓN CORRECTA
 const rubroRepository = new SequelizeRubroRepository();
 const rubroService = new RubroService(rubroRepository);
 const rubroController = new RubroController(rubroService);
@@ -19,12 +18,11 @@ const rubroController = new RubroController(rubroService);
  *   description: Gestión de categorías del menú
  */
 
-
 /**
  * @swagger
  * /api/rubros:
  *   get:
- *     summary: Obtener el árbol jerárquico de rubros
+ *     summary: Obtener el árbol jerárquico de rubros (público)
  *     tags: [Rubros]
  *     responses:
  *       200:
@@ -32,15 +30,17 @@ const rubroController = new RubroController(rubroService);
  *       500:
  *         description: Error interno del servidor
  */
+// GET público — el árbol de rubros lo necesita el frontend sin auth
 router.get('/', rubroController.listarJerarquia);
-
 
 /**
  * @swagger
  * /api/rubros:
  *   post:
- *     summary: Crear un nuevo rubro o reactivarlo
+ *     summary: Crear un nuevo rubro
  *     tags: [Rubros]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -60,13 +60,16 @@ router.get('/', rubroController.listarJerarquia);
  *     responses:
  *       201:
  *         description: Rubro creado correctamente
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Sin permisos
  *       400:
  *         description: Error de validación
  *       500:
  *         description: Error interno
  */
-router.post('/', rubroController.crear);
-
+router.post('/', authMiddleware, soloPermisos("RUBRO_CREAR"), rubroController.crear);
 
 /**
  * @swagger
@@ -74,6 +77,8 @@ router.post('/', rubroController.crear);
  *   put:
  *     summary: Actualizar un rubro existente
  *     tags: [Rubros]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -98,6 +103,10 @@ router.post('/', rubroController.crear);
  *     responses:
  *       200:
  *         description: Rubro actualizado correctamente
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Sin permisos
  *       400:
  *         description: Error de validación
  *       404:
@@ -105,8 +114,7 @@ router.post('/', rubroController.crear);
  *       500:
  *         description: Error interno
  */
-router.put('/:id', rubroController.actualizar);
-
+router.put('/:id', authMiddleware, soloPermisos("RUBRO_MODIFICAR"), rubroController.actualizar);
 
 /**
  * @swagger
@@ -114,6 +122,8 @@ router.put('/:id', rubroController.actualizar);
  *   delete:
  *     summary: Eliminar lógicamente un rubro
  *     tags: [Rubros]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -123,6 +133,10 @@ router.put('/:id', rubroController.actualizar);
  *     responses:
  *       204:
  *         description: Rubro eliminado correctamente
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Sin permisos
  *       400:
  *         description: No se puede eliminar
  *       404:
@@ -130,6 +144,6 @@ router.put('/:id', rubroController.actualizar);
  *       500:
  *         description: Error interno
  */
-router.delete('/:id', rubroController.eliminar);
+router.delete('/:id', authMiddleware, soloPermisos("RUBRO_ELIMINAR"), rubroController.eliminar);
 
 module.exports = router;

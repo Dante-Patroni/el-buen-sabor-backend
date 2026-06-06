@@ -5,9 +5,9 @@ const SequelizePlatoRepository = require("../repositories/sequelize/sequelizePla
 const PlatoService = require("../services/platoService");
 const PlatoController = require("../controllers/platoController");
 const authMiddleware = require("../middlewares/authMiddleware");
+const { soloPermisos } = require("../middlewares/roleMiddleware"); // 🆕
 const { upload, manejarErroresUpload } = require("../middlewares/upload");
 
-// 👇 INYECCIÓN CORRECTA
 const platoRepository = new SequelizePlatoRepository();
 const platoService = new PlatoService(platoRepository);
 const platoController = new PlatoController(platoService);
@@ -23,14 +23,34 @@ const platoController = new PlatoController(platoService);
  * @swagger
  * /api/platos:
  *   get:
- *     summary: Obtiene el menú completo
+ *     summary: Obtiene el menú completo (público)
  *     tags: [Platos]
  *     responses:
  *       200:
  *         description: Lista de platos
  */
-// GET: Listar (Público)
+// GET público — no requiere auth (el menú lo pueden ver todos)
 router.get("/", (req, res) => platoController.listarMenuCompleto(req, res));
+
+/**
+ * @swagger
+ * /api/platos/{id}:
+ *   get:
+ *     summary: Obtiene un plato por ID (público)
+ *     tags: [Platos]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Plato encontrado
+ *       404:
+ *         description: Plato no encontrado
+ */
+router.get("/:id", (req, res) => platoController.buscarPorId(req, res));
 
 /**
  * @swagger
@@ -58,33 +78,20 @@ router.get("/", (req, res) => platoController.listarMenuCompleto(req, res));
  *     responses:
  *       201:
  *         description: Plato creado exitosamente
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Sin permisos
  */
-// POST: Crear (Privado - Requiere Token) - 🚨 AQUÍ ESTABA EL FALTANTE
-router.post("/", /*authMiddleware*/ (req, res) => platoController.crearNuevoProducto(req, res));
-/**
- * @swagger
- * /api/platos/{id}:
- *   get:
- *     summary: Obtiene un plato por ID
- *     tags: [Platos]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *     responses:
- *       200:
- *         description: Plato encontrado
- *       404:
- *         description: Plato no encontrado
- */
-router.get("/:id", (req, res) => platoController.buscarPorId(req, res));
+router.post("/", authMiddleware, soloPermisos("PLATO_CREAR"), (req, res) =>
+  platoController.crearNuevoProducto(req, res)
+);
+
 /**
  * @swagger
  * /api/platos/{id}:
  *   put:
- *     summary: Editar un plato (Precio, Menú del día)
+ *     summary: Editar un plato
  *     tags: [Platos]
  *     security:
  *       - bearerAuth: []
@@ -94,22 +101,17 @@ router.get("/:id", (req, res) => platoController.buscarPorId(req, res));
  *         required: true
  *         schema:
  *           type: integer
- *     requestBody:
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               precio:
- *                 type: number
- *               esMenuDelDia:
- *                 type: boolean
  *     responses:
  *       200:
  *         description: Plato actualizado
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Sin permisos
  */
-// PUT: Editar (Privado - Requiere Token)
-router.put("/:id", /*authMiddleware*/ (req, res) => platoController.modificarProducto(req, res));
+router.put("/:id", authMiddleware, soloPermisos("PLATO_MODIFICAR"), (req, res) =>
+  platoController.modificarProducto(req, res)
+);
 
 /**
  * @swagger
@@ -123,30 +125,23 @@ router.put("/:id", /*authMiddleware*/ (req, res) => platoController.modificarPro
  *       - in: path
  *         name: id
  *         required: true
- *         description: ID del plato a eliminar
  *         schema:
  *           type: integer
  *     responses:
  *       200:
  *         description: Plato eliminado correctamente
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 mensaje:
- *                   type: string
- *                   example: Plato eliminado correctamente
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Sin permisos
  *       404:
  *         description: Plato no encontrado
  *       500:
  *         description: Error interno del servidor
  */
-router.delete("/:id", /*authMiddleware*/ (req, res) =>
+router.delete("/:id", authMiddleware, soloPermisos("PLATO_ELIMINAR"), (req, res) =>
   platoController.eliminarProducto(req, res)
 );
-
-
 
 /**
  * @swagger
@@ -174,11 +169,16 @@ router.delete("/:id", /*authMiddleware*/ (req, res) =>
  *     responses:
  *       200:
  *         description: Imagen subida correctamente
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Sin permisos
  */
-// POST Imagen: Subir foto (Privado)
 router.post(
   "/:id/imagen",
-  /*authMiddleware*/ upload.single("imagen"),
+  authMiddleware,
+  soloPermisos("PLATO_MODIFICAR"),
+  upload.single("imagen"),
   manejarErroresUpload,
   (req, res) => platoController.cargarImagenProducto(req, res)
 );
