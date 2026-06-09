@@ -24,7 +24,7 @@ module.exports = {
       // ================================
       // ROL 2 — admin
       // ================================
-      { rol_id: 2, permiso_id: 2  }, // PEDIDO_VER
+      { rol_id: 2, permiso_id: 2 }, // PEDIDO_VER
       { rol_id: 2, permiso_id: 12 }, // PLATO_CREAR
       { rol_id: 2, permiso_id: 13 }, // PLATO_VER
       { rol_id: 2, permiso_id: 14 }, // PLATO_MODIFICAR
@@ -42,26 +42,27 @@ module.exports = {
       // ================================
       // ROL 3 — cajero
       // ================================
-      { rol_id: 3, permiso_id: 2  }, // PEDIDO_VER
-      { rol_id: 3, permiso_id: 6  }, // MESA_VER
-      { rol_id: 3, permiso_id: 9  }, // MESA_CERRAR
+      { rol_id: 3, permiso_id: 2 }, // PEDIDO_VER
+      { rol_id: 3, permiso_id: 6 }, // MESA_VER
+      { rol_id: 3, permiso_id: 9 }, // MESA_CERRAR
       { rol_id: 3, permiso_id: 10 }, // TICKET_VER
       { rol_id: 3, permiso_id: 11 }, // MESA_COBRAR
 
       // ================================
       // ROL 4 — cocinero
       // ================================
-      { rol_id: 4, permiso_id: 2  }, // PEDIDO_VER
+      { rol_id: 4, permiso_id: 2 }, // PEDIDO_VER
+      { rol_id: 4, permiso_id: 5 }, // PEDIDO_CAMBIAR_ESTADO
       { rol_id: 4, permiso_id: 13 }, // PLATO_VER
 
       // ================================
       // ROL 5 — mozo
       // ================================
-      { rol_id: 5, permiso_id: 1  }, // PEDIDO_CREAR
-      { rol_id: 5, permiso_id: 2  }, // PEDIDO_VER
-      { rol_id: 5, permiso_id: 6  }, // MESA_VER
-      { rol_id: 5, permiso_id: 7  }, // MESA_ABRIR
-      { rol_id: 5, permiso_id: 8  }, // SOLICITAR_COBRO
+      { rol_id: 5, permiso_id: 1 }, // PEDIDO_CREAR
+      { rol_id: 5, permiso_id: 2 }, // PEDIDO_VER
+      { rol_id: 5, permiso_id: 6 }, // MESA_VER
+      { rol_id: 5, permiso_id: 7 }, // MESA_ABRIR
+      { rol_id: 5, permiso_id: 8 }, // SOLICITAR_COBRO
     ]);
   },
 

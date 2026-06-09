@@ -28,6 +28,8 @@ class UsuarioService {
     const usuario = await this.usuarioRepository.buscarPorLegajo(
       legajoNormalizado
     );
+    console.log("LOGIN:", legajoNormalizado);
+    console.log("USUARIO:", usuario);
 
     if (!usuario) {
       throw new Error("CREDENCIALES_INVALIDAS");
@@ -58,9 +60,12 @@ class UsuarioService {
         permisos,
         nombre: usuario.nombre,
       },
+      
       JWT_SECRET,
       { expiresIn: "8h" }
+      
     );
+
 
     return {
       status: 200,
