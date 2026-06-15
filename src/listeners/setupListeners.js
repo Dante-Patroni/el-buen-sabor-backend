@@ -14,8 +14,10 @@ const setupListeners = (io) => {
   if (io) {
     io.use((socket, next) => {
       // Extraemos el token del handshake (enviado desde el cliente)
-      const token = socket.handshake.auth.token;
-
+      const token =
+    socket.handshake.auth?.token ||
+    socket.handshake.headers?.authorization?.replace('Bearer ', '');
+  console.log("TOKEN RECIBIDO:", token ? "SI" : "NO");
       if (!token) {
         console.error("SOCKET: Intento de conexión sin token.");
         return next(new Error("NO_AUTH"));
@@ -28,7 +30,7 @@ const setupListeners = (io) => {
         // Adjuntamos los datos del usuario al socket para uso futuro
         socket.usuario = decoded;
         
-        console.log(`SOCKET: Usuario ${decoded.id || 'desconocido'} autenticado exitosamente.`);
+        console.log(`SOCKET: Usuario ${decoded.sub || decoded.id || 'desconocido'} autenticado exitosamente.`);
         next();
       } catch (error) {
         console.error("SOCKET: Token inválido o expirado.");
@@ -94,7 +96,19 @@ const setupListeners = (io) => {
     console.log("----------------------------------------------------");
   });
 
-  console.log("Sistema de eventos: listeners activados y protegidos con JWT");
+  pedidoEmitter.on("pedido-estado-actualizado", (data) => {
+  console.log("----------------------------------------------------");
+  console.log(
+    `📡 SOCKET.IO -> pedido-estado-actualizado: Pedido ${data.pedidoId}`
+  );
+
+  if (io) {
+    io.emit("pedido-estado-actualizado", data);
+  }
+
+  console.log("----------------------------------------------------");
+});
+console.log("Sistema de eventos: listeners activados y protegidos con JWT");
 };
 
 module.exports = setupListeners;

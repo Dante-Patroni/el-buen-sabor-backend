@@ -9,6 +9,7 @@ describe("CocinaController", () => {
   beforeEach(() => {
     pedidoServiceMock = {
       obtenerPedidosParaCocina: jest.fn(),
+      actualizarEstadoPedido: jest.fn(),
     };
 
     cocinaController = new CocinaController(pedidoServiceMock);
@@ -129,7 +130,7 @@ describe("CocinaController", () => {
     await cocinaController.listarPendientes(req, res);
 
     expect(res.status).toHaveBeenCalledWith(200);
-    
+
     const response = res.json.mock.calls[0][0];
     expect(response.cantidad).toBe(1);
     expect(response.data[0].items).toHaveLength(4);
@@ -138,5 +139,74 @@ describe("CocinaController", () => {
       cantidad: 2,
       aclaracion: "A punto"
     });
+  });
+
+  // --------------------------------------------------
+  // cambiarEstado
+  // --------------------------------------------------
+  test("cambiarEstado: responde 200 con ok:true cuando la transición es válida", async () => {
+    req.params = { id: "12" };
+    req.body = { estado: "en_preparacion" };
+    pedidoServiceMock.actualizarEstadoPedido.mockResolvedValue(true);
+
+    await cocinaController.cambiarEstado(req, res);
+
+    expect(pedidoServiceMock.actualizarEstadoPedido).toHaveBeenCalledWith("12", "en_preparacion");
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith({
+      ok: true,
+      msg: "Estado del pedido #12 actualizado a 'en_preparacion'",
+    });
+  });
+
+  test("cambiarEstado: responde 400 si falta el campo estado", async () => {
+    req.params = { id: "12" };
+    req.body = {};
+
+    await cocinaController.cambiarEstado(req, res);
+
+    expect(pedidoServiceMock.actualizarEstadoPedido).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({
+      ok: false,
+      msg: "El campo 'estado' es requerido",
+    });
+  });
+
+  test("cambiarEstado: mapea TRANSICION_ESTADO_INVALIDA a 400", async () => {
+    req.params = { id: "12" };
+    req.body = { estado: "pagado" };
+    pedidoServiceMock.actualizarEstadoPedido.mockRejectedValue(
+      new Error("TRANSICION_ESTADO_INVALIDA")
+    );
+
+    await cocinaController.cambiarEstado(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ error: "TRANSICION_ESTADO_INVALIDA" });
+  });
+
+  test("cambiarEstado: mapea PEDIDO_NO_ENCONTRADO a 404", async () => {
+    req.params = { id: "999" };
+    req.body = { estado: "listo" };
+    pedidoServiceMock.actualizarEstadoPedido.mockRejectedValue(
+      new Error("PEDIDO_NO_ENCONTRADO")
+    );
+
+    await cocinaController.cambiarEstado(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(404);
+    expect(res.json).toHaveBeenCalledWith({ error: "PEDIDO_NO_ENCONTRADO" });
+  });
+
+  test("cambiarEstado: responde 500 para error no controlado", async () => {
+    req.params = { id: "12" };
+    req.body = { estado: "listo" };
+    pedidoServiceMock.actualizarEstadoPedido.mockRejectedValue(new Error("ERROR_RARO"));
+
+    await cocinaController.cambiarEstado(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith({ error: "ERROR_INTERNO" });
   });
 });

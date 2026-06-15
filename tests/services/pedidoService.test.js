@@ -477,11 +477,13 @@ describe("obtenerPedidosParaCocina", () => {
   // TEST: ACTUALIZAR ESTADO
   // --------------------------------------------------
   describe("actualizarEstadoPedido", () => {
-    test("actualiza estado de pendiente a en_preparacion", async () => {
+    test("actualiza estado de pendiente a en_preparacion y emite evento con mesaId", async () => {
       const pedidoId = 123;
 
+      // ✅ El mock ahora incluye mesaId, que el service usa al emitir el evento
       const pedidoMock = {
         id: 123,
+        mesaId: 4,
         estado: "pendiente",
       };
 
@@ -505,11 +507,13 @@ describe("obtenerPedidosParaCocina", () => {
         expect.anything()
       );
 
+      // ✅ ACTUALIZADO: el service emite { pedidoId, mesaId, estado }
       expect(pedidoEmitterMock.emit)
         .toHaveBeenCalledWith(
           "pedido-estado-actualizado",
           {
             pedidoId,
+            mesaId: 4,
             estado: "en_preparacion",
           }
         );
@@ -517,25 +521,72 @@ describe("obtenerPedidosParaCocina", () => {
       expect(resultado).toBe(true);
     });
 
-    test("impide actualizar a pagado directamente", async () => {
-      const pedidoId = 123;
+    test("actualiza estado de en_preparacion a listo", async () => {
+      const pedidoMock = { id: 50, mesaId: 2, estado: "en_preparacion" };
+      pedidoRepositoryMock.buscarPedidoPorId.mockResolvedValue(pedidoMock);
+      pedidoRepositoryMock.actualizarEstadoPedido.mockResolvedValue(true);
 
-      const pedidoMock = {
-        id: 123,
-        estado: "pendiente",
-      };
+      const resultado = await pedidoService.actualizarEstadoPedido(50, "listo");
 
-      pedidoRepositoryMock.buscarPedidoPorId
-        .mockResolvedValue(pedidoMock);
+      expect(pedidoRepositoryMock.actualizarEstadoPedido).toHaveBeenCalledWith(50, "listo", expect.anything());
+      expect(pedidoEmitterMock.emit).toHaveBeenCalledWith(
+        "pedido-estado-actualizado",
+        { pedidoId: 50, mesaId: 2, estado: "listo" }
+      );
+      expect(resultado).toBe(true);
+    });
+
+    test("lanza TRANSICION_ESTADO_INVALIDA para transición no permitida", async () => {
+      // pendiente → listo NO es válido (solo pendiente → en_preparacion)
+      const pedidoMock = { id: 123, mesaId: 4, estado: "pendiente" };
+      pedidoRepositoryMock.buscarPedidoPorId.mockResolvedValue(pedidoMock);
 
       await expect(
-        pedidoService.actualizarEstadoPedido(
-          pedidoId,
-          "pagado"
-        )
-      ).rejects.toThrow(
-        "ESTADO_PAGADO_SOLO_DESDE_CIERRE_DE_MESA"
-      );
+        pedidoService.actualizarEstadoPedido(123, "listo")
+      ).rejects.toThrow("TRANSICION_ESTADO_INVALIDA");
+
+      expect(pedidoRepositoryMock.actualizarEstadoPedido).not.toHaveBeenCalled();
+    });
+
+    test("lanza TRANSICION_ESTADO_INVALIDA para transición entregado a pendiente", async () => {
+      const pedidoMock = { id: 77, mesaId: 3, estado: "entregado" };
+      pedidoRepositoryMock.buscarPedidoPorId.mockResolvedValue(pedidoMock);
+
+      await expect(
+        pedidoService.actualizarEstadoPedido(77, "pendiente")
+      ).rejects.toThrow("TRANSICION_ESTADO_INVALIDA");
+    });
+
+    test("lanza PEDIDO_NO_ENCONTRADO si el pedido no existe", async () => {
+      pedidoRepositoryMock.buscarPedidoPorId.mockResolvedValue(null);
+
+      await expect(
+        pedidoService.actualizarEstadoPedido(999, "en_preparacion")
+      ).rejects.toThrow("PEDIDO_NO_ENCONTRADO");
+
+      expect(pedidoRepositoryMock.actualizarEstadoPedido).not.toHaveBeenCalled();
+    });
+
+    test("lanza NO_SE_PUEDE_MODIFICAR_PEDIDO_PAGADO si el pedido está pagado", async () => {
+      const pedidoMock = { id: 55, mesaId: 1, estado: "pagado" };
+      pedidoRepositoryMock.buscarPedidoPorId.mockResolvedValue(pedidoMock);
+
+      await expect(
+        pedidoService.actualizarEstadoPedido(55, "entregado")
+      ).rejects.toThrow("NO_SE_PUEDE_MODIFICAR_PEDIDO_PAGADO");
+
+      expect(pedidoRepositoryMock.actualizarEstadoPedido).not.toHaveBeenCalled();
+    });
+
+    test("impide actualizar a pagado directamente (solo desde cierre de mesa)", async () => {
+      const pedidoMock = { id: 123, mesaId: 4, estado: "pendiente" };
+      pedidoRepositoryMock.buscarPedidoPorId.mockResolvedValue(pedidoMock);
+
+      await expect(
+        pedidoService.actualizarEstadoPedido(123, "pagado")
+      ).rejects.toThrow("ESTADO_PAGADO_SOLO_DESDE_CIERRE_DE_MESA");
+
+      expect(pedidoRepositoryMock.actualizarEstadoPedido).not.toHaveBeenCalled();
     });
   });
 });

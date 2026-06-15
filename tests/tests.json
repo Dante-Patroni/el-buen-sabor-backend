@@ -40,7 +40,7 @@
         "header": [],
         "body": {
           "mode": "raw",
-          "raw": "{\r\n  \"legajo\": \"1001\",\r\n  \"password\": \"1234\"\r\n}",
+          "raw": "{\r\n  \"legajo\": \"ADMIN001\",\r\n  \"password\": \"admin123\"\r\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -784,7 +784,36 @@
       "response": []
     },
     {
-      "name": "13a. Cambiar estado",
+      "name": "13a. Cambiar estado (pendiente → en_preparacion)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "if (pm.response.code !== 200) { return; }",
+              "",
+              "pm.test(\"Respuesta confirma cambio de estado\", function () {",
+              "    const json = pm.response.json();",
+              "    pm.expect(json).to.have.property('mensaje');",
+              "    pm.expect(json.mensaje).to.include('actualizado');",
+              "});",
+              "",
+              "pm.test(\"Data contiene id y estado nuevo\", function () {",
+              "    const json = pm.response.json();",
+              "    pm.expect(json).to.have.property('data');",
+              "    pm.expect(json.data).to.have.property('id');",
+              "    pm.expect(json.data).to.have.property('estado');",
+              "    pm.expect(json.data.estado).to.eql('en_preparacion');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
       "request": {
         "auth": {
           "type": "bearer",
@@ -817,6 +846,235 @@
             "pedidos",
             "{{idPedidoActual}}",
             "estado"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "13b. Cambiar estado inválido (transición rechazada)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Transición inválida devuelve 400\", function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "if (pm.response.code !== 400) { return; }",
+              "",
+              "pm.test(\"Error indica transición inválida\", function () {",
+              "    const json = pm.response.json();",
+              "    pm.expect(json).to.have.property('error');",
+              "    pm.expect(json.error).to.be.oneOf([",
+              "        'TRANSICION_ESTADO_INVALIDA',",
+              "        'ESTADO_PAGADO_SOLO_DESDE_CIERRE_DE_MESA'",
+              "    ]);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_seguridad}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "PATCH",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"estado\": \"pagado\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/pedidos/{{idPedidoActual}}/estado",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "pedidos",
+            "{{idPedidoActual}}",
+            "estado"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "00a. Sin token → 401",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Sin token devuelve 401\", function () {",
+              "    pm.response.to.have.status(401);",
+              "});",
+              "",
+              "if (pm.response.code !== 401) { return; }",
+              "",
+              "pm.test(\"Error es NO_AUTORIZADO\", function () {",
+              "    const json = pm.response.json();",
+              "    pm.expect(json.error).to.eql('NO_AUTORIZADO');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/pedidos",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "pedidos"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "00b. Token inválido → 401",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Token inválido devuelve 401\", function () {",
+              "    pm.response.to.have.status(401);",
+              "});",
+              "",
+              "if (pm.response.code !== 401) { return; }",
+              "",
+              "pm.test(\"Error es TOKEN_INVALIDO\", function () {",
+              "    const json = pm.response.json();",
+              "    pm.expect(json.error).to.eql('TOKEN_INVALIDO');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "token_invalido_falso",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/pedidos",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "pedidos"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "14a. Solicitar Cobro",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Respuesta válida del servidor\", function () {\r",
+              "    pm.expect(pm.response.code).to.be.oneOf([200, 400, 500]);\r",
+              "});\r",
+              "\r",
+              "if (pm.response.code === 200) {\r",
+              "\r",
+              "    pm.test(\"Mesa cerrada correctamente\", function () {\r",
+              "        const json = pm.response.json();\r",
+              "\r",
+              "        pm.expect(json).to.have.property(\"mesaId\");\r",
+              "        pm.expect(json).to.have.property(\"totalCobrado\");\r",
+              "\r",
+              "        pm.expect(json.mesaId).to.be.a(\"number\");\r",
+              "        pm.expect(json.totalCobrado).to.be.a(\"number\");\r",
+              "    });\r",
+              "\r",
+              "    console.log(\"✅ Mesa cerrada:\", pm.response.json());\r",
+              "}\r",
+              "\r",
+              "if (pm.response.code === 400) {\r",
+              "\r",
+              "    pm.test(\"Error de negocio: mesa ya libre\", function () {\r",
+              "        const json = pm.response.json();\r",
+              "        pm.expect(json).to.have.property(\"error\");\r",
+              "        pm.expect(json.error).to.eql(\"MESA_YA_LIBRE\");\r",
+              "    });\r",
+              "\r",
+              "    console.warn(\"⚠️ La mesa ya estaba libre\");\r",
+              "}"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_seguridad}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/mesas/4/solicitar-cobro",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "mesas",
+            "4",
+            "solicitar-cobro"
           ]
         }
       },
@@ -1406,7 +1664,7 @@
         "header": [],
         "body": {
           "mode": "raw",
-          "raw": "{\r\n  \"nombre\": \"Usuario\",\r\n  \"apellido\": \"Prueba\",\r\n  \"legajo\": \"UT{{$timestamp}}\",\r\n  \"password\": \"1234\",\r\n  \"rol\": \"mozo\"\r\n}\r\n",
+          "raw": "{\r\n  \"nombre\": \"Usuario\",\r\n  \"apellido\": \"Prueba\",\r\n  \"legajo\": \"UT{{$timestamp}}\",\r\n  \"password\": \"1234\",\r\n  \"rolId\": 5\r\n}\r\n",
           "options": {
             "raw": {
               "language": "json"
@@ -1588,7 +1846,7 @@
         "header": [],
         "body": {
           "mode": "raw",
-          "raw": "{\r\n  \"apellido\": \"PruebaEditado\",\r\n  \"rol\": \"cajero\"\r\n}\r\n",
+          "raw": "{\r\n  \"apellido\": \"PruebaEditado\",\r\n  \"rolId\": 3\r\n}\r\n",
           "options": {
             "raw": {
               "language": "json"
@@ -1742,6 +2000,31 @@
         }
       },
       "response": []
+    },
+    {
+      "name": "listado usuarios",
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "method": "GET",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"legajo\": \"1001\",\r\n  \"password\": \"1234\"\r\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/usuarios",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "usuarios"
+          ]
+        }
+      },
+      "response": []
     }
   ],
   "event": [
@@ -1773,7 +2056,7 @@
     },
     {
       "key": "baseUrl",
-      "value": "https://template.postman-echo.com"
+      "value": "http://localhost:3000"
     },
     {
       "key": "mesa_test",

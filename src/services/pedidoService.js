@@ -223,51 +223,58 @@ class PedidoService {
    * @throws {Error} Codigos de validacion de estado o existencia.
    */
   async actualizarEstadoPedido(pedidoId, nuevoEstado) {
-    return await this.pedidoRepository.inTransaction(async (transaction) => {
-      if (!pedidoId) {
-        throw new Error("PEDIDO_ID_INVALIDO");
-      }
+  return await this.pedidoRepository.inTransaction(async (transaction) => {
+    if (!pedidoId) {
+      throw new Error("PEDIDO_ID_INVALIDO");
+    }
 
-      const pedido = await this.pedidoRepository.buscarPedidoPorId(pedidoId, transaction);
+    const pedido = await this.pedidoRepository.buscarPedidoPorId(pedidoId, transaction);
 
-      if (!pedido) {
-        throw new Error("PEDIDO_NO_ENCONTRADO");
-      }
+    if (!pedido) {
+      throw new Error("PEDIDO_NO_ENCONTRADO");
+    }
 
-      if (pedido.estado === "pagado") {
-        throw new Error("NO_SE_PUEDE_MODIFICAR_PEDIDO_PAGADO");
-      }
+    if (pedido.estado === "pagado") {
+      throw new Error("NO_SE_PUEDE_MODIFICAR_PEDIDO_PAGADO");
+    }
 
-      if (nuevoEstado === "pagado") {
-        throw new Error("ESTADO_PAGADO_SOLO_DESDE_CIERRE_DE_MESA");
-      }
+    if (nuevoEstado === "pagado") {
+      throw new Error("ESTADO_PAGADO_SOLO_DESDE_CIERRE_DE_MESA");
+    }
 
-      const transicionesValidas = {
-        pendiente: ["en_preparacion"],
-        en_preparacion: ["listo"],
-        listo: ["entregado"],
-        entregado: [],
-      };
+    const transicionesValidas = {
+      pendiente: ["en_preparacion"],
+      en_preparacion: ["listo"],
+      listo: ["entregado"],
+      entregado: [],
+    };
 
-      const estadosPermitidos = transicionesValidas[pedido.estado] || [];
+    const estadosPermitidos = transicionesValidas[pedido.estado] || [];
 
-      if (!estadosPermitidos.includes(nuevoEstado)) {
-        throw new Error("TRANSICION_ESTADO_INVALIDA");
-      }
+    if (!estadosPermitidos.includes(nuevoEstado)) {
+      throw new Error("TRANSICION_ESTADO_INVALIDA");
+    }
 
-      await this.pedidoRepository.actualizarEstadoPedido(pedidoId, nuevoEstado, transaction);
-      return { pedidoId, nuevoEstado };
-    }).then(({ pedidoId, nuevoEstado }) => {
+    await this.pedidoRepository.actualizarEstadoPedido(pedidoId, nuevoEstado, transaction);
+    
+    // 🔥 CORREGIDO: usar pedido.mesaId (no pedido.mesa_id)
+    const mesaId = pedido.mesaId;
+    
+    return { pedidoId, mesaId, nuevoEstado };
+  }).then(({ pedidoId, mesaId, nuevoEstado }) => {
 
-      // 🔔 Evento DESPUÉS de persistir
-      this.pedidoEmitter?.emit("pedido-estado-actualizado", {
-        pedidoId, estado: nuevoEstado
-      });
-
-      return true;
+    // 🔔 Evento DESPUÉS de persistir
+    this.pedidoEmitter?.emit("pedido-estado-actualizado", {
+      pedidoId: pedidoId,
+      mesaId: mesaId,        // ← Ahora llega 4, no undefined
+      estado: nuevoEstado
     });
-  }
+    
+    console.log(`📡 Evento emitido: pedido #${pedidoId} de mesa #${mesaId} -> ${nuevoEstado}`);
 
+    return true;
+  });
+}
   /**
    * @description Elimina fisicamente cabecera y detalles de un pedido dentro de una transaccion existente.
    * @param {number|string} pedidoId - Id del pedido.

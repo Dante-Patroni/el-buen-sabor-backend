@@ -11,7 +11,8 @@ describe("MesaController", () => {
       listar: jest.fn(),
       abrirMesa: jest.fn(),
       cerrarMesa: jest.fn(),
-      calcularTotalActual: jest.fn(), // ✅ NUEVO: agregar mock del método
+      calcularTotalActual: jest.fn(),
+      solicitarCobro: jest.fn(),
     };
 
     mesaController = new MesaController(mesaServiceMock);
@@ -163,5 +164,39 @@ describe("MesaController", () => {
 
     expect(res.status).toHaveBeenCalledWith(500);
     expect(res.json).toHaveBeenCalledWith({ error: "ERROR_INTERNO" });
+  });
+
+  // --------------------------------------------------
+  // solicitarCobro
+  // --------------------------------------------------
+  test("solicitarCobro: responde 200 con mensaje cuando el servicio confirma", async () => {
+    req.params = { id: "4" };
+    mesaServiceMock.solicitarCobro.mockResolvedValue({ mensaje: "Cobro solicitado correctamente" });
+
+    await mesaController.solicitarCobro(req, res);
+
+    expect(mesaServiceMock.solicitarCobro).toHaveBeenCalledWith("4");
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith({ mensaje: "Cobro solicitado correctamente" });
+  });
+
+  test("solicitarCobro: mapea MESA_NO_ENCONTRADA a 404", async () => {
+    req.params = { id: "99" };
+    mesaServiceMock.solicitarCobro.mockRejectedValue(new Error("MESA_NO_ENCONTRADA"));
+
+    await mesaController.solicitarCobro(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(404);
+    expect(res.json).toHaveBeenCalledWith({ error: "MESA_NO_ENCONTRADA" });
+  });
+
+  test("solicitarCobro: mapea MESA_YA_LIBRE a 400", async () => {
+    req.params = { id: "4" };
+    mesaServiceMock.solicitarCobro.mockRejectedValue(new Error("MESA_YA_LIBRE"));
+
+    await mesaController.solicitarCobro(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ error: "MESA_YA_LIBRE" });
   });
 });

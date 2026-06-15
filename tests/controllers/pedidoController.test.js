@@ -195,4 +195,66 @@ describe("PedidoController", () => {
     expect(res.status).toHaveBeenCalledWith(500);
     expect(res.json).toHaveBeenCalledWith({ error: "ERROR_INTERNO" });
   });
+
+  // --------------------------------------------------
+  // actualizarEstado
+  // --------------------------------------------------
+  test("actualizarEstado: responde 200 con mensaje y datos del estado actualizado", async () => {
+    req.params = { id: "10" };
+    req.body = { estado: "en_preparacion" };
+    pedidoServiceMock.actualizarEstadoPedido.mockResolvedValue(true);
+
+    await pedidoController.actualizarEstado(req, res);
+
+    expect(pedidoServiceMock.actualizarEstadoPedido).toHaveBeenCalledWith("10", "en_preparacion");
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith({
+      mensaje: "Estado del pedido actualizado exitosamente",
+      data: { id: "10", estado: "en_preparacion" },
+    });
+  });
+
+  test("actualizarEstado: mapea PEDIDO_NO_ENCONTRADO a 404", async () => {
+    req.params = { id: "999" };
+    req.body = { estado: "en_preparacion" };
+    pedidoServiceMock.actualizarEstadoPedido.mockRejectedValue(new Error("PEDIDO_NO_ENCONTRADO"));
+
+    await pedidoController.actualizarEstado(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(404);
+    expect(res.json).toHaveBeenCalledWith({ error: "PEDIDO_NO_ENCONTRADO" });
+  });
+
+  test("actualizarEstado: mapea TRANSICION_ESTADO_INVALIDA a 400", async () => {
+    req.params = { id: "10" };
+    req.body = { estado: "pagado" };
+    pedidoServiceMock.actualizarEstadoPedido.mockRejectedValue(new Error("TRANSICION_ESTADO_INVALIDA"));
+
+    await pedidoController.actualizarEstado(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ error: "TRANSICION_ESTADO_INVALIDA" });
+  });
+
+  test("actualizarEstado: mapea NO_SE_PUEDE_MODIFICAR_PEDIDO_PAGADO a 400", async () => {
+    req.params = { id: "10" };
+    req.body = { estado: "entregado" };
+    pedidoServiceMock.actualizarEstadoPedido.mockRejectedValue(new Error("NO_SE_PUEDE_MODIFICAR_PEDIDO_PAGADO"));
+
+    await pedidoController.actualizarEstado(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ error: "NO_SE_PUEDE_MODIFICAR_PEDIDO_PAGADO" });
+  });
+
+  test("actualizarEstado: responde 500 para error no controlado", async () => {
+    req.params = { id: "10" };
+    req.body = { estado: "en_preparacion" };
+    pedidoServiceMock.actualizarEstadoPedido.mockRejectedValue(new Error("ERROR_RARO"));
+
+    await pedidoController.actualizarEstado(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith({ error: "ERROR_INTERNO" });
+  });
 });

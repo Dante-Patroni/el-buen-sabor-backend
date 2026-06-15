@@ -1,3 +1,6 @@
+// JWT_SECRET debe existir ANTES de requerir el módulo que lo valida
+process.env.JWT_SECRET = "test_secret_jest";
+
 const jwt = require("jsonwebtoken");
 const authMiddleware = require("../../src/middlewares/authMiddleware");
 
@@ -53,7 +56,7 @@ describe("authMiddleware", () => {
 
     expect(jwt.verify).toHaveBeenCalledWith(
       "token_sin_prefijo",
-      process.env.JWT_SECRET || "ClaveSecretaDante123"
+      process.env.JWT_SECRET
     );
     expect(next).toHaveBeenCalledTimes(1);
   });
@@ -70,5 +73,29 @@ describe("authMiddleware", () => {
     expect(res.status).toHaveBeenCalledWith(401);
     expect(res.json).toHaveBeenCalledWith({ error: "TOKEN_INVALIDO" });
   });
-});
 
+  test("responde 401 TOKEN_INVALIDO si token está expirado", () => {
+    req.headers.authorization = "Bearer token_expirado";
+    jest.spyOn(jwt, "verify").mockImplementation(() => {
+      const err = new Error("jwt expired");
+      err.name = "TokenExpiredError";
+      throw err;
+    });
+
+    authMiddleware(req, res, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(res.json).toHaveBeenCalledWith({ error: "TOKEN_INVALIDO" });
+  });
+
+  test("extrae correctamente el token removiendo 'Bearer '", () => {
+    req.headers.authorization = "Bearer mi_token_real";
+    jest.spyOn(jwt, "verify").mockReturnValue({ id: 5, rol: "cajero" });
+
+    authMiddleware(req, res, next);
+
+    expect(jwt.verify).toHaveBeenCalledWith("mi_token_real", process.env.JWT_SECRET);
+    expect(req.usuario).toEqual({ id: 5, rol: "cajero" });
+  });
+});

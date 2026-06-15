@@ -25,7 +25,7 @@ if (!process.env.JWT_SECRET) {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ==========================================
+/*// ==========================================
 // 🛡️ 1. SEGURIDAD (CORS - Express)
 // ==========================================
 const whitelist = [
@@ -34,7 +34,8 @@ const whitelist = [
   "http://192.168.18.3:3000",
   "http://192.168.18.3",
   "http://127.0.0.1:5500",
-  "http://localhost:5173"      // ✅ Monitor de Cocina
+  "http://localhost:5173",     // ✅ Monitor de Flutter
+  "http://localhost:5174"      // ✅ Monitor de Cocina
 ];
 
 const corsOptions = {
@@ -65,7 +66,30 @@ const io = new Server(server, {
     methods: ["GET", "POST"]
   }
 });
+*/
 
+// ==========================================
+// 🛡️ 1. SEGURIDAD (CORS) - VERSIÓN PARA DESARROLLO
+// ==========================================
+// 🔥 Configuración permisiva para desarrollo
+app.use(cors({
+  origin: true,  // Permite cualquier origen
+  credentials: true
+}));
+app.use(express.json());
+
+// ==========================================
+// 📡 2. CONFIGURACIÓN WEBSOCKETS
+// ==========================================
+const server = http.createServer(app);
+
+const io = new Server(server, {
+  cors: {
+    origin: "*",  // Socket.IO permite todos
+    methods: ["GET", "POST"],
+    credentials: true
+  }
+});
 // ==========================================
 // 📂 3. RUTAS
 // ==========================================
@@ -98,7 +122,13 @@ const startServer = async () => {
     //if (process.env.NODE_ENV === "development") {
     // await seedDatabase();
     //}
+io.on("connection", (socket) => {
+  console.log("🟢 NUEVO SOCKET:", socket.id);
 
+  socket.on("disconnect", () => {
+    console.log("🔴 SOCKET DESCONECTADO:", socket.id);
+  });
+});
     // 👇 Eventos Socket.IO
     setupListeners(io);
 
